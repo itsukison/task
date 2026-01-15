@@ -82,6 +82,8 @@ export interface TaskListProps {
     onTaskClick: (task: Task) => void;
     onUpdateTask: (task: Task) => void;
     onAddTask: () => void;
+    onDeleteTask: (taskId: string) => void;
+    onDuplicateTask?: (taskId: string) => void;
     onDragStart: (taskId: string | null) => void;
 }
 
