@@ -3,25 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, User, CheckCircle2, Sparkles, Play, Pause, MoreHorizontal, Calendar, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { Database } from '@/lib/database.types';
-
-type TaskStatus = Database['public']['Enums']['task_status'];
-
-interface Task {
-    id: string;
-    title: string;
-    description: string | null;
-    status: TaskStatus;
-    expectedTime: number;
-    actualTime: number;
-    owner: string;
-}
-
-interface TaskModalProps {
-    task: Task | null;
-    onClose: () => void;
-    onUpdate: (updatedTask: Task) => void;
-}
+import { Task, TaskStatus, TaskModalProps } from '@/lib/types';
 
 export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
     const [editedTask, setEditedTask] = useState<Task | null>(task);
@@ -55,7 +37,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
     const getStatusColor = (status: TaskStatus) => {
         switch (status) {
             case 'planned': return 'bg-gray-100 text-gray-600';
-            case 'in_progress': return 'bg-blue-100 text-blue-700';
+            case 'in_progress': return 'bg-orange-100 text-orange-700';
             case 'overrun': return 'bg-red-100 text-red-700';
             case 'completed': return 'bg-green-100 text-green-700';
             default: return 'bg-gray-100 text-gray-600';
@@ -133,7 +115,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                                 <User size={16} /> Owner
                             </div>
                             <div className="flex-1 flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">JS</div>
+                                <div className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center text-[10px]">JS</div>
                                 <span className="text-sm text-[#37352F]">{editedTask.owner}</span>
                             </div>
                         </div>
@@ -162,8 +144,8 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                                 <button
                                     onClick={toggleTimer}
                                     className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors border ${isTimerRunning
-                                            ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                                         }`}
                                 >
                                     {isTimerRunning ? <><Pause size={12} /> Pause</> : <><Play size={12} /> Start Timer</>}
@@ -198,13 +180,13 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
 
                     <div className="mt-12 pt-8 border-t border-[#E9E9E7]">
                         <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs mt-1">JS</div>
+                            <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-xs mt-1">JS</div>
                             <div className="flex-1">
                                 <div className="border border-[#E9E9E7] rounded-md p-3 shadow-sm bg-white">
                                     <input type="text" placeholder="Add a comment..." className="w-full outline-none text-sm placeholder-gray-400" />
                                     <div className="flex justify-between items-center mt-2">
                                         <div className="text-xs text-gray-400">Pro tip: type @ to notify someone</div>
-                                        <button className="p-1 rounded hover:bg-blue-50 text-blue-600"><ArrowUpRight size={14} /></button>
+                                        <button className="p-1 rounded hover:bg-orange-50 text-accent"><ArrowUpRight size={14} /></button>
                                     </div>
                                 </div>
                             </div>

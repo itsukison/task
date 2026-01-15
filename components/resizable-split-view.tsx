@@ -107,19 +107,19 @@ export default function ResizableSplitView({
                 onMouseLeave={() => setIsHoveringDivider(false)}
             >
                 {/* Divider Line */}
-                <div className={`w-[2px] h-full transition-colors duration-300 ${isDragging || isHoveringDivider ? 'bg-blue-400' : 'bg-[#E9E9E7]'}`}></div>
+                <div className={`w-[2px] h-full transition-colors duration-300 ${isDragging || isHoveringDivider ? 'bg-accent' : 'bg-[#E9E9E7]'}`}></div>
 
                 {/* Collapse Buttons */}
                 <div className={`absolute top-0 left-1/2 -translate-x-1/2 flex items-center justify-center gap-0 opacity-0 group-hover/split:opacity-100 transition-opacity duration-200 ${isHoveringDivider ? 'opacity-100' : ''}`}>
                     <button
-                        className="text-gray-400 hover:text-blue-500 transition-colors p-0.5"
+                        className="text-gray-400 hover:text-accent transition-colors p-0.5"
                         onClick={(e) => { e.stopPropagation(); handleCollapseLeft(); }}
                         title="Collapse List"
                     >
                         <ChevronsLeft size={16} />
                     </button>
                     <button
-                        className="text-gray-400 hover:text-blue-500 transition-colors p-0.5"
+                        className="text-gray-400 hover:text-accent transition-colors p-0.5"
                         onClick={(e) => { e.stopPropagation(); handleCollapseRight(); }}
                         title="Collapse Calendar"
                     >

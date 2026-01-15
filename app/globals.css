@@ -24,6 +24,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -33,6 +34,7 @@
   from {
     transform: scale(0.95);
   }
+
   to {
     transform: scale(1);
   }
@@ -46,11 +48,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --accent: #DA7756;
+  --accent-light: #E89B7F;
+  --accent-dark: #C56644;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+  --color-accent: #DA7756;
+  --color-accent-light: #E89B7F;
+  --color-accent-dark: #C56644;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

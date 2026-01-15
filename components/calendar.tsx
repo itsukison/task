@@ -3,40 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { Clock, Trash2 } from 'lucide-react';
-import { Database } from '@/lib/database.types';
-
-type TaskStatus = Database['public']['Enums']['task_status'];
-
-interface Task {
-    id: string;
-    title: string;
-    description: string | null;
-    status: TaskStatus;
-    expectedTime: number; // minutes
-    actualTime: number;
-    owner: string;
-}
-
-interface CalendarBlock {
-    id: string;
-    taskId: string;
-    startTime: string; // ISO timestamp
-    endTime: string;
-}
-
-interface CalendarProps {
-    tasks: Task[];
-    calendarBlocks: CalendarBlock[];
-    selectedDate: Date;
-    onSelectDate: (date: Date) => void;
-    onTaskUpdate: (task: Task) => void;
-    onTaskClick: (task: Task) => void;
-    draggingTask: Task | null;
-    onDragStart: (taskId: string | null) => void;
-    onDeleteTask: (taskId: string) => void;
-    view: 'week' | 'day';
-    viewDate: Date;
-}
+import { Task, CalendarBlock, TaskStatus, CalendarProps } from '@/lib/types';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
@@ -88,7 +55,7 @@ export default function Calendar({
         const height = duration * (64 / 60);
 
         let bgColor = 'bg-white border-[#E9E9E7] shadow-sm text-[#37352F]';
-        if (task.status === 'in_progress') bgColor = 'bg-blue-50 border-blue-100 text-blue-800';
+        if (task.status === 'in_progress') bgColor = 'bg-orange-50 border-orange-100 text-orange-800';
         if (task.status === 'completed') bgColor = 'bg-[#F7F7F5] border-[#E9E9E7] text-[#9B9A97] line-through decoration-gray-400';
         if (task.status === 'overrun') bgColor = 'bg-red-50 border-red-100 text-red-800';
 
@@ -174,19 +141,19 @@ export default function Calendar({
                     return (
                         <div
                             key={date.toISOString()}
-                            className={`flex-1 py-2 text-center border-r border-[#E9E9E7] last:border-r-0 cursor-pointer transition-colors group relative ${isSelected ? 'bg-blue-50/30' : 'hover:bg-[#F7F7F5]'}`}
+                            className={`flex-1 py-2 text-center border-r border-[#E9E9E7] last:border-r-0 cursor-pointer transition-colors group relative ${isSelected ? 'bg-orange-50/30' : 'hover:bg-[#F7F7F5]'}`}
                             onClick={() => onSelectDate(date)}
                         >
                             <div className={`text-[11px] uppercase font-semibold ${isToday ? 'text-red-500' : 'text-[#9B9A97]'}`}>
                                 {format(date, 'EEE')}
                             </div>
                             <div className={`text-xl font-normal mt-0.5 flex items-center justify-center mx-auto transition-all ${isToday
-                                    ? 'bg-red-500 text-white w-7 h-7 rounded-full'
-                                    : isSelected ? 'text-blue-600' : 'text-[#37352F]'
+                                ? 'bg-red-500 text-white w-7 h-7 rounded-full'
+                                : isSelected ? 'text-accent' : 'text-[#37352F]'
                                 }`}>
                                 {format(date, 'd')}
                             </div>
-                            {isSelected && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>}
+                            {isSelected && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"></div>}
                         </div>
                     );
                 })}
@@ -218,7 +185,7 @@ export default function Calendar({
                         return (
                             <div
                                 key={dateStr}
-                                className={`flex-1 border-r border-[#E9E9E7] last:border-r-0 relative group ${isSameDay(date, selectedDate) ? 'bg-blue-50/10' : ''}`}
+                                className={`flex-1 border-r border-[#E9E9E7] last:border-r-0 relative group ${isSameDay(date, selectedDate) ? 'bg-orange-50/10' : ''}`}
                                 onDragOver={(e) => handleDragOverDay(e, dateStr)}
                                 onDrop={(e) => handleDrop(e, dateStr)}
                             >
@@ -252,12 +219,12 @@ export default function Calendar({
                                             left: '2px',
                                             right: '2px',
                                         }}
-                                        className="absolute z-30 rounded-md bg-blue-500/20 border-2 border-blue-500/50 pointer-events-none transition-all duration-75 flex flex-col justify-start p-1.5"
+                                        className="absolute z-30 rounded-md bg-accent/20 border-2 border-accent/50 pointer-events-none transition-all duration-75 flex flex-col justify-start p-1.5"
                                     >
-                                        <div className="font-medium text-blue-700 truncate leading-tight text-xs">
+                                        <div className="font-medium text-accent-dark truncate leading-tight text-xs">
                                             {draggingTask.title}
                                         </div>
-                                        <div className="text-[10px] text-blue-600 font-medium mt-0.5 flex items-center gap-1">
+                                        <div className="text-[10px] text-accent font-medium mt-0.5 flex items-center gap-1">
                                             <Clock size={10} />
                                             {formatMinutesToTime(dragPreview!.minutes)}
                                         </div>

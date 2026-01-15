@@ -7,39 +7,7 @@ import ResizableSplitView from './resizable-split-view';
 import TaskList from './task-list';
 import Calendar from './calendar';
 import { Input } from './ui/primitives';
-import { Database } from '@/lib/database.types';
-
-type TaskStatus = Database['public']['Enums']['task_status'];
-
-interface Task {
-    id: string;
-    title: string;
-    description: string | null;
-    status: TaskStatus;
-    expectedTime: number;
-    actualTime: number;
-    owner: string;
-}
-
-interface CalendarBlock {
-    id: string;
-    taskId: string;
-    startTime: string;
-    endTime: string;
-}
-
-interface WorkspaceViewProps {
-    tasks: Task[];
-    calendarBlocks: CalendarBlock[];
-    selectedDate: Date;
-    onSelectDate: (date: Date) => void;
-    onTaskClick: (task: Task) => void;
-    onUpdateTask: (task: Task) => void;
-    onAddTask: () => void;
-    onDeleteTask: (taskId: string) => void;
-    draggingTask: Task | null;
-    onDragStart: (taskId: string | null) => void;
-}
+import { Task, CalendarBlock, TaskStatus, WorkspaceViewProps } from '@/lib/types';
 
 export default function WorkspaceView({
     tasks,
@@ -85,7 +53,7 @@ export default function WorkspaceView({
                     <div>
                         <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">Workspace</h1>
                         <p className="text-[#787774] text-sm">
-                            Task list and calendar overview for <span className="font-semibold text-blue-600">{format(viewDate, 'MMMM yyyy')}</span>.
+                            Task list and calendar overview for <span className="font-semibold text-accent">{format(viewDate, 'MMMM yyyy')}</span>.
                         </p>
                     </div>
                 </div>
@@ -115,7 +83,7 @@ export default function WorkspaceView({
 
                         <button
                             onClick={() => setFilterStatus(filterStatus === 'ALL' ? 'in_progress' : 'ALL')}
-                            className={`p-1 hover:bg-[#EFEFED] rounded transition-colors ${filterStatus !== 'ALL' ? 'text-blue-600 bg-blue-50' : 'text-[#787774]'}`}
+                            className={`p-1 hover:bg-[#EFEFED] rounded transition-colors ${filterStatus !== 'ALL' ? 'text-accent bg-orange-50' : 'text-[#787774]'}`}
                             title="Filter by Status"
                         >
                             <Filter size={16} />
@@ -149,7 +117,7 @@ export default function WorkspaceView({
 
                         <button
                             onClick={onAddTask}
-                            className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1.5 rounded text-sm font-medium transition-colors"
+                            className="flex items-center gap-1 bg-accent hover:bg-accent-dark text-white px-2 py-1.5 rounded text-sm font-medium transition-colors"
                         >
                             <Plus size={14} /> New
                         </button>

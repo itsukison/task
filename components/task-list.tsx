@@ -4,30 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Circle, Clock, Hash, User } from 'lucide-react';
 import { Input, Select } from './ui/primitives';
 import { format } from 'date-fns';
-import { Database } from '@/lib/database.types';
-
-type TaskStatus = Database['public']['Enums']['task_status'];
-
-interface Task {
-    id: string;
-    title: string;
-    description: string | null;
-    status: TaskStatus;
-    expectedTime: number;
-    actualTime: number;
-    owner: string;
-}
-
-interface TaskListProps {
-    tasks: Task[];
-    selectedDate: Date;
-    searchQuery: string;
-    filterStatus: TaskStatus | 'ALL';
-    onTaskClick: (task: Task) => void;
-    onUpdateTask: (task: Task) => void;
-    onAddTask: () => void;
-    onDragStart: (taskId: string | null) => void;
-}
+import { Task, TaskStatus, TaskListProps } from '@/lib/types';
 
 type SortField = 'title' | 'status' | 'expectedTime' | 'progress' | 'owner';
 type SortDirection = 'asc' | 'desc';
@@ -136,7 +113,7 @@ export default function TaskList({
     const getStatusColor = (status: TaskStatus) => {
         switch (status) {
             case 'planned': return 'bg-gray-100 text-gray-600 border-gray-200';
-            case 'in_progress': return 'bg-blue-50 text-blue-700 border-blue-200';
+            case 'in_progress': return 'bg-orange-50 text-orange-700 border-orange-200';
             case 'overrun': return 'bg-red-50 text-red-700 border-red-200';
             case 'completed': return 'bg-green-50 text-green-700 border-green-200';
             default: return 'bg-gray-100 text-gray-600';
@@ -193,7 +170,7 @@ export default function TaskList({
             onMouseDown={(e) => startResize(e, col)}
             onClick={(e) => e.stopPropagation()}
         >
-            <div className="w-[1px] h-full bg-transparent group-hover/resizer:bg-blue-400 transition-colors"></div>
+            <div className="w-[1px] h-full bg-transparent group-hover/resizer:bg-accent transition-colors"></div>
         </div>
     );
 
