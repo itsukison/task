@@ -89,15 +89,15 @@ export default function WorkspacePage() {
     const handleAddTask = () => {
         const newTask: Task = {
             id: Math.random().toString(36).substr(2, 9),
-            title: '',
+            title: 'Untitled',
             description: '',
             owner: 'John Smith',
             status: 'planned',
-            expectedTime: 0,
+            expectedTime: 30,
             actualTime: 0,
         };
         setTasks([...tasks, newTask]);
-        setSelectedTask(newTask);
+        // Don't open modal - just add the row
     };
 
     return (

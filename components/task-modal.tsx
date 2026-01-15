@@ -78,7 +78,6 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
 
                     {/* Header Icon & Title */}
                     <div className="mt-4 mb-8">
-                        <div className="text-6xl mb-6">🎯</div>
                         <input
                             type="text"
                             value={editedTask.title}

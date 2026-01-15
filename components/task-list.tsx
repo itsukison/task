@@ -137,6 +137,10 @@ export default function TaskList({
                     onCellChange={handleCellChange}
                     onAddRow={onAddTask}
                     onRowClick={handleRowClick}
+                    onOpenRow={(rowId) => {
+                        const task = tasks.find(t => t.id === rowId);
+                        if (task) onTaskClick(task);
+                    }}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     onDeleteRow={onDeleteTask}

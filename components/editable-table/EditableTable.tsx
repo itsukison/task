@@ -53,6 +53,7 @@ export interface EditableTableProps<T extends { id: string }> {
     onCellChange: (rowId: string, columnId: string, value: unknown) => void;
     onAddRow: () => void;
     onRowClick?: (row: T) => void;
+    onOpenRow?: (rowId: string) => void;
     onDragStart?: (rowId: string) => void;
     onDragEnd?: () => void;
     // Row actions
@@ -317,13 +318,14 @@ interface HeaderMenuProps {
     label: string;
     dataType: DataType;
     columnId: string;
+    position: { top: number; left: number };
     onSortAsc: () => void;
     onSortDesc: () => void;
     onHide: () => void;
     onClose: () => void;
 }
 
-function HeaderMenu({ label, dataType, columnId, onSortAsc, onSortDesc, onHide, onClose }: HeaderMenuProps) {
+function HeaderMenu({ label, dataType, columnId, position, onSortAsc, onSortDesc, onHide, onClose }: HeaderMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
     const [editingLabel, setEditingLabel] = useState(label);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -384,10 +386,13 @@ function HeaderMenu({ label, dataType, columnId, onSortAsc, onSortDesc, onHide, 
         },
     ];
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <div
             ref={menuRef}
-            className="absolute top-full left-0 mt-1 z-50 bg-white shadow-lg rounded-lg border border-gray-200 py-1 w-[220px]"
+            className="fixed bg-white shadow-xl rounded-lg border border-gray-200 py-1 w-[220px]"
+            style={{ top: position.top, left: position.left, zIndex: 9999 }}
             onClick={(e) => e.stopPropagation()}
         >
             {/* Column name input */}
@@ -427,7 +432,8 @@ function HeaderMenu({ label, dataType, columnId, onSortAsc, onSortDesc, onHide, 
                     )
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
@@ -524,6 +530,7 @@ export default function EditableTable<T extends { id: string }>({
     onCellChange,
     onAddRow,
     onRowClick,
+    onOpenRow,
     onDragStart,
     onDragEnd,
     onDeleteRow,
@@ -535,7 +542,7 @@ export default function EditableTable<T extends { id: string }>({
 }: EditableTableProps<T>) {
     const [internalSorting, setInternalSorting] = useState<SortingState>([]);
     const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
-    const [activeHeaderMenu, setActiveHeaderMenu] = useState<string | null>(null);
+    const [activeHeaderMenu, setActiveHeaderMenu] = useState<{ columnId: string; position: { top: number; left: number } } | null>(null);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [activeRowMenu, setActiveRowMenu] = useState<{ rowId: string; position: { top: number; left: number } } | null>(null);
 
@@ -596,8 +603,20 @@ export default function EditableTable<T extends { id: string }>({
             id: String(col.id),
             accessorKey: col.id,
             header: ({ column }) => {
-                const isMenuOpen = activeHeaderMenu === String(col.id);
+                const isMenuOpen = activeHeaderMenu?.columnId === String(col.id);
                 const isSorted = column.getIsSorted();
+
+                const handleHeaderClick = (e: React.MouseEvent) => {
+                    if (isMenuOpen) {
+                        setActiveHeaderMenu(null);
+                    } else {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setActiveHeaderMenu({
+                            columnId: String(col.id),
+                            position: { top: rect.bottom + 4, left: rect.left }
+                        });
+                    }
+                };
 
                 return (
                     <div className="relative">
@@ -606,7 +625,7 @@ export default function EditableTable<T extends { id: string }>({
                                 'flex items-center gap-1.5 px-2 py-2 h-[42px] cursor-pointer select-none font-medium text-sm',
                                 isMenuOpen ? 'bg-[#ebebea] text-[#37352F]' : 'text-[#9e9e9e]'
                             )}
-                            onClick={() => setActiveHeaderMenu(isMenuOpen ? null : String(col.id))}
+                            onClick={handleHeaderClick}
                         >
                             <DataTypeIcon dataType={col.dataType} />
                             <span>{col.label}</span>
@@ -614,11 +633,12 @@ export default function EditableTable<T extends { id: string }>({
                             {isSorted === 'desc' && <ChevronDown size={14} />}
                         </div>
 
-                        {isMenuOpen && (
+                        {isMenuOpen && activeHeaderMenu && (
                             <HeaderMenu
                                 label={col.label}
                                 dataType={col.dataType}
                                 columnId={String(col.id)}
+                                position={activeHeaderMenu.position}
                                 onSortAsc={() => handleSort(String(col.id), false)}
                                 onSortDesc={() => handleSort(String(col.id), true)}
                                 onHide={() => onHideColumn?.(String(col.id))}
@@ -628,16 +648,37 @@ export default function EditableTable<T extends { id: string }>({
                     </div>
                 );
             },
-            cell: ({ row, column }) => (
-                <Cell
-                    value={row.getValue(column.id)}
-                    rowId={row.original.id}
-                    columnId={column.id}
-                    dataType={col.dataType}
-                    options={col.options}
-                    onChange={onCellChange}
-                />
-            ),
+            cell: ({ row, column }) => {
+                const isFirstDataCol = tableColumns.findIndex(c => String(c.id) === column.id) === 0;
+
+                return (
+                    <div className="relative flex items-center w-full h-full">
+                        <div className="flex-1 min-w-0">
+                            <Cell
+                                value={row.getValue(column.id)}
+                                rowId={row.original.id}
+                                columnId={column.id}
+                                dataType={col.dataType}
+                                options={col.options}
+                                onChange={onCellChange}
+                            />
+                        </div>
+                        {/* OPEN button for first column - appears on row hover */}
+                        {isFirstDataCol && onOpenRow && (
+                            <button
+                                className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-0.5 text-xs text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded border border-gray-200 mr-1 whitespace-nowrap"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenRow(row.original.id);
+                                }}
+                            >
+                                <Square size={12} />
+                                OPEN
+                            </button>
+                        )}
+                    </div>
+                );
+            },
             size: col.width ?? 150,
             minSize: col.minWidth ?? 50,
         }));
@@ -689,7 +730,7 @@ export default function EditableTable<T extends { id: string }>({
     };
 
     return (
-        <div className="w-full overflow-auto">
+        <div className="w-full overflow-auto ml-2">
             <div className="inline-block min-w-full">
                 {/* Header */}
                 <div className="border-b border-[#e0e0e0]">
@@ -699,7 +740,9 @@ export default function EditableTable<T extends { id: string }>({
                                 <div
                                     key={header.id}
                                     className={clsx(
-                                        'relative border-l border-[#e0e0e0] first:border-l-0',
+                                        'relative',
+                                        // Add left border for columns after drag and first data column
+                                        header.column.id !== 'drag' && header.index > 1 && 'border-l border-[#e0e0e0]',
                                         'hover:bg-[#f5f5f5] transition-colors'
                                     )}
                                     style={{ width: header.getSize() }}
@@ -737,10 +780,14 @@ export default function EditableTable<T extends { id: string }>({
                             )}
                             onClick={() => onRowClick?.(row.original)}
                         >
-                            {row.getVisibleCells().map(cell => (
+                            {row.getVisibleCells().map((cell, cellIndex) => (
                                 <div
                                     key={cell.id}
-                                    className="border-l border-[#e0e0e0] first:border-l-0 flex items-center"
+                                    className={clsx(
+                                        'flex items-center',
+                                        // Add left border for columns after drag and first data column
+                                        cell.column.id !== 'drag' && cellIndex > 1 && 'border-l border-[#e0e0e0]'
+                                    )}
                                     style={{ width: cell.column.getSize() }}
                                     onClick={(e) => {
                                         if (cell.column.id !== 'drag') {
@@ -755,10 +802,11 @@ export default function EditableTable<T extends { id: string }>({
                     ))}
                 </div>
 
-                {/* Add Row Button */}
+                {/* Add Row Button - aligned with first column */}
                 <div
-                    className="flex items-center gap-1.5 px-2 py-2 text-[#9e9e9e] text-sm cursor-pointer hover:bg-[#f5f5f5] transition-colors border-b border-[#e0e0e0]"
+                    className="flex items-center gap-1.5 py-2 text-[#9e9e9e] text-sm cursor-pointer hover:bg-[#f5f5f5] transition-colors"
                     onClick={onAddRow}
+                    style={{ paddingLeft: 32 }} // Matches drag column width for alignment
                 >
                     <Plus size={14} />
                     <span>New</span>

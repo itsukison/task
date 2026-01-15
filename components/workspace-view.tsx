@@ -87,11 +87,8 @@ export default function WorkspaceView({
     return (
         <div className="flex flex-col h-full w-full bg-white">
             {/* Header */}
-            <div className="pt-12 px-8 pb-4 flex-shrink-0">
+            <div className="pt-12 px-8 pb-4 flex-shrink-0 ml-2">
                 <div className="flex items-start gap-3 mb-4">
-                    <div className="mt-1 text-[#37352F]">
-                        <Layout size={32} />
-                    </div>
                     <div>
                         <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">Workspace</h1>
                         <p className="text-[#787774] text-sm">
