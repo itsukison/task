@@ -32,6 +32,66 @@ export interface CalendarBlock {
     endTime: string;    // ISO string
 }
 
+// ============================================================================
+// Editable Table Types
+// ============================================================================
+
+/**
+ * Data types supported by editable table cells
+ */
+export type DataType = 'text' | 'number' | 'select';
+
+/**
+ * Option for select-type columns
+ */
+export interface ColumnOption {
+    label: string;
+    backgroundColor: string;
+}
+
+/**
+ * Configuration for a table column
+ */
+export interface TableColumn<T> {
+    id: keyof T | string;
+    label: string;
+    dataType: DataType;
+    width?: number;
+    minWidth?: number;
+    options?: ColumnOption[];
+}
+
+/**
+ * Sort configuration state
+ */
+export interface SortConfig {
+    columnId: string;
+    direction: 'asc' | 'desc';
+}
+
+/**
+ * Props for EditableTable component
+ */
+export interface EditableTableProps<T extends { id: string }> {
+    data: T[];
+    columns: TableColumn<T>[];
+    onCellChange: (rowId: string, columnId: string, value: unknown) => void;
+    onAddRow: () => void;
+    onRowClick?: (row: T) => void;
+    onOpenRow?: (rowId: string) => void;
+    onDragStart?: (rowId: string) => void;
+    onDragEnd?: () => void;
+    // Row actions
+    onDeleteRow?: (rowId: string) => void;
+    onDuplicateRow?: (rowId: string) => void;
+    // External sort control
+    sorting?: SortConfig | null;
+    onSortChange?: (sort: SortConfig | null) => void;
+    // Column visibility
+    hiddenColumns?: string[];
+    onHideColumn?: (columnId: string) => void;
+}
+
 /**
  * View modes for sidebar navigation
  */
