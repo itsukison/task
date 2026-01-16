@@ -3,7 +3,7 @@
 import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Copy, Link, Trash2 } from 'lucide-react';
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import { RowActionsMenuProps } from '../types';
 
 /**
@@ -59,7 +59,7 @@ export function RowActionsMenu({ rowId, position, onDuplicate, onDelete, onCopyL
                 ) : (
                     <button
                         key={index}
-                        className={clsx(
+                        className={cn(
                             'w-full px-3 py-1.5 flex items-center gap-2 text-sm text-left',
                             'hover:bg-gray-50 transition-colors',
                             item.danger && 'text-red-600 hover:bg-red-50'
@@ -67,7 +67,7 @@ export function RowActionsMenu({ rowId, position, onDuplicate, onDelete, onCopyL
                         onClick={item.onClick}
                     >
                         <span className={item.danger ? 'text-red-500' : 'text-[#757575]'}>{item.icon}</span>
-                        <span className={clsx('flex-1', item.danger ? 'text-red-600' : 'text-[#37352F]')}>{item.label}</span>
+                        <span className={cn('flex-1', item.danger ? 'text-red-600' : 'text-[#37352F]')}>{item.label}</span>
                         {item.shortcut && (
                             <span className="text-[#9e9e9e] text-xs">{item.shortcut}</span>
                         )}

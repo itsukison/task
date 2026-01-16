@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import {
     ArrowUp, ArrowDown, EyeOff, PanelLeftClose, PanelRightClose, Trash2
 } from 'lucide-react';
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import { HeaderMenuProps } from '../types';
 import { DataTypeIcon } from '../utils';
 
@@ -104,7 +104,7 @@ export function HeaderMenu({ label, dataType, columnId, position, onSortAsc, onS
                     ) : (
                         <button
                             key={index}
-                            className={clsx(
+                            className={cn(
                                 'w-full px-3 py-1.5 flex items-center gap-2 text-sm text-left',
                                 'hover:bg-gray-50 transition-colors',
                                 item.disabled && 'opacity-40 cursor-not-allowed',

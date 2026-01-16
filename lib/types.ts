@@ -10,16 +10,36 @@ import { Database } from './database.types';
 export type TaskStatus = Database['public']['Enums']['task_status'];
 
 /**
+ * Task visibility enum derived from database schema
+ */
+export type TaskVisibility = Database['public']['Enums']['task_visibility'];
+
+/**
+ * Owner profile from JOIN
+ */
+export interface OwnerProfile {
+    id: string;
+    display_name: string;
+    email: string;
+}
+
+/**
  * Task entity representing a schedulable work item
+ * Uses camelCase for TypeScript ergonomics, maps from snake_case database columns
  */
 export interface Task {
     id: string;
     title: string;
     description: string | null;
     status: TaskStatus;
-    expectedTime: number;  // in minutes
-    actualTime: number;    // in minutes
-    owner: string;
+    expectedTime: number;  // in minutes (maps from expected_time_minutes)
+    actualTime: number;    // in minutes (maps from actual_time_minutes)
+    visibility: TaskVisibility;
+    owner: OwnerProfile | null;  // Joined from user_profiles
+    ownerId: string;
+    organizationId: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**

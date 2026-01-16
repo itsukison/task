@@ -39,7 +39,7 @@ function getTaskColumns(): TableColumn<Task>[] {
             minWidth: 80,
         },
         {
-            id: 'owner',
+            id: 'ownerDisplayName',  // Virtual field for display
             label: 'Owner',
             dataType: 'text',
             width: 150,
@@ -72,8 +72,11 @@ export default function TaskList({
     onHideColumn,
 }: ExtendedTaskListProps) {
 
+    // Transform tasks to include virtual ownerDisplayName field
+    type TaskWithOwnerDisplay = Task & { ownerDisplayName: string };
+
     // Filter tasks based on search and status
-    const filteredTasks = useMemo(() => {
+    const filteredTasks = useMemo((): TaskWithOwnerDisplay[] => {
         let result = [...tasks];
 
         // Filter by status
@@ -86,17 +89,24 @@ export default function TaskList({
             const query = searchQuery.toLowerCase();
             result = result.filter(t =>
                 t.title.toLowerCase().includes(query) ||
-                t.owner.toLowerCase().includes(query)
+                (t.owner?.display_name?.toLowerCase().includes(query) ?? false)
             );
         }
 
-        return result;
+        // Add virtual ownerDisplayName field for table display
+        return result.map(t => ({
+            ...t,
+            ownerDisplayName: t.owner?.display_name ?? 'Unassigned',
+        }));
     }, [tasks, filterStatus, searchQuery]);
 
     // Handle cell value changes
     const handleCellChange = (rowId: string, columnId: string, value: unknown) => {
         const task = tasks.find(t => t.id === rowId);
         if (!task) return;
+
+        // Skip non-editable columns
+        if (columnId === 'ownerDisplayName') return;
 
         const updatedTask: Task = {
             ...task,

@@ -114,8 +114,10 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                                 <User size={16} /> Owner
                             </div>
                             <div className="flex-1 flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center text-[10px]">JS</div>
-                                <span className="text-sm text-[#37352F]">{editedTask.owner}</span>
+                                <div className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center text-[10px]">
+                                    {editedTask.owner?.display_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?'}
+                                </div>
+                                <span className="text-sm text-[#37352F]">{editedTask.owner?.display_name ?? 'Unassigned'}</span>
                             </div>
                         </div>
 
