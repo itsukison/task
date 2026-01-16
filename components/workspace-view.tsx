@@ -19,7 +19,10 @@ export default function WorkspaceView({
     onAddTask,
     onDeleteTask,
     draggingTask,
-    onDragStart
+    onDragStart,
+    onCreateBlock,
+    onUpdateBlock,
+    onDeleteBlock,
 }: WorkspaceViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<TaskStatus | 'ALL'>('ALL');
@@ -119,6 +122,9 @@ export default function WorkspaceView({
                             onSortChange={handleSortChange}
                             hiddenColumns={hiddenColumns}
                             onHideColumn={handleHideColumn}
+                            calendarBlocks={calendarBlocks}
+                            viewMode={calendarView}
+                            viewDate={viewDate}
                         />
                     }
                     right={
@@ -134,6 +140,9 @@ export default function WorkspaceView({
                             onDeleteTask={onDeleteTask}
                             view={calendarView}
                             viewDate={viewDate}
+                            onCreateBlock={onCreateBlock}
+                            onUpdateBlock={onUpdateBlock}
+                            onDeleteBlock={onDeleteBlock}
                         />
                     }
                 />

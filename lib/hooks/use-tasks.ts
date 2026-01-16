@@ -24,6 +24,7 @@ function dbToTask(row: DbTask & { owner?: OwnerProfile | null }): Task {
         owner: row.owner ?? null,
         ownerId: row.owner_id,
         organizationId: row.organization_id,
+        scheduledDate: row.scheduled_date,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -36,6 +37,7 @@ export interface CreateTaskInput {
     status?: TaskStatus;
     expectedTime: number;
     visibility?: TaskVisibility;
+    scheduledDate?: string | null;  // ISO date string (YYYY-MM-DD)
 }
 
 // Input for updating a task
@@ -46,6 +48,7 @@ export interface UpdateTaskInput {
     expectedTime?: number;
     actualTime?: number;
     visibility?: TaskVisibility;
+    scheduledDate?: string | null;  // ISO date string (YYYY-MM-DD)
 }
 
 export interface UseTasksReturn {
@@ -152,6 +155,7 @@ export function useTasks(): UseTasksReturn {
             status: input.status ?? 'planned',
             expected_time_minutes: input.expectedTime,
             visibility: input.visibility ?? 'leaders_only',
+            scheduled_date: input.scheduledDate ?? null,
         };
 
         const { data, error: insertError } = await supabase
@@ -190,6 +194,7 @@ export function useTasks(): UseTasksReturn {
         if (input.expectedTime !== undefined) updateData.expected_time_minutes = input.expectedTime;
         if (input.actualTime !== undefined) updateData.actual_time_minutes = input.actualTime;
         if (input.visibility !== undefined) updateData.visibility = input.visibility;
+        if (input.scheduledDate !== undefined) updateData.scheduled_date = input.scheduledDate;
 
         const { error: updateError } = await supabase
             .from('tasks')
@@ -211,6 +216,7 @@ export function useTasks(): UseTasksReturn {
                 expectedTime: input.expectedTime ?? task.expectedTime,
                 actualTime: input.actualTime ?? task.actualTime,
                 visibility: input.visibility ?? task.visibility,
+                scheduledDate: input.scheduledDate !== undefined ? input.scheduledDate : task.scheduledDate,
             };
         }));
     }, []);

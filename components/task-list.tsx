@@ -1,9 +1,17 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import React, { useMemo } from 'react';
+import { startOfDay, endOfDay } from 'date-fns';
 import { EditableTable, TableColumn, ColumnOption, SortConfig } from './editable-table';
 import { Task, TaskStatus, TaskListProps } from '@/lib/types';
+
+// Convert Date to YYYY-MM-DD string in local timezone
+const formatDateToLocalISO = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 // Status options with colors matching Notion-style badges
 const STATUS_OPTIONS: ColumnOption[] = [
@@ -70,14 +78,24 @@ export default function TaskList({
     onSortChange,
     hiddenColumns = [],
     onHideColumn,
+    calendarBlocks = [],
+    viewMode,
+    viewDate,
 }: ExtendedTaskListProps) {
 
     // Transform tasks to include virtual ownerDisplayName field
     type TaskWithOwnerDisplay = Task & { ownerDisplayName: string };
 
-    // Filter tasks based on search and status
+    // Filter tasks based on search, status, and date
+    // Task list shows tasks matching the selected date
     const filteredTasks = useMemo((): TaskWithOwnerDisplay[] => {
         let result = [...tasks];
+
+        // Filter by selected date - show tasks matching scheduled_date
+        if (selectedDate) {
+            const selectedDateISO = formatDateToLocalISO(selectedDate);
+            result = result.filter(t => t.scheduledDate === selectedDateISO);
+        }
 
         // Filter by status
         if (filterStatus !== 'ALL') {
@@ -98,7 +116,7 @@ export default function TaskList({
             ...t,
             ownerDisplayName: t.owner?.display_name ?? 'Unassigned',
         }));
-    }, [tasks, filterStatus, searchQuery]);
+    }, [tasks, filterStatus, searchQuery, selectedDate]);
 
     // Handle cell value changes
     const handleCellChange = (rowId: string, columnId: string, value: unknown) => {

@@ -18,11 +18,16 @@ export default function Calendar({
     onDragStart,
     onDeleteTask,
     view,
-    viewDate
+    viewDate,
+    onCreateBlock,
+    onUpdateBlock,
+    onDeleteBlock,
 }: CalendarProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [dragPreview, setDragPreview] = useState<{ dateStr: string, minutes: number } | null>(null);
-    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, taskId: string } | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, taskId: string, blockId?: string } | null>(null);
+    // Track drag source: 'task-list' for new blocks, 'calendar' for moving existing
+    const [dragSource, setDragSource] = useState<'task-list' | 'calendar' | null>(null);
 
     // Scroll to 8 AM on mount
     useEffect(() => {
@@ -87,9 +92,15 @@ export default function Calendar({
         setDragPreview({ dateStr, minutes: snapped });
     };
 
-    const handleDragStartInternal = (e: React.DragEvent, task: Task) => {
+    const handleDragStartInternal = (e: React.DragEvent, task: Task, blockId?: string) => {
         onDragStart(task.id);
         e.dataTransfer.setData('taskId', task.id);
+        if (blockId) {
+            e.dataTransfer.setData('blockId', blockId);
+            setDragSource('calendar');
+        } else {
+            setDragSource('task-list');
+        }
         const img = new Image();
         img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
         e.dataTransfer.setDragImage(img, 0, 0);
@@ -99,15 +110,33 @@ export default function Calendar({
         e.preventDefault();
         setDragPreview(null);
         onDragStart(null);
-        const taskId = e.dataTransfer.getData('taskId');
+        // Check both 'taskId' (from calendar drag) and 'rowId' (from table drag)
+        const taskId = e.dataTransfer.getData('taskId') || e.dataTransfer.getData('rowId');
+        const blockId = e.dataTransfer.getData('blockId');
+        const source = dragSource;
+        setDragSource(null);
+
+        console.log('handleDrop:', { taskId, blockId, source, dragPreview: !!dragPreview, dateStr });
 
         if (taskId && dragPreview) {
-            const startTime = formatMinutesToTime(dragPreview.minutes);
             const task = tasks.find(t => t.id === taskId);
 
             if (task) {
-                // TODO: Create calendar block via Supabase
-                console.log('Create calendar block:', { task, dateStr, startTime });
+                // Calculate start/end times
+                const startDate = new Date(dateStr);
+                startDate.setHours(0, 0, 0, 0);
+                startDate.setMinutes(dragPreview.minutes);
+
+                const endDate = new Date(startDate);
+                endDate.setMinutes(startDate.getMinutes() + task.expectedTime);
+
+                if (source === 'calendar' && blockId && onUpdateBlock) {
+                    // Moving existing block
+                    onUpdateBlock(blockId, startDate, endDate);
+                } else if (onCreateBlock) {
+                    // Creating new block from task list
+                    onCreateBlock(taskId, startDate, endDate);
+                }
             }
         }
     };
@@ -123,10 +152,15 @@ export default function Calendar({
                     onClick={(e) => e.stopPropagation()}
                 >
                     <button
-                        onClick={() => { onDeleteTask(contextMenu.taskId); setContextMenu(null); }}
+                        onClick={() => {
+                            if (contextMenu.blockId && onDeleteBlock) {
+                                onDeleteBlock(contextMenu.blockId);
+                            }
+                            setContextMenu(null);
+                        }}
                         className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
-                        <Trash2 size={14} /> Delete
+                        <Trash2 size={14} /> Remove from Calendar
                     </button>
                 </div>
             )}
@@ -249,10 +283,10 @@ export default function Calendar({
                                                 onContextMenu={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    setContextMenu({ x: e.clientX, y: e.clientY, taskId: task.id });
+                                                    setContextMenu({ x: e.clientX, y: e.clientY, taskId: task.id, blockId: block.id });
                                                 }}
                                                 draggable
-                                                onDragStart={(e) => handleDragStartInternal(e, task)}
+                                                onDragStart={(e) => handleDragStartInternal(e, task, block.id)}
                                             >
                                                 <div className="font-medium truncate leading-tight flex items-center gap-1.5">
                                                     {task.status === 'completed' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>}

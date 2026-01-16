@@ -38,6 +38,7 @@ export interface Task {
     owner: OwnerProfile | null;  // Joined from user_profiles
     ownerId: string;
     organizationId: string;
+    scheduledDate: string | null;  // ISO date string (maps from scheduled_date)
     createdAt: string;
     updatedAt: string;
 }
@@ -50,6 +51,11 @@ export interface CalendarBlock {
     taskId: string;
     startTime: string;  // ISO string
     endTime: string;    // ISO string
+    ownerId: string;
+    organizationId: string;
+    createdAt: string;
+    updatedAt: string;
+    task?: Task;        // Optional joined task object
 }
 
 // ============================================================================
@@ -138,6 +144,10 @@ export interface WorkspaceViewProps {
     onDeleteTask: (taskId: string) => void;
     draggingTask: Task | null;
     onDragStart: (taskId: string | null) => void;
+    // Calendar block CRUD callbacks
+    onCreateBlock?: (taskId: string, startTime: Date, endTime: Date) => void;
+    onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
+    onDeleteBlock?: (blockId: string) => void;
 }
 
 export interface CalendarProps {
@@ -152,6 +162,10 @@ export interface CalendarProps {
     onDeleteTask: (taskId: string) => void;
     view: 'week' | 'day';
     viewDate: Date;
+    // Calendar block CRUD callbacks
+    onCreateBlock?: (taskId: string, startTime: Date, endTime: Date) => void;
+    onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
+    onDeleteBlock?: (blockId: string) => void;
 }
 
 export interface TaskListProps {
@@ -165,6 +179,10 @@ export interface TaskListProps {
     onDeleteTask: (taskId: string) => void;
     onDuplicateTask?: (taskId: string) => void;
     onDragStart: (taskId: string | null) => void;
+    // Date filtering props
+    calendarBlocks?: CalendarBlock[];
+    viewMode?: 'week' | 'day';
+    viewDate?: Date;
 }
 
 export interface TaskModalProps {
