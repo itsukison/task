@@ -19,6 +19,7 @@ export default function Calendar({
     onDeleteTask,
     view,
     viewDate,
+    showWeekends = false,
     onCreateBlock,
     onUpdateBlock,
     onDeleteBlock,
@@ -46,7 +47,7 @@ export default function Calendar({
 
     const currentWeekStart = startOfWeek(viewDate, { weekStartsOn: 1 });
     const displayedDays = view === 'week'
-        ? Array.from({ length: 5 }, (_, i) => addDays(currentWeekStart, i))
+        ? Array.from({ length: showWeekends ? 7 : 5 }, (_, i) => addDays(currentWeekStart, i))
         : [viewDate];
 
     const getTaskStyle = (block: CalendarBlock, task: Task) => {

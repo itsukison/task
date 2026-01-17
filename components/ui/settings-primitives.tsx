@@ -23,8 +23,8 @@ export function SettingSection({ title, children }: SettingSectionProps) {
 }
 
 interface SettingRowProps {
-    title: string;
-    description?: string;
+    title: React.ReactNode;
+    description?: React.ReactNode;
     children: React.ReactNode;
 }
 
@@ -62,7 +62,7 @@ export function ToggleSwitch({ checked, onChange, disabled }: ToggleSwitchProps)
             onClick={() => onChange(!checked)}
             className={cn(
                 "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                checked ? "bg-[#2383E2]" : "bg-[#DCDCDC]",
+                checked ? "bg-[#F97316]" : "bg-[#DCDCDC]",
                 disabled && "opacity-50 cursor-not-allowed"
             )}
         >

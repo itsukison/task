@@ -89,7 +89,7 @@ export function useTasks(): UseTasksReturn {
                 `)
                 .eq('organization_id', currentOrg.id)
                 .is('deleted_at', null)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: true });
 
             if (fetchError) throw fetchError;
 
@@ -179,13 +179,24 @@ export function useTasks(): UseTasksReturn {
         const newTask = dbToTask(data as any);
 
         // Optimistically add to state
-        setTasks(prev => [newTask, ...prev]);
+        setTasks(prev => [...prev, newTask]);
 
         return newTask;
     }, [user, currentOrg]);
 
     // Update a task
     const updateTask = useCallback(async (id: string, input: UpdateTaskInput): Promise<void> => {
+        if (!currentOrg) {
+            throw new Error('Must be authenticated with an organization');
+        }
+
+        // 🔍 DIAGNOSTIC LOGGING
+        console.group('✏️ UPDATE TASK DEBUG');
+        console.log('Task ID:', id);
+        console.log('Current Org ID:', currentOrg.id);
+        console.log('Update input:', input);
+        console.groupEnd();
+
         const updateData: TaskUpdate = {};
 
         if (input.title !== undefined) updateData.title = input.title;
@@ -199,9 +210,11 @@ export function useTasks(): UseTasksReturn {
         const { error: updateError } = await supabase
             .from('tasks')
             .update(updateData)
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', currentOrg.id);
 
         if (updateError) {
+            console.error('❌ UPDATE ERROR:', updateError);
             throw new Error(`Failed to update task: ${updateError.message}`);
         }
 
@@ -219,22 +232,31 @@ export function useTasks(): UseTasksReturn {
                 scheduledDate: input.scheduledDate !== undefined ? input.scheduledDate : task.scheduledDate,
             };
         }));
-    }, []);
+    }, [currentOrg]);
 
-    // Soft delete a task
+    // Soft delete a task using RPC function
     const deleteTask = useCallback(async (id: string): Promise<void> => {
-        const { error: deleteError } = await supabase
-            .from('tasks')
-            .update({ deleted_at: new Date().toISOString() })
-            .eq('id', id);
+        if (!currentOrg) {
+            throw new Error('Must be authenticated with an organization');
+        }
+
+        // Use RPC function to perform soft delete (bypasses RLS with internal auth check)
+        const { data: deleteResult, error: deleteError } = await supabase.rpc('soft_delete_task', {
+            task_id: id
+        });
 
         if (deleteError) {
             throw new Error(`Failed to delete task: ${deleteError.message}`);
         }
 
+        // Check the result from the function
+        if (deleteResult && !deleteResult.success) {
+            throw new Error(`Failed to delete task: ${deleteResult.error}`);
+        }
+
         // Optimistically remove from state
         setTasks(prev => prev.filter(task => task.id !== id));
-    }, []);
+    }, [currentOrg]);
 
     return {
         tasks,

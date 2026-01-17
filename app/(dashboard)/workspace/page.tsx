@@ -72,7 +72,7 @@ export default function WorkspacePage() {
         try {
             // Create task with scheduled_date set to the selected date
             await createTask({
-                title: 'Untitled',
+                title: '',
                 description: '',
                 status: 'planned',
                 expectedTime: 30,

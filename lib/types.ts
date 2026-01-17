@@ -162,6 +162,7 @@ export interface CalendarProps {
     onDeleteTask: (taskId: string) => void;
     view: 'week' | 'day';
     viewDate: Date;
+    showWeekends?: boolean;
     // Calendar block CRUD callbacks
     onCreateBlock?: (taskId: string, startTime: Date, endTime: Date) => void;
     onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;

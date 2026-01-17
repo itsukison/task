@@ -202,16 +202,6 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                             {item.label}
                         </Link>
                     ))}
-
-                    <div className="mt-6 text-xs font-semibold text-[#9B9A97] px-3 py-2 mb-1">Private</div>
-                    <div className="flex items-center gap-2.5 px-3 py-1 text-sm text-[#5F5E5B] hover:bg-[#EFEFED] rounded-md cursor-pointer transition-colors mb-0.5">
-                        <span className="text-lg leading-none">📄</span>
-                        <span>Marketing Sync</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 px-3 py-1 text-sm text-[#5F5E5B] hover:bg-[#EFEFED] rounded-md cursor-pointer transition-colors mb-0.5">
-                        <span className="text-lg leading-none">🚀</span>
-                        <span>Q3 Roadmap</span>
-                    </div>
                 </div>
 
                 {/* User Section with Menu */}

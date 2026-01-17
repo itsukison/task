@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Filter, List, ArrowUpDown, ArrowUp, ArrowDown, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { Input } from '../ui/primitives';
 import { TaskStatus } from '@/lib/types';
@@ -73,13 +73,29 @@ export function WorkspaceHeader({
             {/* Unified Toolbar */}
             <div className="flex items-center justify-between border-b border-[#E9E9E7] pb-2">
 
-                {/* Left: List Controls */}
+                {/* Left: List Controls - Stats Section */}
                 <div className="flex items-center gap-1">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#EFEFED] rounded text-sm font-medium text-[#37352F]">
-                        <List size={16} />
-                        {format(selectedDate, 'MMM d')} List
+                    <div className="flex items-center gap-3 px-1 py-1 rounded text-xs text-[#37352F]">
+                        <div className="flex items-center gap-1 font-medium">
+                            <div className="flex items-center gap-0.5 px-0.5 py-0.5 rounded transition-colors cursor-default">
+                                <span className="text-[#787774]">Tasks:</span>
+                                <span>12</span>
+                            </div>
+                            <div className="flex items-center gap-0.5 px-0.5 py-0.5 rounded transition-colors cursor-default">
+                                <span className="text-[#787774]">Left:</span>
+                                <span>5</span>
+                            </div>
+                            <div className="flex items-center gap-0.5 px-0.5 py-0.5 rounded transition-colors cursor-default">
+                                <span className="text-[#787774]">Est:</span>
+                                <span>8h</span>
+                            </div>
+                            <div className="flex items-center gap-0.5 px-0.5 py-0.5 rounded transition-colors cursor-default">
+                                <span className="text-[#787774]">Used:</span>
+                                <span>3.5h</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="h-4 w-px bg-gray-200 mx-2"></div>
+                    <div className="h-4 w-px bg-gray-200"></div>
 
                     {/* Search */}
                     <div className="relative group">
@@ -212,7 +228,7 @@ export function WorkspaceHeader({
 
                     <button
                         onClick={onAddTask}
-                        className="flex items-center gap-1 bg-accent hover:bg-accent-dark text-white px-2 py-1.5 rounded text-sm font-medium transition-colors"
+                        className="flex items-center gap-1 bg-accent hover:bg-accent-dark text-white px-2 py-1 rounded-md text-xs font-medium transition-colors"
                     >
                         <Plus size={14} /> New
                     </button>

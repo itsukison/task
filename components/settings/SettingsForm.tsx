@@ -9,8 +9,10 @@ import {
     SettingSection,
     SettingRow,
     SelectDropdown,
-    TimeInput
+    TimeInput,
+    ToggleSwitch
 } from '@/components/ui/settings-primitives';
+import { SettingsSkeleton } from './SettingsSkeleton';
 
 type Theme = 'light' | 'dark' | 'system';
 type TaskVisibility = 'private' | 'team' | 'leaders_only';
@@ -32,6 +34,7 @@ export function SettingsForm() {
     const [displayName, setDisplayName] = useState('');
     const [workStartTime, setWorkStartTime] = useState('09:00');
     const [workEndTime, setWorkEndTime] = useState('18:00');
+    const [showWeekends, setShowWeekends] = useState(false);
     const [taskVisibility, setTaskVisibility] = useState<TaskVisibility>('leaders_only');
     const [scheduleVisibility, setScheduleVisibility] = useState<ScheduleVisibility>('leaders_only');
 
@@ -62,6 +65,7 @@ export function SettingsForm() {
             // Parse time from database format if exists
             // Assuming format is "HH:MM:SS" or similar
             // For now, using defaults if not set
+            setShowWeekends(preferences.show_weekends ?? false);
         }
     }, [preferences]);
 
@@ -98,13 +102,8 @@ export function SettingsForm() {
         await updateProfile({ default_schedule_visibility: value });
     };
 
-    // Loading state
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <div className="text-[#787774]">Loading settings...</div>
-            </div>
-        );
+        return <SettingsSkeleton />;
     }
 
     return (
@@ -142,6 +141,19 @@ export function SettingsForm() {
                     <TimeInput
                         value={workEndTime}
                         onChange={setWorkEndTime}
+                        disabled={saving}
+                    />
+                </SettingRow>
+                <SettingRow
+                    title="Show weekends"
+                    description="Display Saturday and Sunday in the calendar week view."
+                >
+                    <ToggleSwitch
+                        checked={showWeekends}
+                        onChange={async (checked) => {
+                            setShowWeekends(checked);
+                            await updatePreferences({ show_weekends: checked });
+                        }}
                         disabled={saving}
                     />
                 </SettingRow>
@@ -227,12 +239,6 @@ export function SettingsForm() {
                 </SettingSection>
             )}
 
-            {/* Saving indicator */}
-            {saving && (
-                <div className="fixed bottom-4 right-4 px-4 py-2 bg-[#37352F] text-white text-sm rounded-lg shadow-lg">
-                    Saving...
-                </div>
-            )}
         </>
     );
 }

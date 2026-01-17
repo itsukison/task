@@ -8,6 +8,7 @@ import Calendar from './calendar';
 import { TaskStatus, WorkspaceViewProps } from '@/lib/types';
 import { SortConfig } from './editable-table';
 import { WorkspaceHeader } from './workspace/WorkspaceHeader';
+import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
 
 export default function WorkspaceView({
     tasks,
@@ -24,6 +25,9 @@ export default function WorkspaceView({
     onUpdateBlock,
     onDeleteBlock,
 }: WorkspaceViewProps) {
+    const { preferences } = useUserPreferences();
+    const showWeekends = preferences?.show_weekends ?? false;
+
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<TaskStatus | 'ALL'>('ALL');
     const [calendarView, setCalendarView] = useState<'week' | 'day'>('week');
@@ -140,6 +144,7 @@ export default function WorkspaceView({
                             onDeleteTask={onDeleteTask}
                             view={calendarView}
                             viewDate={viewDate}
+                            showWeekends={showWeekends}
                             onCreateBlock={onCreateBlock}
                             onUpdateBlock={onUpdateBlock}
                             onDeleteBlock={onDeleteBlock}
