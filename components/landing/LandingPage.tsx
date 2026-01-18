@@ -12,7 +12,7 @@ import { FooterSection } from './FooterSection';
 
 export const LandingPage: React.FC = () => {
     return (
-        <div className="min-h-screen text-foreground/70 relative selection:bg-accent selection:text-white">
+        <div className="landing-theme min-h-screen text-foreground/70 relative selection:bg-accent selection:text-white">
             <Navbar />
             <HeroSection />
             <ProductSection />

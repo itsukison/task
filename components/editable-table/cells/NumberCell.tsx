@@ -58,7 +58,7 @@ export function NumberCell({ value, rowId, columnId, onChange }: CellProps) {
             className="w-full h-full px-2 py-1.5 cursor-text text-[#424242] text-sm text-right font-mono"
             onClick={() => setIsEditing(true)}
         >
-            {localValue || '0'}
+            {localValue || '0'} min
         </div>
     );
 }

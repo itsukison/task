@@ -1,13 +1,13 @@
 'use client';
 
-import { DataType, ColumnOption } from '@/lib/types';
+import { DataType, ColumnOption, PeopleOption } from '@/lib/types';
 
 // ============================================================================
 // Internal Component Types - Used only within editable-table module
 // ============================================================================
 
 /**
- * Props for cell components (TextCell, NumberCell, SelectCell)
+ * Props for cell components (TextCell, NumberCell, SelectCell, PeopleCell, TimerNumberCell)
  */
 export interface CellProps {
     value: unknown;
@@ -15,6 +15,7 @@ export interface CellProps {
     columnId: string;
     dataType: DataType;
     options?: ColumnOption[];
+    peopleOptions?: PeopleOption[];
     onChange: (rowId: string, columnId: string, value: unknown) => void;
 }
 

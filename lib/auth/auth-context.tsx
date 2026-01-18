@@ -105,8 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const profile = await fetchProfile(session.user.id);
-    const organizations = await fetchOrganizations(session.user.id);
+    const [profile, organizations] = await Promise.all([
+      fetchProfile(session.user.id),
+      fetchOrganizations(session.user.id)
+    ]);
 
     // Try to restore previous org selection from localStorage
     let currentOrg: OrganizationContext | null = null;

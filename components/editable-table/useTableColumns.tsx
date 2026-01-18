@@ -109,6 +109,7 @@ export function useTableColumns<T extends { id: string }>({
                                 columnId={column.id}
                                 dataType={col.dataType}
                                 options={col.options}
+                                peopleOptions={col.peopleOptions}
                                 onChange={onCellChange}
                             />
                         </div>

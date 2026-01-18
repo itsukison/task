@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { AsciiArt } from './AsciiArt';
 import { Reveal } from './Reveal';
 import Link from 'next/link';
@@ -30,8 +31,8 @@ export const FooterSection: React.FC = () => {
                 {/* Floating Shape Left (Accent Pyramid) */}
                 <div className="hidden lg:block absolute left-10 top-1/2 -translate-y-1/2 -rotate-12 animate-[float_6s_ease-in-out_infinite]">
                     <Reveal delay={0.2} variant="fade-in">
-                        <div className="w-32 h-32 md:w-40 md:h-40 bg-gradient-to-br from-accent-light to-accent rounded-2xl flex items-center justify-center shadow-2xl shadow-accent/20 border border-white/20">
-                            <AsciiArt art={PYRAMID_ASCII} className="bg-transparent border-none text-white scale-150 font-black mix-blend-overlay opacity-80" />
+                        <div className="w-32 h-32 md:w-60 md:h-60 bg-gradient-to-br from-accent to-accent rounded-2xl flex items-center justify-center ">
+                            <Image src="/triangle.png" alt="Pyramid" width={240} height={240} />
                         </div>
                     </Reveal>
                 </div>
@@ -39,8 +40,8 @@ export const FooterSection: React.FC = () => {
                 {/* Floating Shape Right (Glassy Cube) */}
                 <div className="hidden lg:block absolute right-10 top-20 rotate-12 animate-[float_8s_ease-in-out_infinite_reverse]">
                     <Reveal delay={0.4} variant="fade-in">
-                        <div className="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-bl from-gray-100 to-white rounded-2xl flex items-center justify-center shadow-xl border border-gray-200">
-                            <AsciiArt art={CUBE_ASCII} className="bg-transparent border-none text-foreground scale-125 opacity-50" />
+                        <div className="w-24 h-24 mr-30 md:w-32 md:h-32 bg-gradient-to-bl from-gray-100 to-white rounded-2xl flex items-center justify-center ">
+                            <Image src="/rectangular.png" alt="Clock" width={128} height={128} />
                         </div>
                     </Reveal>
                 </div>
@@ -48,14 +49,14 @@ export const FooterSection: React.FC = () => {
                 <div className="max-w-2xl mx-auto relative z-10">
                     <Reveal delay={0.1}>
                         <span className="font-serif italic text-gray-400 text-xl mb-4 block">Get Started!</span>
-                        <h2 className="text-5xl md:text-6xl font-semibold tracking-tighter text-foreground mb-6 leading-[1.1]">
-                            Let&apos;s automate your <br />
-                            <span className="text-accent">daily workflows</span>
+                        <h2 className="text-5xl md:text-6xl font-medium tracking-tighter text-foreground mb-6 leading-[1.1]">
+                            Ready to master <br />
+                            <span className="text-[#FF5500]">your time?</span>
                         </h2>
                     </Reveal>
                     <Reveal delay={0.2}>
                         <p className="text-lg text-foreground/70 mb-10 max-w-lg mx-auto">
-                            Spend less time updating tools and more time shipping value to your customers.
+                            Join startups building better daily rhythms. Your time is finite—make it count.
                         </p>
                     </Reveal>
 
@@ -76,7 +77,7 @@ export const FooterSection: React.FC = () => {
 
                 {/* Large Watermark Background (Behind the card) */}
                 <div className="absolute bottom-0 w-full flex justify-center pointer-events-none select-none overflow-hidden z-0">
-                    <span className="text-[25vw] font-bold text-gray-100/80 leading-[0.75] tracking-tighter translate-y-[25%] opacity-0 animate-[fadeIn_2s_ease-out_forwards]">Taskos</span>
+                    <span className="text-[25vw] font-bold text-gray-100/80 leading-[0.75] tracking-tighter translate-y-[25%] opacity-0 animate-[fadeIn_2s_ease-out_forwards]">Chrono</span>
                 </div>
 
                 <div className="max-w-[1440px] mx-auto px-4 md:px-6 relative z-10">
@@ -85,7 +86,7 @@ export const FooterSection: React.FC = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[500px]">
 
                                 {/* Left: Brand Card (Accent Gradient) */}
-                                <div className="lg:col-span-5 bg-gradient-to-br from-accent-light to-accent p-10 md:p-14 text-white flex flex-col justify-between relative overflow-hidden">
+                                <div className="lg:col-span-5 bg-gradient-to-br from-[#FF5500] to-[#FF5500] p-10 md:p-14 text-white flex flex-col justify-between relative overflow-hidden">
                                     {/* Decorative gradient blob */}
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-[80px] opacity-20 -translate-y-1/2 translate-x-1/3"></div>
 
@@ -96,11 +97,11 @@ export const FooterSection: React.FC = () => {
                                                     <path d="M20 5L35 30H5L20 5Z" />
                                                 </svg>
                                             </div>
-                                            <span className="text-xl font-bold tracking-tight">Taskos</span>
+                                            <span className="text-xl font-bold tracking-tight">Chrono</span>
                                         </div>
                                         <h3 className="text-3xl font-medium tracking-tight leading-snug max-w-sm text-white">
-                                            Smarter daily planning, <br />
-                                            <span className="text-white/70">powered by rhythm.</span>
+                                            Time-aware daily planning <br />
+                                            <span className="text-white/70">for modern teams.</span>
                                         </h3>
                                     </div>
 
@@ -149,9 +150,9 @@ export const FooterSection: React.FC = () => {
                                     </div>
 
                                     <div className="pt-8 border-t border-gray-200/50">
-                                        <h4 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
-                                            Execution moves fast. <br />
-                                            <span className="text-foreground/70">Stay ahead with Taskos.</span>
+                                        <h4 className="text-2xl font-medium text-foreground tracking-tight mb-2">
+                                            Daily execution moves fast. <br />
+                                            <span className="text-foreground/70">Stay ahead with Chrono.</span>
                                         </h4>
 
                                         <div className="mt-6 flex gap-2">
@@ -165,20 +166,10 @@ export const FooterSection: React.FC = () => {
                                             </button>
                                         </div>
                                         <div className="mt-6 flex justify-between items-center text-xs text-gray-400">
-                                            <p>© 2024 Taskos Inc. All rights reserved.</p>
+                                            <p>© 2026 Chrono Inc. All rights reserved.</p>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </Reveal>
-
-                    {/* Made by text */}
-                    <Reveal delay={0.4}>
-                        <div className="flex justify-end mt-4 px-6">
-                            <div className="flex items-center gap-1 text-sm text-gray-400">
-                                <span className="italic font-serif">Made by</span>
-                                <span className="font-bold text-gray-500 uppercase tracking-wider">Taskos Team</span>
                             </div>
                         </div>
                     </Reveal>

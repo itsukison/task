@@ -2,19 +2,12 @@
 
 import React from 'react';
 import { ArrowUpRight, ArrowRight } from 'lucide-react';
-import { AsciiArt } from './AsciiArt';
+import Image from 'next/image';
+
 import { Reveal } from './Reveal';
 import Link from 'next/link';
 
-const SHAPE_ASCII = `
-      +-------+
-     /       /|
-    /       / |
-   +-------+  |
-   |       |  +
-   |       | /
-   +-------+
-`;
+
 
 export const HeroSection: React.FC = () => {
     return (
@@ -26,9 +19,9 @@ export const HeroSection: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 lg:mb-14">
                     <div className="lg:col-span-10">
                         <Reveal delay={0.1} variant="fade-up" priority>
-                            <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] leading-[0.9] font-bold text-foreground tracking-tighter">
-                                Smart Daily Planning <br />
-                                <span className="text-accent">for Growing Teams.</span>
+                            <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] leading-[0.9] font-medium text-foreground tracking-tighter">
+                                Master Your Time. <br />
+                                <span className="text-[#FF5500]">Master Your Day.</span>
                             </h1>
                         </Reveal>
                     </div>
@@ -40,14 +33,22 @@ export const HeroSection: React.FC = () => {
                     {/* Left: Large Visual Placeholder (Accent Theme) */}
                     <div className="lg:col-span-7 relative min-h-[300px] flex items-center justify-center lg:justify-start">
                         <Reveal delay={0.3} variant="scale-up" priority className="w-full max-w-lg">
-                            <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-accent-light to-accent rounded-[2.5rem] shadow-2xl shadow-accent/20 flex items-center justify-center transform -rotate-2 hover:rotate-0 transition-transform duration-700 ease-out border-4 border-white/20 group">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.4),_transparent)] rounded-[2.5rem]"></div>
-                                <AsciiArt
-                                    art={SHAPE_ASCII}
-                                    className="bg-transparent border-none text-white mix-blend-overlay scale-[2.5] opacity-80 font-black group-hover:scale-[2.7] transition-transform duration-700"
-                                />
-                                {/* Glossy reflection effect */}
-                                <div className="absolute top-8 right-8 w-24 h-24 bg-white rounded-full blur-[50px] opacity-40"></div>
+                            <div className="relative w-full aspect-[4/3] flex items-center ml-20 justify-center transform hover:scale-[1.02] transition-transform duration-700 ease-out group">
+                                {/* Back Glow */}
+
+                                {/* Image Container */}
+                                <div className="relative w-full h-full flex items-center justify-center p-16">
+                                    <Image
+                                        src="/capsule.png"
+                                        alt="Visual"
+                                        width={800}
+                                        height={600}
+                                        className="w-full h-full object-contain mix-blend-multiply scale-125"
+                                        priority
+                                        quality={90}
+                                    />
+                                </div>
+
                             </div>
                         </Reveal>
                     </div>
@@ -56,7 +57,7 @@ export const HeroSection: React.FC = () => {
                     <div className="lg:col-span-5 flex flex-col gap-8 lg:pl-8 pb-4">
                         <Reveal delay={0.4} priority>
                             <p className="text-lg md:text-xl text-foreground leading-relaxed font-medium">
-                                Taskos helps you create custom daily rhythms and assistants to boost productivity and unlock new growth across every team.
+                                The only daily planner that treats time and tasks as equals. Chrono helps startups plan smarter, execute faster, and maintain transparent visibility—without the bloat.
                             </p>
                         </Reveal>
 
@@ -96,7 +97,7 @@ export const HeroSection: React.FC = () => {
 
                 </div>
 
-            </div>
-        </main>
+            </div >
+        </main >
     );
 };

@@ -12,7 +12,8 @@ type TaskInsert = Database['public']['Tables']['tasks']['Insert'];
 type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
 
 // Transform database row to frontend Task
-function dbToTask(row: DbTask & { owner?: OwnerProfile | null }): Task {
+function dbToTask(row: DbTask & { task_owners?: Array<{ user_profiles: OwnerProfile }> }): Task {
+    const owners = row.task_owners?.map(to => to.user_profiles) ?? [];
     return {
         id: row.id,
         title: row.title,
@@ -21,8 +22,8 @@ function dbToTask(row: DbTask & { owner?: OwnerProfile | null }): Task {
         expectedTime: row.expected_time_minutes,
         actualTime: row.actual_time_minutes,
         visibility: row.visibility,
-        owner: row.owner ?? null,
-        ownerId: row.owner_id,
+        owners,
+        ownerId: row.owner_id, // Deprecated but kept for backward compatibility
         organizationId: row.organization_id,
         scheduledDate: row.scheduled_date,
         createdAt: row.created_at,
@@ -49,6 +50,7 @@ export interface UpdateTaskInput {
     actualTime?: number;
     visibility?: TaskVisibility;
     scheduledDate?: string | null;  // ISO date string (YYYY-MM-DD)
+    ownerIds?: string[];  // Array of user IDs for multi-owner support
 }
 
 export interface UseTasksReturn {
@@ -81,10 +83,12 @@ export function useTasks(): UseTasksReturn {
                 .from('tasks')
                 .select(`
                     *,
-                    owner:user_profiles!tasks_owner_id_fkey (
-                        id,
-                        display_name,
-                        email
+                    task_owners (
+                        user_profiles!task_owners_user_profiles_fkey (
+                            id,
+                            display_name,
+                            email
+                        )
                     )
                 `)
                 .eq('organization_id', currentOrg.id)
@@ -99,6 +103,7 @@ export function useTasks(): UseTasksReturn {
             );
             setTasks(transformedTasks);
         } catch (err: unknown) {
+            console.error('Full tasks error:', JSON.stringify(err, null, 2));
             const message = err instanceof Error ? err.message : 'Failed to fetch tasks';
             setError(message);
             console.error('Error fetching tasks:', err);
@@ -163,10 +168,12 @@ export function useTasks(): UseTasksReturn {
             .insert(insertData)
             .select(`
                 *,
-                owner:user_profiles!tasks_owner_id_fkey (
-                    id,
-                    display_name,
-                    email
+                task_owners (
+                    user_profiles!task_owners_user_profiles_fkey (
+                        id,
+                        display_name,
+                        email
+                    )
                 )
             `)
             .single();
@@ -175,12 +182,24 @@ export function useTasks(): UseTasksReturn {
             throw new Error(`Failed to create task: ${insertError.message}`);
         }
 
+        // Add creator as initial owner in task_owners
+        const { error: ownerError } = await supabase
+            .from('task_owners')
+            .insert({
+                task_id: data.id,
+                user_id: user.id,
+                organization_id: currentOrg.id,
+            });
+
+        if (ownerError) {
+            console.error('Failed to add initial owner:', ownerError);
+        }
+
+        // Refetch to get the updated owners
+        await fetchTasks();
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const newTask = dbToTask(data as any);
-
-        // Optimistically add to state
-        setTasks(prev => [...prev, newTask]);
-
         return newTask;
     }, [user, currentOrg]);
 
@@ -218,20 +237,30 @@ export function useTasks(): UseTasksReturn {
             throw new Error(`Failed to update task: ${updateError.message}`);
         }
 
-        // Optimistically update state
-        setTasks(prev => prev.map(task => {
-            if (task.id !== id) return task;
-            return {
-                ...task,
-                title: input.title ?? task.title,
-                description: input.description !== undefined ? input.description : task.description,
-                status: input.status ?? task.status,
-                expectedTime: input.expectedTime ?? task.expectedTime,
-                actualTime: input.actualTime ?? task.actualTime,
-                visibility: input.visibility ?? task.visibility,
-                scheduledDate: input.scheduledDate !== undefined ? input.scheduledDate : task.scheduledDate,
-            };
-        }));
+        // Handle owner updates if provided
+        if (input.ownerIds !== undefined) {
+            // Delete existing owners
+            await supabase
+                .from('task_owners')
+                .delete()
+                .eq('task_id', id);
+
+            // Insert new owners
+            if (input.ownerIds.length > 0) {
+                const ownerInserts = input.ownerIds.map(userId => ({
+                    task_id: id,
+                    user_id: userId,
+                    organization_id: currentOrg.id,
+                }));
+
+                await supabase
+                    .from('task_owners')
+                    .insert(ownerInserts);
+            }
+        }
+
+        // Refetch to get updated data including owners
+        await fetchTasks();
     }, [currentOrg]);
 
     // Soft delete a task using RPC function

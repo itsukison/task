@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { AsciiArt } from './AsciiArt';
 import { Reveal } from './Reveal';
 
@@ -50,18 +51,27 @@ const ISO_CYCLE = `
 interface ServiceCardProps {
     title: string;
     description: string;
-    art: string;
+    art?: string;
+    image?: string;
     delay?: number;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, art, delay = 0 }) => (
+const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, art, image, delay = 0 }) => (
     <Reveal delay={delay} variant="fade-up" className="h-full">
         <div className="bg-gray-100/50 rounded-xl p-8 md:p-10 flex flex-col justify-between min-h-[320px] h-full transition-all duration-300 hover:bg-gray-100 group">
-            <div className="flex-1 flex items-center justify-center opacity-40 group-hover:opacity-60 transition-opacity mb-8">
-                <AsciiArt art={art} className="bg-transparent border-none text-foreground font-bold scale-150" />
+            <div className="flex-1 flex items-center justify-center mb-8">
+                {image ? (
+                    <div className="relative w-32 h-32 scale-[1.8] translate-x-20 opacity-80 group-hover:opacity-100 transition-all group-hover:scale-[1.9] duration-500">
+                        <Image src={image} alt={title} width={128} height={128} className="w-full h-full object-contain mix-blend-multiply" />
+                    </div>
+                ) : (
+                    <div className="opacity-40 group-hover:opacity-60 transition-opacity">
+                        <AsciiArt art={art || ''} className="bg-transparent border-none text-foreground font-bold scale-150" />
+                    </div>
+                )}
             </div>
             <div>
-                <h3 className="text-2xl md:text-3xl font-semibold mb-3 text-foreground tracking-tight">{title}</h3>
+                <h3 className="text-2xl md:text-3xl font-medium mb-3 text-foreground tracking-tight">{title}</h3>
                 <p className="text-gray-500 text-base leading-relaxed max-w-sm">{description}</p>
             </div>
         </div>
@@ -85,15 +95,15 @@ export const ServicesSection: React.FC = () => {
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
                         <div className="flex-1">
                             <Reveal delay={0.2}>
-                                <h2 className="text-6xl md:text-7xl lg:text-8xl font-semibold tracking-tighter text-foreground leading-[0.9]">
-                                    Taskos <br className="hidden md:block" /> solutions
+                                <h2 className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-tighter text-foreground leading-[0.9]">
+                                    Built for <br className="hidden md:block" /> Daily Execution
                                 </h2>
                             </Reveal>
                         </div>
                         <div className="flex-1">
                             <Reveal delay={0.3}>
                                 <p className="text-lg md:text-xl text-foreground/70 leading-relaxed max-w-xl lg:ml-auto">
-                                    Our rhythm-driven automation eliminates busywork, streamlines your operations, and helps your business grow, without extra effort.
+                                    Chrono's time-first approach eliminates the gap between planning and doing. Execute with clarity and build sustainable daily rhythms.
                                 </p>
                             </Reveal>
                         </div>
@@ -106,15 +116,15 @@ export const ServicesSection: React.FC = () => {
                     {/* Top Row: 2 Columns */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <ServiceCard
-                            title="Daily Planning"
-                            description="Get a clear roadmap of how daily tasks drive growth and efficiency for your business."
-                            art={ISO_BLOCKS}
+                            title="Visual Time Blocking"
+                            description="See your day as a timeline, not a to-do list. Every task has a place in time."
+                            image="/clock.png"
                             delay={0.1}
                         />
                         <ServiceCard
-                            title="Time Awareness"
-                            description="Visualize execution speed and maintain rhythm without intrusive tracking."
-                            art={ISO_PLAY}
+                            title="Drag-and-Drop Flow"
+                            description="Schedule tasks by dragging them directly into your calendar. Planning takes seconds."
+                            image="/cursor.png"
                             delay={0.2}
                         />
                     </div>
@@ -122,20 +132,20 @@ export const ServicesSection: React.FC = () => {
                     {/* Bottom Row: 3 Columns */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <ServiceCard
-                            title="Workload Monitor"
-                            description="Design and deploy visibility agents built specifically to solve your unique capacity challenges."
+                            title="Time Awareness"
+                            description="Track expected vs. actual time to build execution rhythm and learn your true pace."
                             art={ISO_FACE}
                             delay={0.3}
                         />
                         <ServiceCard
-                            title="Availability"
-                            description="Automate status checks and follow-ups to keep relationships strong and organized."
+                            title="Workload Monitor"
+                            description="Leaders get transparent visibility into team capacity without micromanagement."
                             art={ISO_GEARS}
                             delay={0.4}
                         />
                         <ServiceCard
-                            title="Process Analytics"
-                            description="Transform repetitive workflows into smooth, automated systems that save time."
+                            title="Daily Patterns"
+                            description="Build sustainable work rhythms that compound over time. Execution wisdom grows daily."
                             art={ISO_CYCLE}
                             delay={0.5}
                         />

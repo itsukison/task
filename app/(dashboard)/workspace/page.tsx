@@ -32,7 +32,7 @@ export default function WorkspacePage() {
 
     const draggingTask = tasks.find(t => t.id === draggingTaskId) || null;
 
-    const handleTaskUpdate = async (updatedTask: Task) => {
+    const handleTaskUpdate = async (updatedTask: Task & { ownerIds?: string[] }) => {
         try {
             await updateTask(updatedTask.id, {
                 title: updatedTask.title,
@@ -41,6 +41,7 @@ export default function WorkspacePage() {
                 expectedTime: updatedTask.expectedTime,
                 actualTime: updatedTask.actualTime,
                 visibility: updatedTask.visibility,
+                ownerIds: updatedTask.ownerIds,
             });
             if (selectedTask?.id === updatedTask.id) setSelectedTask(updatedTask);
         } catch (err) {

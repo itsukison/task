@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { addWeeks, subWeeks, addDays } from 'date-fns';
 import ResizableSplitView from './resizable-split-view';
 import TaskList from './task-list';
@@ -40,47 +40,47 @@ export default function WorkspaceView({
     // Column visibility state
     const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
 
-    const handlePrev = () => {
+    const handlePrev = useCallback(() => {
         if (calendarView === 'week') setViewDate(subWeeks(viewDate, 1));
         else setViewDate(addDays(viewDate, -1));
-    };
+    }, [calendarView, viewDate]);
 
-    const handleNext = () => {
+    const handleNext = useCallback(() => {
         if (calendarView === 'week') setViewDate(addWeeks(viewDate, 1));
         else setViewDate(addDays(viewDate, 1));
-    };
+    }, [calendarView, viewDate]);
 
-    const handleToday = () => {
+    const handleToday = useCallback(() => {
         const today = new Date();
         setViewDate(today);
         onSelectDate(today);
-    };
+    }, [onSelectDate]);
 
-    const handleSortChange = (sort: SortConfig | null) => {
+    const handleSortChange = useCallback((sort: SortConfig | null) => {
         setSortConfig(sort);
         setShowSortMenu(false);
-    };
+    }, []);
 
-    const handleHideColumn = (columnId: string) => {
+    const handleHideColumn = useCallback((columnId: string) => {
         setHiddenColumns(prev => [...prev, columnId]);
-    };
+    }, []);
 
-    const handleShowColumn = (columnId: string) => {
+    const handleShowColumn = useCallback((columnId: string) => {
         setHiddenColumns(prev => prev.filter(c => c !== columnId));
-    };
+    }, []);
 
-    const toggleSortDirection = () => {
+    const toggleSortDirection = useCallback(() => {
         if (sortConfig) {
             setSortConfig({
                 ...sortConfig,
                 direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'
             });
         }
-    };
+    }, [sortConfig]);
 
-    const clearSort = () => {
+    const clearSort = useCallback(() => {
         setSortConfig(null);
-    };
+    }, []);
 
     return (
         <div className="flex flex-col h-full w-full bg-white">

@@ -35,8 +35,8 @@ export interface Task {
     expectedTime: number;  // in minutes (maps from expected_time_minutes)
     actualTime: number;    // in minutes (maps from actual_time_minutes)
     visibility: TaskVisibility;
-    owner: OwnerProfile | null;  // Joined from user_profiles
-    ownerId: string;
+    owners: OwnerProfile[];  // Multiple owners from task_owners junction table
+    ownerId: string;  // Deprecated, kept for backward compatibility with single-owner queries
     organizationId: string;
     scheduledDate: string | null;  // ISO date string (maps from scheduled_date)
     createdAt: string;
@@ -65,7 +65,7 @@ export interface CalendarBlock {
 /**
  * Data types supported by editable table cells
  */
-export type DataType = 'text' | 'number' | 'select';
+export type DataType = 'text' | 'number' | 'select' | 'people' | 'timerNumber';
 
 /**
  * Option for select-type columns
@@ -73,6 +73,15 @@ export type DataType = 'text' | 'number' | 'select';
 export interface ColumnOption {
     label: string;
     backgroundColor: string;
+}
+
+/**
+ * Person option for people-type columns
+ */
+export interface PeopleOption {
+    id: string;
+    displayName: string;
+    email: string;
 }
 
 /**
@@ -85,6 +94,7 @@ export interface TableColumn<T> {
     width?: number;
     minWidth?: number;
     options?: ColumnOption[];
+    peopleOptions?: PeopleOption[];
 }
 
 /**

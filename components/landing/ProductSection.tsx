@@ -1,67 +1,76 @@
 'use client';
 
 import React from 'react';
-import { AsciiArt } from './AsciiArt';
+import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { Reveal } from './Reveal';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
-const PLAN_ASCII = `
-   [x]
-  ====
-  ====
-   --
-`;
+// Dynamic import to avoid SSR issues with Three.js
+const Dither = dynamic(() => import('./ditherbg'), { ssr: false });
 
-const CLOCK_ASCII = `
-  .--.
- ( 12 )
- | 09 |
- '----'
-`;
+
 
 export const ProductSection: React.FC = () => {
     return (
-        <section id="features" className="w-full h-screen bg-background relative overflow-hidden flex items-center justify-center border-b border-gray-100">
+        <section id="features" className="w-full min-h-[700px] py-24 bg-background relative overflow-hidden flex items-center justify-center border-b border-gray-100">
 
-            {/* Background Halftone & Gradient */}
-            <div className="absolute inset-x-0 bottom-0 h-[70%] pointer-events-none z-0">
-                {/* Halftone Pattern */}
-                <div
-                    className="absolute inset-0 opacity-25"
-                    style={{
-                        backgroundImage: 'radial-gradient(circle, var(--color-accent) 2px, transparent 2.5px)',
-                        backgroundSize: '24px 24px',
-                        backgroundPosition: 'center bottom'
-                    }}
-                ></div>
+            {/* Background Dither & Gradient */}
+            <div className="absolute inset-x-0 bottom-0 h-[80%] pointer-events-none z-0">
+                {/* Dither Background */}
+                <div className="absolute inset-0 opacity-50">
+                    <Dither
+                        waveColor={[1.0, 0.33, 0.0]}  /* #FF5500 in RGB normalized */
+                        disableAnimation={false}
+                        enableMouseInteraction={false}
+                        mouseRadius={0.3}
+                        colorNum={5}
+                        waveAmplitude={0.2}
+                        waveFrequency={2}
+                        waveSpeed={0.02}
+                        invertColors={true}
+                    />
+                </div>
 
-                {/* Fade Mask (White to Transparent) to blend top of halftone */}
-                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-transparent h-2/3"></div>
+                {/* Fade Mask (White to Transparent) to blend top of dither */}
+                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-transparent h-1/2"></div>
 
                 {/* Bottom Accent Glow */}
-                <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-accent/15 via-accent/5 to-transparent"></div>
+                <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-[#FF5500]/10 via-[#FF5500]/5 to-transparent"></div>
             </div>
 
             <div className="max-w-[1280px] mx-auto px-6 relative w-full z-10">
 
-                {/* Floating Element Left */}
-                <div className="hidden lg:block absolute top-1/2 -translate-y-1/2 left-0 xl:left-20">
+                {/* Floating Element Left - Square (positioned higher) */}
+                <div className="hidden lg:block absolute top-1/4 -mt-20 -translate-y-1/2 left-0 xl:left-20">
                     <Reveal delay={0.2} variant="fade-in">
                         <div className="animate-[bounce_5s_infinite]">
-                            <div className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-[2rem] p-6 w-40 h-32 flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-                                <AsciiArt art={PLAN_ASCII} className="bg-transparent border-none text-accent scale-125 font-bold" />
+                            <div className="relative w-28 h-28">
+                                <Image
+                                    src="/square.png"
+                                    alt="Task Box"
+                                    width={112}
+                                    height={112}
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                         </div>
                     </Reveal>
                 </div>
 
-                {/* Floating Element Right */}
-                <div className="hidden lg:block absolute top-1/2 -translate-y-1/2 right-0 xl:right-20">
+                {/* Floating Element Right - Donut (positioned lower) */}
+                <div className="hidden lg:block absolute top-2/3 -translate-y-1/2 right-0 xl:right-20">
                     <Reveal delay={0.3} variant="fade-in">
-                        <div className="animate-[pulse_4s_infinite]">
-                            <div className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-[2rem] p-6 w-40 h-32 flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-                                <AsciiArt art={CLOCK_ASCII} className="bg-transparent border-none text-gray-800 scale-125 font-bold" />
+                        <div className="animate-[bounce_5s_infinite]">
+                            <div className="relative w-56 h-56">
+                                <Image
+                                    src="/donut.png"
+                                    alt="Clock"
+                                    width={224}
+                                    height={224}
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                         </div>
                     </Reveal>
@@ -71,10 +80,9 @@ export const ProductSection: React.FC = () => {
                 <div className="flex flex-col items-center justify-center text-center max-w-3xl mx-auto">
 
                     <Reveal delay={0.1}>
-                        <h2 className="text-4xl md:text-6xl font-semibold tracking-tighter text-foreground leading-[1.1] mb-8">
-                            Your single source of <br />
-                            truth for <span className="text-accent">daily operations</span> <br />
-                            and <span className="text-gray-400">team rhythm.</span>
+                        <h2 className="text-4xl md:text-6xl font-medium tracking-tighter text-foreground leading-[1.1] mb-8">
+                            One tool. Two views. <br />
+                            <span className="text-[#FF5500]">Complete clarity.</span>
                         </h2>
                     </Reveal>
 
@@ -82,7 +90,7 @@ export const ProductSection: React.FC = () => {
                         <div className="flex items-center gap-6 w-full justify-center mb-10">
                             <div className="h-[1px] bg-gray-200 w-16"></div>
                             <p className="text-lg text-foreground/70 font-normal max-w-lg text-center leading-relaxed">
-                                Experience the clarity that comes with having <br /> your execution under control.
+                                Your tasks and calendar finally speak the same language. <br /> See exactly what fits in your day.
                             </p>
                             <div className="h-[1px] bg-gray-200 w-16"></div>
                         </div>

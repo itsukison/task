@@ -1,43 +1,10 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { AsciiArt } from './AsciiArt';
 import { ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 
-const PLAN_UI_ART = `
-    [ Criteria ]
-    
-    Country *
-    [ United States     v ]
-    
-    Age
-    24 ●────────────── 45
-    
-    Sex
-    (o) Any   ( ) Man
-`;
 
-const FOCUS_UI_ART = `
-    +-------------------+
-    |                   |
-    |   AI-SUGGESTED    |
-    |                   |
-    |   The user uses   |
-    |   expense track   |
-    |   features...     |
-    |                   |
-    |   [ Add themes ]  |
-    +-------------------+
-`;
-
-const REVIEW_UI_ART = `
-    Team Workload
-    
-    Tanaka    ████ 95%
-    Suzuki    █░░░ 20%
-    
-    [ Export Report ]
-`;
 
 export const ProcessSection: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -62,29 +29,29 @@ export const ProcessSection: React.FC = () => {
         {
             id: 0,
             label: 'Plan',
-            title: "Reach the right clarity, effortlessly",
-            text: "Instantly tap into your daily tasks or connect with your team's rhythm. Taskos handles scheduling and prioritization, giving you room to ask smarter questions.",
-            art: PLAN_UI_ART,
-            color: "bg-[#d8b4fe]",
-            cardColor: "text-purple-900"
+            title: "Start with Clarity",
+            text: "Plan your day based on available time, not wishful thinking. Chrono shows exactly what fits in your calendar, so you start every day with realistic expectations.",
+            image: "/rectangular.png",
+            color: "bg-[#E7E5E4]", // Warm Stone
+            cardColor: "text-stone-800"
         },
         {
             id: 1,
-            label: 'Focus',
-            title: "Gain the clarity to shape work",
-            text: "Empower more people to run deep work sessions. Our AI cuts through the noise to surface patterns, so you can spend less time on busywork and more time shipping.",
-            art: FOCUS_UI_ART,
-            color: "bg-[#fcd34d]",
-            cardColor: "text-amber-900"
+            label: 'Execute',
+            title: "Stay in Flow",
+            text: "Drag tasks into your calendar. Resize blocks as reality unfolds. Chrono adapts with you, keeping time and tasks synchronized without breaking your focus.",
+            image: "/triangle.png",
+            color: "bg-[#FFDBC7]", // Soft Apricot/Clay
+            cardColor: "text-orange-950"
         },
         {
             id: 2,
             label: 'Review',
-            title: "Analyze insights at scale",
-            text: "Visualize team capacity and velocity. Spot bottlenecks before they become blockers with our automated workload analysis.",
-            art: REVIEW_UI_ART,
-            color: "bg-[#bae6fd]",
-            cardColor: "text-blue-900"
+            title: "Learn Your Rhythm",
+            text: "See where time actually goes. Spot patterns in your execution. Improve daily. With Chrono, execution wisdom compounds over time.",
+            image: "/donut.png",
+            color: "bg-[#D4DEE7]", // Muted Steel/Slate
+            cardColor: "text-slate-800"
         }
     ];
 
@@ -140,19 +107,20 @@ export const ProcessSection: React.FC = () => {
                                 </div>
 
                                 {/* Right: Visual Card */}
-                                <div className={`w-full aspect-square md:aspect-[4/3] ${slide.color} rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 relative flex items-center justify-center shadow-sm overflow-hidden`}>
+                                <div className={`w-full aspect-square md:aspect-[4/3] ${slide.color} rounded-[2rem] md:rounded-[2rem] p-8 md:p-12 relative flex items-center justify-center shadow-sm overflow-hidden`}>
 
                                     {/* Background Pattern (Subtle) */}
                                     <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent"></div>
 
-                                    {/* Floating UI Card */}
-                                    <div className="bg-white rounded-xl md:rounded-2xl shadow-xl p-6 md:p-8 w-full max-w-md transform transition-transform hover:scale-105 duration-500">
-                                        <div className="flex items-center gap-2 mb-4 border-b border-gray-100 pb-4">
-                                            <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                                            <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                                            <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                                        </div>
-                                        <AsciiArt art={slide.art} className={`bg-transparent border-none ${slide.cardColor} font-medium scale-110 md:scale-125`} />
+                                    {/* Floating UI Card - Replaced with Shape Image */}
+                                    <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center transform transition-transform hover:scale-105 duration-500">
+                                        <Image
+                                            src={slide.image}
+                                            alt={slide.label}
+                                            width={320}
+                                            height={320}
+                                            className="w-full h-full object-contain drop-shadow-2xl mix-blend-multiply opacity-90"
+                                        />
                                     </div>
                                 </div>
 

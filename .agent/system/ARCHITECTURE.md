@@ -7,7 +7,9 @@
 ## 1. Layer Structure
 
 ```
-lib/           → Types, utilities, configs (no React)
+lib/           → Types, utilities, configs
+                 ✅ Exception: lib/hooks/ and lib/auth/ may use React
+                 Rationale: Hooks are framework utilities, infrastructure layer
 components/ui/ → Primitive UI (Button, Input, Card) - no business logic
 components/    → Feature components (Calendar, TaskList) - can compose ui/
 app/           → Pages & layouts only - minimal logic, delegate to components
@@ -15,7 +17,7 @@ app/           → Pages & layouts only - minimal logic, delegate to components
 
 **Rules:**
 - Lower layers CANNOT import from higher layers
-- `lib/` → pure TypeScript, no React dependencies
+- `lib/` → pure TypeScript, no React dependencies (except lib/hooks/ and lib/auth/)
 - `components/ui/` → generic, reusable, no app-specific types
 
 ---

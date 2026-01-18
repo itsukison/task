@@ -27,8 +27,8 @@ export const Navbar: React.FC = () => {
                 className={`
           transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] flex justify-between items-center
           ${isScrolled
-                        ? 'w-[95%] max-w-[1440px] px-8 py-4 rounded-full bg-white/90 backdrop-blur-xl border border-black/5 shadow-sm'
-                        : 'w-full max-w-[1600px] px-8 md:px-16 py-8 bg-transparent border-b border-transparent'
+                        ? 'w-[90%] max-w-[1200px] px-6 py-3 rounded-full bg-white/80 backdrop-blur-md border border-black/5 shadow-sm'
+                        : 'w-full max-w-[1440px] px-6 md:px-12 py-6 bg-transparent border-b border-transparent'
                     }
         `}
             >
@@ -39,16 +39,15 @@ export const Navbar: React.FC = () => {
                             <path d="M20 5L35 30H5L20 5Z" />
                         </svg>
                     </div>
-                    <span className="text-2xl font-bold tracking-tight text-foreground">Taskos</span>
+                    <span className="text-2xl font-bold tracking-tight text-foreground">Chrono</span>
                 </div>
 
-                {/* Links */}
-                <div className={`hidden lg:flex items-center gap-10 ${isScrolled ? 'text-sm' : 'text-base'}`}>
+                <div className={`hidden lg:flex items-center gap-10 ${isScrolled ? 'text-sm' : 'text-[15px]'}`}>
                     {navItems.map((item) => (
                         <a
                             key={item.label}
                             href={item.href}
-                            className="font-medium text-foreground/70 hover:text-foreground transition-colors uppercase tracking-wide text-[13px]"
+                            className="font-medium text-foreground/80 hover:text-accent transition-colors tracking-tight"
                         >
                             {item.label}
                         </a>

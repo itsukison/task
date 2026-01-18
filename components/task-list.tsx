@@ -3,7 +3,8 @@
 import React, { useMemo } from 'react';
 import { startOfDay, endOfDay } from 'date-fns';
 import { EditableTable, TableColumn, ColumnOption, SortConfig } from './editable-table';
-import { Task, TaskStatus, TaskListProps } from '@/lib/types';
+import { Task, TaskStatus, TaskListProps, PeopleOption } from '@/lib/types';
+import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
 
 // Convert Date to YYYY-MM-DD string in local timezone
 const formatDateToLocalISO = (date: Date): string => {
@@ -22,7 +23,7 @@ const STATUS_OPTIONS: ColumnOption[] = [
 ];
 
 // Define column configuration for Task data
-function getTaskColumns(): TableColumn<Task>[] {
+function getTaskColumns(orgMembers: PeopleOption[]): TableColumn<Task>[] {
     return [
         {
             id: 'title',
@@ -41,17 +42,25 @@ function getTaskColumns(): TableColumn<Task>[] {
         },
         {
             id: 'expectedTime',
-            label: 'Est. Time',
+            label: 'Est Time',
             dataType: 'number',
-            width: 100,
-            minWidth: 80,
+            width: 120,
+            minWidth: 100,
         },
         {
-            id: 'ownerDisplayName',  // Virtual field for display
-            label: 'Owner',
-            dataType: 'text',
-            width: 150,
+            id: 'actualTime',
+            label: 'Act Time',
+            dataType: 'timerNumber',
+            width: 120,
             minWidth: 100,
+        },
+        {
+            id: 'ownerIds',  // Array of user IDs
+            label: 'Owners',
+            dataType: 'people',
+            width: 200,
+            minWidth: 150,
+            peopleOptions: orgMembers,
         },
     ];
 }
@@ -82,13 +91,15 @@ export default function TaskList({
     viewMode,
     viewDate,
 }: ExtendedTaskListProps) {
+    // Fetch organization members for people picker
+    const { members: orgMembers } = useOrganizationMembers();
 
-    // Transform tasks to include virtual ownerDisplayName field
-    type TaskWithOwnerDisplay = Task & { ownerDisplayName: string };
+    // Transform tasks to include virtual ownerIds field
+    type TaskWithOwnerIds = Task & { ownerIds: string[] };
 
     // Filter tasks based on search, status, and date
     // Task list shows tasks matching the selected date
-    const filteredTasks = useMemo((): TaskWithOwnerDisplay[] => {
+    const filteredTasks = useMemo((): TaskWithOwnerIds[] => {
         let result = [...tasks];
 
         // Filter by selected date - show tasks matching scheduled_date
@@ -107,14 +118,14 @@ export default function TaskList({
             const query = searchQuery.toLowerCase();
             result = result.filter(t =>
                 t.title.toLowerCase().includes(query) ||
-                (t.owner?.display_name?.toLowerCase().includes(query) ?? false)
+                t.owners.some(o => o.display_name.toLowerCase().includes(query))
             );
         }
 
-        // Add virtual ownerDisplayName field for table display
+        // Add virtual ownerIds field for PeopleCell
         return result.map(t => ({
             ...t,
-            ownerDisplayName: t.owner?.display_name ?? 'Unassigned',
+            ownerIds: t.owners.map(o => o.id),
         }));
     }, [tasks, filterStatus, searchQuery, selectedDate]);
 
@@ -123,8 +134,15 @@ export default function TaskList({
         const task = tasks.find(t => t.id === rowId);
         if (!task) return;
 
-        // Skip non-editable columns
-        if (columnId === 'ownerDisplayName') return;
+        // Handle ownerIds changes (people picker)
+        if (columnId === 'ownerIds') {
+            const ownerIds = value as string[];
+            onUpdateTask({
+                ...task,
+                ownerIds,
+            } as Task);
+            return;
+        }
 
         const updatedTask: Task = {
             ...task,
@@ -154,7 +172,7 @@ export default function TaskList({
         onDragStart(null);
     };
 
-    const columns = useMemo(() => getTaskColumns(), []);
+    const columns = useMemo(() => getTaskColumns(orgMembers), [orgMembers]);
 
     return (
         <div className="w-full h-full bg-white flex flex-col font-sans">
