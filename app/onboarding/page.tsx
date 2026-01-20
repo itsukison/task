@@ -74,7 +74,7 @@ export default function OnboardingPage() {
                 {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-2xl font-semibold text-[#37352F] mb-2">
-                        Welcome to TaskOS
+                        Welcome to Chrono
                     </h1>
                     <p className="text-sm text-[#787774]">
                         {user.email}

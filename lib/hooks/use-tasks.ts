@@ -71,7 +71,7 @@ export function useTasks(): UseTasksReturn {
 
     // Fetch tasks with owner JOIN
     const fetchTasks = useCallback(async () => {
-        if (!currentOrg) {
+        if (!currentOrg || !user) {
             setTasks([]);
             setLoading(false);
             return;
@@ -92,6 +92,7 @@ export function useTasks(): UseTasksReturn {
                     )
                 `)
                 .eq('organization_id', currentOrg.id)
+                .eq('owner_id', user.id)  // Only fetch tasks owned by current user
                 .is('deleted_at', null)
                 .order('created_at', { ascending: true });
 
@@ -110,11 +111,11 @@ export function useTasks(): UseTasksReturn {
         } finally {
             setLoading(false);
         }
-    }, [currentOrg]);
+    }, [currentOrg, user]);
 
     // Initial fetch and real-time subscription
     useEffect(() => {
-        if (!currentOrg) {
+        if (!currentOrg || !user) {
             setTasks([]);
             setLoading(false);
             return;
@@ -143,7 +144,7 @@ export function useTasks(): UseTasksReturn {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentOrg, fetchTasks]);
+    }, [currentOrg, user, fetchTasks]);
 
     // Create a new task
     const createTask = useCallback(async (input: CreateTaskInput): Promise<Task> => {

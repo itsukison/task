@@ -3,7 +3,7 @@
 import React from 'react';
 import { format, isSameDay } from 'date-fns';
 import { Clock } from 'lucide-react';
-import { Task, CalendarBlock } from '@/lib/types';
+import { Task, CalendarBlock, MultiMemberBlock } from '@/lib/types';
 
 interface CalendarDayColumnProps {
   date: Date;
@@ -11,16 +11,22 @@ interface CalendarDayColumnProps {
   selectedDate: Date;
   hours: number[];
   tasks: Task[];
-  calendarBlocks: CalendarBlock[];
+  calendarBlocks: (CalendarBlock | MultiMemberBlock)[];
   draggingTask: Task | null;
   dragPreview: { dateStr: string; minutes: number } | null;
-  getTaskStyle: (block: CalendarBlock, task: Task) => any;
+  getTaskStyle: (block: CalendarBlock | MultiMemberBlock, task: Task, blockIndex?: number, totalBlocks?: number) => any;
   formatMinutesToTime: (minutes: number) => string;
   onDragOverDay: (e: React.DragEvent, dateStr: string) => void;
   onDrop: (e: React.DragEvent, dateStr: string) => void;
   onTaskClick: (task: Task) => void;
   onContextMenu: (e: React.MouseEvent, taskId: string, blockId: string) => void;
   onDragStart: (e: React.DragEvent, task: Task, blockId?: string) => void;
+  blocksWithOverlapInfo?: Array<{
+    block: CalendarBlock | MultiMemberBlock;
+    overlapIndex: number;
+    totalOverlapping: number;
+  }>;
+  isMultiMemberMode?: boolean;
 }
 
 export const CalendarDayColumn = React.memo(function CalendarDayColumn({
@@ -38,12 +44,20 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   onDrop,
   onTaskClick,
   onContextMenu,
-  onDragStart
+  onDragStart,
+  blocksWithOverlapInfo,
+  isMultiMemberMode = false
 }: CalendarDayColumnProps) {
-  const dayBlocks = calendarBlocks.filter(b => {
-    const blockDate = format(new Date(b.startTime), 'yyyy-MM-dd');
-    return blockDate === dateStr;
-  });
+  const dayBlocks = blocksWithOverlapInfo || calendarBlocks
+    .filter(b => {
+      const blockDate = format(new Date(b.startTime), 'yyyy-MM-dd');
+      return blockDate === dateStr;
+    })
+    .map(block => ({
+      block,
+      overlapIndex: 0,
+      totalOverlapping: 1,
+    }));
 
   const isToday = isSameDay(date, new Date());
   const isPreviewing = dragPreview?.dateStr === dateStr && draggingTask;
@@ -100,12 +114,19 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
 
       {/* Tasks Layer */}
       <div className="absolute inset-0 z-10">
-        {dayBlocks.map(block => {
-          const task = tasks.find(t => t.id === block.taskId);
+        {dayBlocks.map(({ block, overlapIndex, totalOverlapping }) => {
+          // Use embedded task from block (for multi-member mode) or fallback to tasks array
+          const task = block.task || tasks.find(t => t.id === block.taskId);
           if (!task) return null;
 
-          const style = getTaskStyle(block, task);
+          const style = getTaskStyle(block, task, overlapIndex, totalOverlapping);
           const isBeingDragged = draggingTask?.id === task.id;
+          const isMultiMember = 'ownerName' in block;
+
+          // Generate initials for multi-member blocks
+          const getInitials = (name: string) => {
+            return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+          };
 
           return (
             <div
@@ -122,6 +143,15 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
               onDragStart={(e) => onDragStart(e, task, block.id)}
             >
               <div className="font-medium truncate leading-tight flex items-center gap-1.5">
+                {isMultiMember && isMultiMemberMode && (
+                  <div
+                    className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-medium text-white flex-shrink-0"
+                    style={{ backgroundColor: block.ownerColor }}
+                    title={block.ownerName}
+                  >
+                    {getInitials(block.ownerName)}
+                  </div>
+                )}
                 {task.status === 'completed' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>}
                 {task.title}
               </div>

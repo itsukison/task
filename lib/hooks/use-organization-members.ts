@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/hooks';
-import { PeopleOption } from '@/lib/types';
+import { PeopleOption, PeopleOptionWithVisibility } from '@/lib/types';
 
 export interface UseOrganizationMembersReturn {
     members: PeopleOption[];
+    membersWithVisibility: PeopleOptionWithVisibility[];
     loading: boolean;
     error: string | null;
 }
@@ -14,12 +15,14 @@ export interface UseOrganizationMembersReturn {
 export function useOrganizationMembers(): UseOrganizationMembersReturn {
     const { currentOrg } = useAuth();
     const [members, setMembers] = useState<PeopleOption[]>([]);
+    const [membersWithVisibility, setMembersWithVisibility] = useState<PeopleOptionWithVisibility[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchMembers = useCallback(async () => {
         if (!currentOrg) {
             setMembers([]);
+            setMembersWithVisibility([]);
             setLoading(false);
             return;
         }
@@ -30,17 +33,19 @@ export function useOrganizationMembers(): UseOrganizationMembersReturn {
                 .from('organization_members')
                 .select(`
                     user_id,
+                    role,
                     user_profiles!organization_members_user_profiles_fkey (
                         id,
                         display_name,
-                        email
+                        email,
+                        default_schedule_visibility
                     )
                 `)
                 .eq('organization_id', currentOrg.id);
 
             if (fetchError) throw fetchError;
 
-            // Transform to PeopleOption format
+            // Transform to PeopleOption format (basic)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const transformedMembers = (data || []).map((row: any) => ({
                 id: row.user_profiles.id,
@@ -48,7 +53,18 @@ export function useOrganizationMembers(): UseOrganizationMembersReturn {
                 email: row.user_profiles.email,
             }));
 
+            // Transform to PeopleOptionWithVisibility format (extended)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const transformedMembersWithVisibility = (data || []).map((row: any) => ({
+                id: row.user_profiles.id,
+                displayName: row.user_profiles.display_name,
+                email: row.user_profiles.email,
+                scheduleVisibility: row.user_profiles.default_schedule_visibility,
+                role: row.role,
+            }));
+
             setMembers(transformedMembers);
+            setMembersWithVisibility(transformedMembersWithVisibility);
         } catch (err: unknown) {
             console.error('Full error object:', JSON.stringify(err, null, 2));
             const message = err instanceof Error ? err.message : 'Failed to fetch organization members';
@@ -65,6 +81,7 @@ export function useOrganizationMembers(): UseOrganizationMembersReturn {
 
     return {
         members,
+        membersWithVisibility,
         loading,
         error,
     };

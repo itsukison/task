@@ -1,34 +1,124 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { format } from 'date-fns';
+import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
+import { useTeamTasks } from '@/lib/hooks/use-team-tasks';
+import {
+    ProgressHeader,
+    ProgressTabBar,
+    TeamOverviewTable,
+    MemberTasksModal,
+    type ProgressTab,
+    type MemberStats,
+} from '@/components/progress';
+
+// Format date to local ISO string (YYYY-MM-DD) accounting for timezone
+function formatDateToLocalISO(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 export default function ProgressPage() {
+    // State
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<ProgressTab>('overview');
+
+    // Format date for query
+    const selectedDateISO = formatDateToLocalISO(selectedDate);
+
+    // Fetch data
+    const { members, loading: membersLoading } = useOrganizationMembers();
+    const { teamTasks, loading: tasksLoading, error } = useTeamTasks({
+        scheduledDate: selectedDateISO,
+    });
+
+    // Calculate member stats
+    const memberStats = useMemo<MemberStats[]>(() => {
+        return members.map((member) => {
+            const memberTasks = teamTasks.filter((t) => t.ownerId === member.id);
+
+            return {
+                memberId: member.id,
+                memberName: member.displayName,
+                memberEmail: member.email,
+                tasksToday: memberTasks.length,
+                tasksLeft: memberTasks.filter((t) =>
+                    ['planned', 'in_progress', 'overrun'].includes(t.status)
+                ).length,
+                estimatedMinutes: memberTasks.reduce((sum, t) => sum + t.expectedTime, 0),
+                actualMinutes: memberTasks.reduce((sum, t) => sum + (t.actualTime || 0), 0),
+            };
+        });
+    }, [members, teamTasks]);
+
+    // Find selected member for modal
+    const selectedMember = selectedMemberId
+        ? members.find((m) => m.id === selectedMemberId)
+        : null;
+
+    const selectedMemberTasks = selectedMemberId
+        ? teamTasks.filter((t) => t.ownerId === selectedMemberId)
+        : [];
+
+    // Loading state
+    const isLoading = membersLoading || tasksLoading;
+
     return (
-        <div className="p-8 max-w-5xl mx-auto">
-            <h1 className="text-3xl font-bold mb-8">Team Progress</h1>
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-medium">
-                        <tr>
-                            <th className="px-6 py-4">Employee</th>
-                            <th className="px-6 py-4">Tasks Today</th>
-                            <th className="px-6 py-4 text-right">Planned Time</th>
-                            <th className="px-6 py-4 text-right">Actual Time</th>
-                            <th className="px-6 py-4 text-center">Velocity</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-xs">JS</div>
-                                <span className="font-medium text-gray-900">John Smith</span>
-                            </td>
-                            <td className="px-6 py-4 text-gray-600">4 tasks</td>
-                            <td className="px-6 py-4 text-right font-mono text-gray-600">5.0h</td>
-                            <td className="px-6 py-4 text-right font-mono text-gray-600">2.25h</td>
-                            <td className="px-6 py-4 text-center">
-                                <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">105%</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div className="flex flex-col h-full w-full bg-white">
+            {/* Header */}
+            <ProgressHeader
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+            />
+
+            {/* Tab Bar */}
+            <ProgressTabBar
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+            />
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto p-8 ml-2">
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                        {error}
+                    </div>
+                )}
+
+                {activeTab === 'overview' && (
+                    <TeamOverviewTable
+                        memberStats={memberStats}
+                        onMemberClick={setSelectedMemberId}
+                        loading={isLoading}
+                    />
+                )}
+
+                {activeTab === 'reports' && (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                            <div className="text-4xl mb-2">📊</div>
+                            <h3 className="text-lg font-medium text-[#37352F] mb-1">Reports Coming Soon</h3>
+                            <p className="text-sm text-[#787774]">
+                                Analytics and insights will be available in a future update.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* Member Tasks Modal */}
+            {selectedMember && (
+                <MemberTasksModal
+                    member={selectedMember}
+                    tasks={selectedMemberTasks}
+                    selectedDate={selectedDate}
+                    onClose={() => setSelectedMemberId(null)}
+                />
+            )}
         </div>
     );
 }

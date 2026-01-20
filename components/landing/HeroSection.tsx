@@ -21,7 +21,7 @@ export const HeroSection: React.FC = () => {
                         <Reveal delay={0.1} variant="fade-up" priority>
                             <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] leading-[0.9] font-medium text-foreground tracking-tighter">
                                 Master Your Time. <br />
-                                <span className="text-[#FF5500]">Master Your Day.</span>
+                                <span className="text-accent">Master Your Day.</span>
                             </h1>
                         </Reveal>
                     </div>

@@ -73,7 +73,7 @@ export default function ResizableSplitView({
                 onClick={handleRestore}
                 className={`absolute top-2 left-3 z-50 text-gray-400 hover:text-gray-900 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${collapsedSide === 'left' ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-4 pointer-events-none'
                     }`}
-                title="Expand List"
+                title="Expand Calendar"
             >
                 <ChevronsRight size={18} />
             </button>
@@ -83,7 +83,7 @@ export default function ResizableSplitView({
                 onClick={handleRestore}
                 className={`absolute top-2 right-3 z-50 text-gray-400 hover:text-gray-900 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${collapsedSide === 'right' ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-4 pointer-events-none'
                     }`}
-                title="Expand Calendar"
+                title="Expand List"
             >
                 <ChevronsLeft size={18} />
             </button>
@@ -93,7 +93,7 @@ export default function ResizableSplitView({
                 style={{ width: `${computedLeftWidth}%` }}
                 className={`h-full overflow-hidden relative ${isDragging ? '' : 'transition-[width] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]'}`}
             >
-                <div className="w-full h-full min-w-[300px]">
+                <div className="w-full h-full min-w-[400px]">
                     {left}
                 </div>
             </div>
@@ -110,18 +110,18 @@ export default function ResizableSplitView({
                 <div className={`w-[2px] h-full transition-colors duration-300 ${isDragging || isHoveringDivider ? 'bg-accent' : 'bg-[#E9E9E7]'}`}></div>
 
                 {/* Collapse Buttons */}
-                <div className={`absolute top-0 left-1/2 -translate-x-1/2 flex items-center justify-center gap-0 opacity-0 group-hover/split:opacity-100 transition-opacity duration-200 ${isHoveringDivider ? 'opacity-100' : ''}`}>
+                <div className={`absolute top-0 left-1/2 -translate-x-1/2 flex items-center justify-center gap-0 transition-opacity duration-200 ${isHoveringDivider ? 'opacity-100' : 'opacity-0'}`}>
                     <button
                         className="text-gray-400 hover:text-accent transition-colors p-0.5"
                         onClick={(e) => { e.stopPropagation(); handleCollapseLeft(); }}
-                        title="Collapse List"
+                        title="Collapse Calendar"
                     >
                         <ChevronsLeft size={16} />
                     </button>
                     <button
                         className="text-gray-400 hover:text-accent transition-colors p-0.5"
                         onClick={(e) => { e.stopPropagation(); handleCollapseRight(); }}
-                        title="Collapse Calendar"
+                        title="Collapse List"
                     >
                         <ChevronsRight size={16} />
                     </button>
@@ -133,7 +133,7 @@ export default function ResizableSplitView({
                 style={{ width: `${100 - computedLeftWidth}%` }}
                 className={`h-full overflow-hidden relative ${isDragging ? '' : 'transition-[width] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]'}`}
             >
-                <div className="w-full h-full min-w-[400px]">
+                <div className="w-full h-full min-w-[300px]">
                     {right}
                 </div>
             </div>

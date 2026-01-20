@@ -52,7 +52,7 @@ export function JoinOrgForm({ loading, onSubmit, onError }: JoinOrgFormProps) {
                     value={inviteCode}
                     onChange={(e) => handleInviteCodeChange(e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-[#E9E9E7] rounded focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[#37352F] font-mono text-center tracking-wider"
+                    className="w-full px-3 py-2 border border-[#E9E9E7] rounded focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-[#37352F] font-mono text-center tracking-wider"
                     placeholder="ABC-123-XYZ"
                     disabled={loading}
                     autoFocus
@@ -66,7 +66,7 @@ export function JoinOrgForm({ loading, onSubmit, onError }: JoinOrgFormProps) {
             <button
                 type="submit"
                 disabled={loading || inviteCode.length < 11}
-                className="w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2 px-4 bg-accent hover:bg-accent-dark text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {loading ? 'Joining...' : 'Join Organization'}
             </button>

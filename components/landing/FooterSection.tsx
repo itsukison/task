@@ -51,7 +51,7 @@ export const FooterSection: React.FC = () => {
                         <span className="font-serif italic text-gray-400 text-xl mb-4 block">Get Started!</span>
                         <h2 className="text-5xl md:text-6xl font-medium tracking-tighter text-foreground mb-6 leading-[1.1]">
                             Ready to master <br />
-                            <span className="text-[#FF5500]">your time?</span>
+                            <span className="text-accent">your time?</span>
                         </h2>
                     </Reveal>
                     <Reveal delay={0.2}>
@@ -86,7 +86,7 @@ export const FooterSection: React.FC = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[500px]">
 
                                 {/* Left: Brand Card (Accent Gradient) */}
-                                <div className="lg:col-span-5 bg-gradient-to-br from-[#FF5500] to-[#FF5500] p-10 md:p-14 text-white flex flex-col justify-between relative overflow-hidden">
+                                <div className="lg:col-span-5 bg-gradient-to-br from-accent to-accent p-10 md:p-14 text-white flex flex-col justify-between relative overflow-hidden">
                                     {/* Decorative gradient blob */}
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-[80px] opacity-20 -translate-y-1/2 translate-x-1/3"></div>
 

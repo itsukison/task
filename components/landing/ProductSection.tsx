@@ -37,7 +37,7 @@ export const ProductSection: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-transparent h-1/2"></div>
 
                 {/* Bottom Accent Glow */}
-                <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-[#FF5500]/10 via-[#FF5500]/5 to-transparent"></div>
+                <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-accent/10 via-accent/5 to-transparent"></div>
             </div>
 
             <div className="max-w-[1280px] mx-auto px-6 relative w-full z-10">
@@ -82,7 +82,7 @@ export const ProductSection: React.FC = () => {
                     <Reveal delay={0.1}>
                         <h2 className="text-4xl md:text-6xl font-medium tracking-tighter text-foreground leading-[1.1] mb-8">
                             One tool. Two views. <br />
-                            <span className="text-[#FF5500]">Complete clarity.</span>
+                            <span className="text-accent">Complete clarity.</span>
                         </h2>
                     </Reveal>
 

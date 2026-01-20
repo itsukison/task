@@ -15,6 +15,16 @@ export type TaskStatus = Database['public']['Enums']['task_status'];
 export type TaskVisibility = Database['public']['Enums']['task_visibility'];
 
 /**
+ * Schedule visibility enum derived from database schema
+ */
+export type ScheduleVisibility = Database['public']['Enums']['schedule_visibility'];
+
+/**
+ * Member role enum derived from database schema
+ */
+export type MemberRole = Database['public']['Enums']['member_role'];
+
+/**
  * Owner profile from JOIN
  */
 export interface OwnerProfile {
@@ -58,6 +68,14 @@ export interface CalendarBlock {
     task?: Task;        // Optional joined task object
 }
 
+/**
+ * Calendar block with additional owner information for multi-member view
+ */
+export interface MultiMemberBlock extends CalendarBlock {
+    ownerName: string;
+    ownerColor: string;
+}
+
 // ============================================================================
 // Editable Table Types
 // ============================================================================
@@ -82,6 +100,14 @@ export interface PeopleOption {
     id: string;
     displayName: string;
     email: string;
+}
+
+/**
+ * Person option with visibility and role information for member selection
+ */
+export interface PeopleOptionWithVisibility extends PeopleOption {
+    scheduleVisibility: ScheduleVisibility;
+    role: MemberRole;
 }
 
 /**
@@ -158,6 +184,10 @@ export interface WorkspaceViewProps {
     onCreateBlock?: (taskId: string, startTime: Date, endTime: Date) => void;
     onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
     onDeleteBlock?: (blockId: string) => void;
+    // Multi-member schedule viewing
+    selectedMemberIds?: string[];
+    onSelectedMembersChange?: (memberIds: string[]) => void;
+    multiMemberBlocks?: MultiMemberBlock[];
 }
 
 export interface CalendarProps {
@@ -173,10 +203,19 @@ export interface CalendarProps {
     view: 'week' | 'day';
     viewDate: Date;
     showWeekends?: boolean;
+    // Calendar toolbar controls
+    onViewChange?: (view: 'week' | 'day') => void;
+    onPrev?: () => void;
+    onNext?: () => void;
+    onToday?: () => void;
     // Calendar block CRUD callbacks
     onCreateBlock?: (taskId: string, startTime: Date, endTime: Date) => void;
     onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
     onDeleteBlock?: (blockId: string) => void;
+    // Multi-member schedule viewing
+    selectedMemberIds?: string[];
+    onSelectedMembersChange?: (memberIds: string[]) => void;
+    multiMemberBlocks?: MultiMemberBlock[];
 }
 
 export interface TaskListProps {
@@ -190,6 +229,13 @@ export interface TaskListProps {
     onDeleteTask: (taskId: string) => void;
     onDuplicateTask?: (taskId: string) => void;
     onDragStart: (taskId: string | null) => void;
+    // Toolbar controls
+    onSearchChange?: (query: string) => void;
+    onFilterChange?: (status: TaskStatus | 'ALL') => void;
+    sortConfig?: SortConfig | null;
+    onSortChange?: (sort: SortConfig | null) => void;
+    hiddenColumns?: string[];
+    onHideColumn?: (columnId: string) => void;
     // Date filtering props
     calendarBlocks?: CalendarBlock[];
     viewMode?: 'week' | 'day';

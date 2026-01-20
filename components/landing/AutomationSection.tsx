@@ -7,12 +7,12 @@ import Link from 'next/link';
 
 // Dynamic import to avoid SSR issues with Three.js
 const Dither = dynamic(() => import('./ditherbg'), {
-  ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 bg-[#050505]">
-      {/* Placeholder matching the dither background */}
-    </div>
-  )
+    ssr: false,
+    loading: () => (
+        <div className="absolute inset-0 bg-[#050505]">
+            {/* Placeholder matching the dither background */}
+        </div>
+    )
 });
 
 export const AutomationSection: React.FC = () => {
@@ -86,7 +86,7 @@ export const AutomationSection: React.FC = () => {
             {/* Background Gradients & Dither */}
             <div className="absolute inset-0 z-0">
                 {/* Deep Accent Glow Base */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[#FF5500] rounded-full blur-[120px] opacity-10"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-accent rounded-full blur-[120px] opacity-10"></div>
 
                 {/* Dither Canvas */}
                 {shouldLoadDither && (

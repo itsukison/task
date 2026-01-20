@@ -37,3 +37,12 @@ export function isValidInviteCodeFormat(code: string): boolean {
 export function normalizeInviteCode(code: string): string {
     return code.trim().toUpperCase();
 }
+
+/**
+ * Format invite code for display (add dashes if not present)
+ */
+export function formatInviteCode(code: string): string {
+    const normalized = normalizeInviteCode(code).replace(/-/g, '');
+    if (normalized.length !== 9) return code;
+    return `${normalized.slice(0, 3)}-${normalized.slice(3, 6)}-${normalized.slice(6, 9)}`;
+}

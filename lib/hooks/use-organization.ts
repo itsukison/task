@@ -144,11 +144,16 @@ export function useOrganization() {
 
     /**
      * Generate an invite code for the current organization (leaders only)
+     * Default: expires in 7 days, unlimited uses
      */
     const generateInvite = useCallback(async (options?: InviteCodeOptions): Promise<string> => {
         if (!user) throw new Error('Must be authenticated');
         if (!currentOrg) throw new Error('Must have an active organization');
         if (currentOrg.role !== 'leader') throw new Error('Only leaders can generate invite codes');
+
+        // Default: 7 days expiry, unlimited uses
+        const expiresAt = options?.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const maxUses = options?.maxUses ?? null; // null = unlimited
 
         // Try up to 3 times in case of code collision
         for (let attempt = 0; attempt < 3; attempt++) {
@@ -160,8 +165,8 @@ export function useOrganization() {
                     organization_id: currentOrg.id,
                     invite_code: code,
                     created_by: user.id,
-                    expires_at: options?.expiresAt?.toISOString(),
-                    max_uses: options?.maxUses,
+                    expires_at: expiresAt.toISOString(),
+                    max_uses: maxUses,
                 });
 
             if (!error) {

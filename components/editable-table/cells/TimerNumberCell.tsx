@@ -149,7 +149,7 @@ export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps)
                         title={isRunning ? 'Pause timer' : 'Start timer'}
                     >
                         {isRunning ? (
-                            <Pause size={12} className="text-[#FF5500] fill-current" />
+                            <Pause size={12} className="text-accent fill-current" />
                         ) : (
                             <Play size={12} className="text-[#9e9e9e]" />
                         )}
@@ -158,7 +158,7 @@ export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps)
                     {/* Number display with "min" unit, aligned to right */}
                     <span className={cn(
                         "font-mono text-right flex-1",
-                        isRunning ? 'text-[#FF5500] font-medium' : 'text-[#37352F]'
+                        isRunning ? 'text-accent font-medium' : 'text-[#37352F]'
                     )}>
                         {displayValue} min
                     </span>

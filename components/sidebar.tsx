@@ -3,10 +3,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, BarChart2, Settings, Menu, ChevronsLeft, Search, PlusCircle, Home, LogOut, ChevronDown, Users } from 'lucide-react';
+import { Calendar, BarChart2, Settings, Menu, ChevronsLeft, Search, PlusCircle, Home, LogOut, ChevronDown, Users, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SidebarProps, ViewMode } from '@/lib/types';
 import { useAuth } from '@/lib/auth/hooks';
+import { OrgSwitcherModal } from '@/components/organization/OrgSwitcherModal';
 
 const navItems: { id: ViewMode; href: string; icon: typeof Calendar; label: string }[] = [
     { id: 'workspace', href: '/workspace', icon: Calendar, label: 'Task Tracker' },
@@ -34,6 +35,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [orgMenuOpen, setOrgMenuOpen] = useState(false);
+    const [joinOrgModalOpen, setJoinOrgModalOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const orgMenuRef = useRef<HTMLDivElement>(null);
 
@@ -113,20 +115,18 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 {/* Organization Switcher */}
                 <div className="relative" ref={orgMenuRef}>
                     <div
-                        onClick={() => hasMultipleOrgs && setOrgMenuOpen(!orgMenuOpen)}
-                        className={cn(
-                            "px-3 py-3 hover:bg-[#EFEFED] transition-colors m-1 rounded-md flex items-center justify-between group/header",
-                            hasMultipleOrgs ? "cursor-pointer" : "cursor-default"
-                        )}
+                        onClick={() => setOrgMenuOpen(!orgMenuOpen)}
+                        className="px-3 py-3 hover:bg-[#EFEFED] transition-colors m-1 rounded-md flex items-center justify-between group/header cursor-pointer"
                     >
                         <div className="flex items-center gap-2 overflow-hidden">
                             <div className="w-5 h-5 bg-accent rounded text-white flex-shrink-0 flex items-center justify-center text-[10px] font-bold">
                                 {orgInitial}
                             </div>
                             <div className="text-sm font-medium text-[#37352F] truncate">{orgName}</div>
-                            {hasMultipleOrgs && (
-                                <ChevronDown size={14} className="text-[#9B9A97] flex-shrink-0" />
-                            )}
+                            <ChevronDown size={14} className={cn(
+                                "text-[#9B9A97] flex-shrink-0 transition-transform",
+                                orgMenuOpen && "rotate-180"
+                            )} />
                         </div>
                         <button
                             onClick={(e) => {
@@ -140,27 +140,46 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     </div>
 
                     {/* Organization Dropdown */}
-                    {orgMenuOpen && hasMultipleOrgs && (
-                        <div className="absolute top-full left-1 right-1 mt-1 bg-white rounded-md shadow-lg border border-[#E9E9E7] py-1 z-50">
-                            <div className="px-3 py-1.5 text-xs font-semibold text-[#9B9A97]">Switch Organization</div>
-                            {organizations.map((org) => (
+                    {orgMenuOpen && (
+                        <div className="absolute top-full left-1 right-1 mt-1 bg-white rounded-md shadow-lg border border-[#E9E9E7] py-1 mx-1 z-50">
+                            {organizations.length > 0 && (
+                                <>
+                                    <div className="px-3 py-1.5 text-xs font-semibold text-[#9B9A97]">Switch Organization</div>
+                                    {organizations.map((org) => (
+                                        <div
+                                            key={org.id}
+                                            onClick={() => handleSwitchOrg(org.id)}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors",
+                                                org.id === currentOrg?.id
+                                                    ? "bg-[#EFEFED] text-[#37352F]"
+                                                    : "text-[#5F5E5B] hover:bg-[#EFEFED]"
+                                            )}
+                                        >
+                                            <div className="w-5 h-5 bg-accent rounded text-white flex-shrink-0 flex items-center justify-center text-[10px] font-bold">
+                                                {org.name[0]?.toUpperCase() || 'O'}
+                                            </div>
+                                            <span className="truncate">{org.name}</span>
+                                            <span className="text-xs text-[#9B9A97] ml-auto">{org.role}</span>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+                            <div className={cn(
+                                "pt-1",
+                                organizations.length > 0 && "border-t border-[#E9E9E7] mt-1"
+                            )}>
                                 <div
-                                    key={org.id}
-                                    onClick={() => handleSwitchOrg(org.id)}
-                                    className={cn(
-                                        "flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors",
-                                        org.id === currentOrg?.id
-                                            ? "bg-[#EFEFED] text-[#37352F]"
-                                            : "text-[#5F5E5B] hover:bg-[#EFEFED]"
-                                    )}
+                                    onClick={() => {
+                                        setOrgMenuOpen(false);
+                                        setJoinOrgModalOpen(true);
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer text-[#5F5E5B] hover:bg-[#EFEFED] transition-colors"
                                 >
-                                    <div className="w-5 h-5 bg-accent rounded text-white flex-shrink-0 flex items-center justify-center text-[10px] font-bold">
-                                        {org.name[0]?.toUpperCase() || 'O'}
-                                    </div>
-                                    <span className="truncate">{org.name}</span>
-                                    <span className="text-xs text-[#9B9A97] ml-auto">{org.role}</span>
+                                    <Plus size={16} className="text-[#9B9A97]" />
+                                    <span>Join or create organization</span>
                                 </div>
-                            ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -256,6 +275,12 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     )}
                 </div>
             </div>
+
+            {/* Organization Switcher Modal */}
+            <OrgSwitcherModal
+                isOpen={joinOrgModalOpen}
+                onClose={() => setJoinOrgModalOpen(false)}
+            />
         </>
     );
 }

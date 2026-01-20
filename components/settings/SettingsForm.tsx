@@ -13,6 +13,7 @@ import {
     ToggleSwitch
 } from '@/components/ui/settings-primitives';
 import { SettingsSkeleton } from './SettingsSkeleton';
+import { InviteCodeSection } from './InviteCodeSection';
 
 type Theme = 'light' | 'dark' | 'system';
 type TaskVisibility = 'private' | 'team' | 'leaders_only';
@@ -65,7 +66,8 @@ export function SettingsForm() {
             // Parse time from database format if exists
             // Assuming format is "HH:MM:SS" or similar
             // For now, using defaults if not set
-            setShowWeekends(preferences.show_weekends ?? false);
+            // Note: show_weekends may not be in DB yet, so we cast to any
+            setShowWeekends((preferences as any).show_weekends ?? false);
         }
     }, [preferences]);
 
@@ -112,7 +114,7 @@ export function SettingsForm() {
             <SettingSection title="Appearance">
                 <SettingRow
                     title="Theme"
-                    description="Customize how TaskOS looks on your device."
+                    description="Customize how Chrono looks on your device."
                 >
                     <SelectDropdown
                         value={theme}
@@ -237,6 +239,11 @@ export function SettingsForm() {
                         </span>
                     </SettingRow>
                 </SettingSection>
+            )}
+
+            {/* Invite Codes Section (Leaders Only) */}
+            {currentOrg?.role === 'leader' && (
+                <InviteCodeSection />
             )}
 
         </>

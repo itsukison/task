@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import WorkspaceView from '@/components/workspace-view';
 import TaskModal from '@/components/task-modal';
 import { Task } from '@/lib/types';
 import { useTasks } from '@/lib/hooks/use-tasks';
 import { useCalendarBlocks } from '@/lib/hooks/use-calendar-blocks';
+import { useMultiMemberBlocks } from '@/lib/hooks/use-multi-member-blocks';
+import { useAuth } from '@/lib/auth/hooks';
 
 // Convert Date to YYYY-MM-DD in local timezone (avoid UTC conversion)
 const formatDateToLocalISO = (date: Date): string => {
@@ -16,6 +18,7 @@ const formatDateToLocalISO = (date: Date): string => {
 };
 
 export default function WorkspacePage() {
+    const { user } = useAuth();
     const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask } = useTasks();
     const {
         calendarBlocks,
@@ -29,6 +32,26 @@ export default function WorkspacePage() {
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+
+    // Multi-member schedule viewing state
+    const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+
+    // Initialize selectedMemberIds with current user when user is loaded
+    useEffect(() => {
+        if (user && selectedMemberIds.length === 0) {
+            setSelectedMemberIds([user.id]);
+        }
+    }, [user, selectedMemberIds.length]);
+
+    // Fetch multi-member blocks
+    const {
+        multiMemberBlocks,
+        loading: multiMemberLoading,
+        error: multiMemberError,
+    } = useMultiMemberBlocks({
+        selectedMemberIds,
+        selectedDate,
+    });
 
     const draggingTask = tasks.find(t => t.id === draggingTaskId) || null;
 
@@ -111,7 +134,7 @@ export default function WorkspacePage() {
     };
 
     // Loading state
-    const loading = tasksLoading || blocksLoading;
+    const loading = tasksLoading || blocksLoading || multiMemberLoading;
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
@@ -121,7 +144,7 @@ export default function WorkspacePage() {
     }
 
     // Error state
-    const error = tasksError || blocksError;
+    const error = tasksError || blocksError || multiMemberError;
     if (error) {
         return (
             <div className="flex items-center justify-center h-full">
@@ -146,6 +169,9 @@ export default function WorkspacePage() {
                 onCreateBlock={handleCreateBlock}
                 onUpdateBlock={handleUpdateBlock}
                 onDeleteBlock={handleDeleteBlock}
+                selectedMemberIds={selectedMemberIds}
+                onSelectedMembersChange={setSelectedMemberIds}
+                multiMemberBlocks={multiMemberBlocks}
             />
 
             {selectedTask && (

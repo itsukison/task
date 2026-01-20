@@ -49,8 +49,8 @@
 
 :root {
   --accent: oklch(0.97 0 0);
-  --accent-light: #E89B7F;
-  --accent-dark: #C56644;
+  --accent-light: #FF7F3D;
+  --accent-dark: #D94D00;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -87,9 +87,9 @@
 @theme inline {
   --color-background: #ffffff;
   --color-foreground: #171717;
-  --color-accent: #DA7756;
-  --color-accent-light: #E89B7F;
-  --color-accent-dark: #C56644;
+  --color-accent: #FF5A0A;
+  --color-accent-light: #FF7F3D;
+  --color-accent-dark: #D94D00;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -129,29 +129,7 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-.landing-theme {
-  --accent: #FF5500;
-  --accent-light: #ff7733;
-  --accent-dark: #cc4400;
-  --color-accent: #FF5500;
-}
-
-/* Landing-specific color overrides - Tailwind compiles @theme at build time */
-.landing-theme .text-accent {
-  color: #FF5500 !important;
-}
-
-.landing-theme .bg-accent {
-  background-color: #FF5500 !important;
-}
-
-.landing-theme .hover\:text-accent:hover {
-  color: #FF5500 !important;
-}
-
-.landing-theme .selection\:bg-accent::selection {
-  background-color: #FF5500 !important;
-}
+/* Landing theme classes removed - using unified accent colors */
 
 /* Landing page float animation */
 @keyframes float {
@@ -209,6 +187,7 @@ html {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

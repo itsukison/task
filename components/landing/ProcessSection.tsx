@@ -31,7 +31,6 @@ export const ProcessSection: React.FC = () => {
             label: 'Plan',
             title: "Start with Clarity",
             text: "Plan your day based on available time, not wishful thinking. Chrono shows exactly what fits in your calendar, so you start every day with realistic expectations.",
-            image: "/rectangular.png",
             color: "bg-[#E7E5E4]", // Warm Stone
             cardColor: "text-stone-800"
         },
@@ -40,7 +39,6 @@ export const ProcessSection: React.FC = () => {
             label: 'Execute',
             title: "Stay in Flow",
             text: "Drag tasks into your calendar. Resize blocks as reality unfolds. Chrono adapts with you, keeping time and tasks synchronized without breaking your focus.",
-            image: "/triangle.png",
             color: "bg-[#FFDBC7]", // Soft Apricot/Clay
             cardColor: "text-orange-950"
         },
@@ -49,7 +47,6 @@ export const ProcessSection: React.FC = () => {
             label: 'Review',
             title: "Learn Your Rhythm",
             text: "See where time actually goes. Spot patterns in your execution. Improve daily. With Chrono, execution wisdom compounds over time.",
-            image: "/donut.png",
             color: "bg-[#D4DEE7]", // Muted Steel/Slate
             cardColor: "text-slate-800"
         }
@@ -114,13 +111,6 @@ export const ProcessSection: React.FC = () => {
 
                                     {/* Floating UI Card - Replaced with Shape Image */}
                                     <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center transform transition-transform hover:scale-105 duration-500">
-                                        <Image
-                                            src={slide.image}
-                                            alt={slide.label}
-                                            width={320}
-                                            height={320}
-                                            className="w-full h-full object-contain drop-shadow-2xl mix-blend-multiply opacity-90"
-                                        />
                                     </div>
                                 </div>
 

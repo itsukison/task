@@ -67,7 +67,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
 
                 {/* Breadcrumb */}
                 <div className="px-12 pt-10 pb-2 text-xs text-[#9B9A97] flex items-center gap-1.5">
-                    <span>TaskOS Workspace</span>
+                    <span>Chrono Workspace</span>
                     <span className="text-gray-300">/</span>
                     <span>Task Tracker</span>
                     <span className="text-gray-300">/</span>
@@ -115,9 +115,9 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                             </div>
                             <div className="flex-1 flex items-center gap-2">
                                 <div className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center text-[10px]">
-                                    {editedTask.owner?.display_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?'}
+                                    {editedTask.owners?.[0]?.display_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?'}
                                 </div>
-                                <span className="text-sm text-[#37352F]">{editedTask.owner?.display_name ?? 'Unassigned'}</span>
+                                <span className="text-sm text-[#37352F]">{editedTask.owners?.[0]?.display_name ?? 'Unassigned'}</span>
                             </div>
                         </div>
 

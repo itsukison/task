@@ -53,7 +53,7 @@ export const TestimonialSection: React.FC = () => {
                     {/* Row 1 - Card 1: Stat (Accent Gradient) */}
                     <div className="lg:col-span-1">
                         <Reveal delay={0.3} className="h-full">
-                            <div className="bg-gradient-to-br from-accent to-[#FF5500] rounded-[2rem] p-6 flex flex-col justify-between min-h-[300px] h-full relative overflow-hidden group shadow-lg shadow-accent/10">
+                            <div className="bg-gradient-to-br from-accent to-accent rounded-[2rem] p-6 flex flex-col justify-between min-h-[300px] h-full relative overflow-hidden group shadow-lg shadow-accent/10">
                                 {/* Abstract decorative bg */}
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-[80px] opacity-20 -translate-y-1/2 translate-x-1/2 group-hover:bg-white/30 transition-colors"></div>
 

@@ -28,7 +28,7 @@ export function CreateOrgForm({ loading, onSubmit }: CreateOrgFormProps) {
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-[#E9E9E7] rounded focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[#37352F]"
+                    className="w-full px-3 py-2 border border-[#E9E9E7] rounded focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-[#37352F]"
                     placeholder="My Team"
                     disabled={loading}
                     autoFocus
@@ -41,7 +41,7 @@ export function CreateOrgForm({ loading, onSubmit }: CreateOrgFormProps) {
             <button
                 type="submit"
                 disabled={loading || !orgName.trim()}
-                className="w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2 px-4 bg-accent hover:bg-accent-dark text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {loading ? 'Creating...' : 'Create Organization'}
             </button>

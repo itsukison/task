@@ -61,7 +61,7 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
 
     // Fetch calendar blocks
     const fetchCalendarBlocks = useCallback(async () => {
-        if (!currentOrg) {
+        if (!currentOrg || !user) {
             setCalendarBlocks([]);
             setLoading(false);
             return;
@@ -73,6 +73,7 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
                 .from('calendar_blocks')
                 .select('*')
                 .eq('organization_id', currentOrg.id)
+                .eq('owner_id', user.id)  // Only fetch blocks owned by current user
                 .order('start_time', { ascending: true });
 
             if (fetchError) throw fetchError;
@@ -88,11 +89,11 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
         } finally {
             setLoading(false);
         }
-    }, [currentOrg]);
+    }, [currentOrg, user]);
 
     // Initial fetch and real-time subscription
     useEffect(() => {
-        if (!currentOrg) {
+        if (!currentOrg || !user) {
             setCalendarBlocks([]);
             setLoading(false);
             return;
@@ -121,7 +122,7 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentOrg, fetchCalendarBlocks]);
+    }, [currentOrg, user, fetchCalendarBlocks]);
 
     // Create a new calendar block
     const createCalendarBlock = useCallback(async (input: CreateCalendarBlockInput): Promise<CalendarBlock> => {
@@ -169,6 +170,20 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
 
     // Update a calendar block
     const updateCalendarBlock = useCallback(async (id: string, input: UpdateCalendarBlockInput): Promise<void> => {
+        if (!user) {
+            throw new Error('Must be authenticated to update calendar blocks');
+        }
+
+        // Verify ownership before updating
+        const blockToUpdate = calendarBlocks.find(b => b.id === id);
+        if (!blockToUpdate) {
+            throw new Error('Calendar block not found');
+        }
+
+        if (blockToUpdate.ownerId !== user.id) {
+            throw new Error('You can only update your own calendar blocks');
+        }
+
         const updateData: CalendarBlockUpdate = {};
 
         if (input.startTime !== undefined) updateData.start_time = input.startTime.toISOString();
@@ -177,7 +192,8 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
         const { error: updateError } = await supabase
             .from('calendar_blocks')
             .update(updateData)
-            .eq('id', id);
+            .eq('id', id)
+            .eq('owner_id', user.id);  // Additional safety check at DB level
 
         if (updateError) {
             throw new Error(`Failed to update calendar block: ${updateError.message}`);
@@ -194,14 +210,29 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
         }).sort((a, b) =>
             new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         ));
-    }, []);
+    }, [user, calendarBlocks]);
 
     // Delete a calendar block
     const deleteCalendarBlock = useCallback(async (id: string): Promise<void> => {
+        if (!user) {
+            throw new Error('Must be authenticated to delete calendar blocks');
+        }
+
+        // Verify ownership before deleting
+        const blockToDelete = calendarBlocks.find(b => b.id === id);
+        if (!blockToDelete) {
+            throw new Error('Calendar block not found');
+        }
+
+        if (blockToDelete.ownerId !== user.id) {
+            throw new Error('You can only delete your own calendar blocks');
+        }
+
         const { error: deleteError } = await supabase
             .from('calendar_blocks')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('owner_id', user.id);  // Additional safety check at DB level
 
         if (deleteError) {
             throw new Error(`Failed to delete calendar block: ${deleteError.message}`);
@@ -209,7 +240,7 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
 
         // Optimistically remove from state
         setCalendarBlocks(prev => prev.filter(block => block.id !== id));
-    }, []);
+    }, [user, calendarBlocks]);
 
     // Helper: Get blocks for a specific date range
     const getBlocksForDateRange = useCallback((start: Date, end: Date): CalendarBlock[] => {
