@@ -24,8 +24,8 @@ const USER_COLORS = [
 
 // Transform database row to MultiMemberBlock
 function dbToMultiMemberBlock(
-    row: DbCalendarBlock & { 
-        user_profiles?: { display_name: string; default_schedule_visibility: string } | null;
+    row: DbCalendarBlock & {
+        user_profiles?: { display_name: string; default_schedule_visibility: string; email: string } | null;
         tasks?: any;
     },
     colorIndex: number
@@ -50,7 +50,11 @@ function dbToMultiMemberBlock(
             expectedTime: row.tasks.expected_time_minutes ?? 30, // Use actual value from DB
             actualTime: 0,
             visibility: 'team' as const,
-            owners: [],
+            owners: row.user_profiles ? [{
+                id: row.owner_id,
+                display_name: row.user_profiles.display_name || 'Unknown',
+                email: row.user_profiles.email || '',
+            }] : [],
             ownerId: row.owner_id,
             organizationId: row.organization_id,
             scheduledDate: null,
@@ -168,7 +172,7 @@ export function useMultiMemberBlocks({
             console.log('🔄 Step 2: Fetching user profiles...');
             const { data: profilesData, error: profilesError } = await supabase
                 .from('user_profiles')
-                .select('id, display_name, default_schedule_visibility')
+                .select('id, display_name, email, default_schedule_visibility')
                 .in('id', selectedMemberIds);
 
             if (profilesError) {
@@ -240,16 +244,17 @@ export function useMultiMemberBlocks({
             const transformedBlocks = filteredData.map((row) => {
                 const colorIndex = userColorMap.get(row.owner_id) || 0;
                 const profile = profilesMap.get(row.owner_id);
-                
+
                 // Manually attach the user profile data for the transform function
                 const rowWithProfile = {
                     ...row,
                     user_profiles: profile ? {
                         display_name: profile.display_name,
                         default_schedule_visibility: profile.default_schedule_visibility,
+                        email: (profile as any).email,
                     } : null,
                 };
-                
+
                 return dbToMultiMemberBlock(rowWithProfile, colorIndex);
             });
 
@@ -269,7 +274,7 @@ export function useMultiMemberBlocks({
             console.error('❌ Catch block - Error instanceof Error:', err instanceof Error);
             console.error('❌ Catch block - Error:', err);
             console.error('❌ Catch block - Error stringified:', JSON.stringify(err, null, 2));
-            
+
             if (err instanceof Error) {
                 console.error('❌ Error message:', err.message);
                 console.error('❌ Error stack:', err.stack);

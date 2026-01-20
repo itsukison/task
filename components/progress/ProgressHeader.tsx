@@ -28,7 +28,7 @@ export function ProgressHeader({
                 <div>
                     <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">Team Progress</h1>
                     <p className="text-[#787774] text-sm">
-                        Viewing <span className="font-semibold text-accent">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</span>
+                        Viewing <span className="font-semibold text-accent">{format(selectedDate, 'MMMM d, yyyy')}</span>
                     </p>
                 </div>
 

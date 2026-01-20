@@ -194,7 +194,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error creating profile:', profileError);
       throw profileError;
     }
-  }, []);
+
+    // Manually initialize auth state now that profile exists
+    // This prevents race condition where onAuthStateChange fires before profile is created
+    if (data.session) {
+      await initializeAuth(data.session);
+    }
+  }, [initializeAuth]);
 
   // Sign out
   const signOut = useCallback(async () => {

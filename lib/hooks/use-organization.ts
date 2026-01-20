@@ -56,20 +56,10 @@ export function useOrganization() {
 
         const normalizedCode = normalizeInviteCode(inviteCode);
 
-        // Step 1: Validate invite code
+        // Step 1: Validate invite code (without org JOIN - RLS blocks it for non-members)
         const { data: invite, error: inviteError } = await supabase
             .from('organization_invites')
-            .select(`
-        id,
-        organization_id,
-        expires_at,
-        max_uses,
-        used_count,
-        organizations (
-          id,
-          name
-        )
-      `)
+            .select('id, organization_id, expires_at, max_uses, used_count')
             .eq('invite_code', normalizedCode)
             .single();
 
@@ -134,7 +124,17 @@ export function useOrganization() {
         // Step 5: Refresh organizations
         await refreshOrganizations();
 
-        const org = invite.organizations as { id: string; name: string };
+        // Step 6: Fetch org details (user is now a member, RLS allows this)
+        const { data: org, error: orgError } = await supabase
+            .from('organizations')
+            .select('id, name')
+            .eq('id', invite.organization_id)
+            .single();
+
+        if (orgError || !org) {
+            throw new Error('Organization not found');
+        }
+
         return {
             organizationId: org.id,
             organizationName: org.name,

@@ -26,8 +26,8 @@ export const AutomationSection: React.FC = () => {
             const { top } = containerRef.current.getBoundingClientRect();
             const windowHeight = window.innerHeight;
 
-            const start = windowHeight * 0.8;
-            const end = windowHeight * 0.2;
+            const start = windowHeight * 0.5;
+            const end = windowHeight * 0;
 
             const rawProgress = (start - top) / (start - end);
             const clamped = Math.max(0, Math.min(1, rawProgress));
@@ -81,7 +81,7 @@ export const AutomationSection: React.FC = () => {
     };
 
     return (
-        <section ref={containerRef} className="w-full h-screen max-h-screen bg-[#050505] relative flex flex-col items-center justify-center border-t border-gray-900 overflow-hidden">
+        <section ref={containerRef} className="w-full min-h-[105vh] bg-[#050505] relative flex flex-col items-center justify-center border-t border-gray-900 overflow-hidden">
 
             {/* Background Gradients & Dither */}
             <div className="absolute inset-0 z-0">
