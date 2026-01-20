@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { startOfWeek, addDays } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/hooks';
 import { MultiMemberBlock, CalendarBlock } from '@/lib/types';
@@ -46,7 +47,7 @@ function dbToMultiMemberBlock(
             title: row.tasks.title || '',
             description: null,
             status: row.tasks.status || 'planned',
-            expectedTime: 30, // Default value
+            expectedTime: row.tasks.expected_time_minutes ?? 30, // Use actual value from DB
             actualTime: 0,
             visibility: 'team' as const,
             owners: [],
@@ -61,7 +62,8 @@ function dbToMultiMemberBlock(
 
 export interface UseMultiMemberBlocksInput {
     selectedMemberIds: string[];
-    selectedDate: Date;
+    viewDate: Date;           // The center date for the week view
+    showWeekends?: boolean;   // Whether weekends are shown (default: false)
 }
 
 export interface UseMultiMemberBlocksReturn {
@@ -73,7 +75,8 @@ export interface UseMultiMemberBlocksReturn {
 
 export function useMultiMemberBlocks({
     selectedMemberIds,
-    selectedDate,
+    viewDate,
+    showWeekends = false,
 }: UseMultiMemberBlocksInput): UseMultiMemberBlocksReturn {
     const { user, currentOrg } = useAuth();
     const [multiMemberBlocks, setMultiMemberBlocks] = useState<MultiMemberBlock[]>([]);
@@ -106,7 +109,8 @@ export function useMultiMemberBlocks({
             currentOrg: currentOrg?.id,
             user: user?.id,
             selectedMemberIds,
-            selectedDate: selectedDate.toISOString(),
+            viewDate: viewDate.toISOString(),
+            showWeekends,
         });
 
         if (!currentOrg || !user || selectedMemberIds.length === 0) {
@@ -119,17 +123,19 @@ export function useMultiMemberBlocks({
         try {
             setError(null);
 
-            // Format date for comparison (YYYY-MM-DD)
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            const startOfDay = new Date(selectedDate);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(selectedDate);
-            endOfDay.setHours(23, 59, 59, 999);
+            // Calculate week range based on viewDate
+            const weekStart = startOfWeek(viewDate, { weekStartsOn: 1 }); // Monday
+            const weekEnd = showWeekends
+                ? addDays(weekStart, 6)  // Sunday
+                : addDays(weekStart, 4); // Friday
 
-            console.log('📅 Date range:', {
-                dateStr,
-                startOfDay: startOfDay.toISOString(),
-                endOfDay: endOfDay.toISOString(),
+            weekStart.setHours(0, 0, 0, 0);
+            weekEnd.setHours(23, 59, 59, 999);
+
+            console.log('📅 Week range:', {
+                weekStart: weekStart.toISOString(),
+                weekEnd: weekEnd.toISOString(),
+                showWeekends,
             });
 
             // Fetch calendar blocks (without user_profiles join since no FK exists)
@@ -141,13 +147,14 @@ export function useMultiMemberBlocks({
                     tasks (
                         id,
                         title,
-                        status
+                        status,
+                        expected_time_minutes
                     )
                 `)
                 .eq('organization_id', currentOrg.id)
                 .in('owner_id', selectedMemberIds)
-                .gte('start_time', startOfDay.toISOString())
-                .lte('start_time', endOfDay.toISOString())
+                .gte('start_time', weekStart.toISOString())
+                .lte('start_time', weekEnd.toISOString())
                 .order('start_time', { ascending: true });
 
             if (blocksError) {
@@ -274,7 +281,7 @@ export function useMultiMemberBlocks({
         } finally {
             setLoading(false);
         }
-    }, [currentOrg, user, selectedMemberIds, selectedDate, currentUserRole]);
+    }, [currentOrg, user, selectedMemberIds, viewDate, showWeekends, currentUserRole]);
 
     // Initial fetch of user role
     useEffect(() => {

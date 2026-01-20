@@ -8,13 +8,15 @@ import Calendar from './calendar';
 import { TaskStatus, WorkspaceViewProps } from '@/lib/types';
 import { SortConfig } from './editable-table';
 import { WorkspaceHeader } from './workspace/WorkspaceHeader';
-import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
 
 export default function WorkspaceView({
     tasks,
     calendarBlocks,
     selectedDate,
     onSelectDate,
+    viewDate,
+    onViewDateChange,
+    showWeekends,
     onTaskClick,
     onUpdateTask,
     onAddTask,
@@ -28,14 +30,9 @@ export default function WorkspaceView({
     onSelectedMembersChange,
     multiMemberBlocks,
 }: WorkspaceViewProps) {
-    const { preferences } = useUserPreferences();
-    // Note: show_weekends may not be in DB schema yet, cast to any
-    const showWeekends = (preferences as any)?.show_weekends ?? false;
-
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<TaskStatus | 'ALL'>('ALL');
     const [calendarView, setCalendarView] = useState<'week' | 'day'>('week');
-    const [viewDate, setViewDate] = useState(new Date());
 
     // Sort state
     const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
@@ -45,20 +42,20 @@ export default function WorkspaceView({
     const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
 
     const handlePrev = useCallback(() => {
-        if (calendarView === 'week') setViewDate(subWeeks(viewDate, 1));
-        else setViewDate(addDays(viewDate, -1));
-    }, [calendarView, viewDate]);
+        if (calendarView === 'week') onViewDateChange(subWeeks(viewDate, 1));
+        else onViewDateChange(addDays(viewDate, -1));
+    }, [calendarView, viewDate, onViewDateChange]);
 
     const handleNext = useCallback(() => {
-        if (calendarView === 'week') setViewDate(addWeeks(viewDate, 1));
-        else setViewDate(addDays(viewDate, 1));
-    }, [calendarView, viewDate]);
+        if (calendarView === 'week') onViewDateChange(addWeeks(viewDate, 1));
+        else onViewDateChange(addDays(viewDate, 1));
+    }, [calendarView, viewDate, onViewDateChange]);
 
     const handleToday = useCallback(() => {
         const today = new Date();
-        setViewDate(today);
+        onViewDateChange(today);
         onSelectDate(today);
-    }, [onSelectDate]);
+    }, [onSelectDate, onViewDateChange]);
 
     const handleSortChange = useCallback((sort: SortConfig | null) => {
         setSortConfig(sort);

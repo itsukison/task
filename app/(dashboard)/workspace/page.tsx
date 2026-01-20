@@ -7,6 +7,7 @@ import { Task } from '@/lib/types';
 import { useTasks } from '@/lib/hooks/use-tasks';
 import { useCalendarBlocks } from '@/lib/hooks/use-calendar-blocks';
 import { useMultiMemberBlocks } from '@/lib/hooks/use-multi-member-blocks';
+import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
 import { useAuth } from '@/lib/auth/hooks';
 
 // Convert Date to YYYY-MM-DD in local timezone (avoid UTC conversion)
@@ -19,6 +20,7 @@ const formatDateToLocalISO = (date: Date): string => {
 
 export default function WorkspacePage() {
     const { user } = useAuth();
+    const { preferences } = useUserPreferences();
     const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask } = useTasks();
     const {
         calendarBlocks,
@@ -31,7 +33,11 @@ export default function WorkspacePage() {
 
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [viewDate, setViewDate] = useState<Date>(new Date());
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+
+    // Get showWeekends from user preferences
+    const showWeekends = (preferences as any)?.show_weekends ?? false;
 
     // Multi-member schedule viewing state
     const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -43,14 +49,16 @@ export default function WorkspacePage() {
         }
     }, [user, selectedMemberIds.length]);
 
-    // Fetch multi-member blocks
+    // Fetch multi-member blocks for the current week view
     const {
         multiMemberBlocks,
         loading: multiMemberLoading,
         error: multiMemberError,
+        refetch: refetchMultiMemberBlocks,
     } = useMultiMemberBlocks({
         selectedMemberIds,
-        selectedDate,
+        viewDate,
+        showWeekends,
     });
 
     const draggingTask = tasks.find(t => t.id === draggingTaskId) || null;
@@ -120,6 +128,10 @@ export default function WorkspacePage() {
     const handleUpdateBlock = async (blockId: string, startTime: Date, endTime: Date) => {
         try {
             await updateCalendarBlock(blockId, { startTime, endTime });
+            // Refetch multi-member blocks to reflect the change immediately in multi-member view
+            if (selectedMemberIds.length > 1) {
+                refetchMultiMemberBlocks();
+            }
         } catch (err) {
             console.error('Failed to update calendar block:', err);
         }
@@ -160,6 +172,9 @@ export default function WorkspacePage() {
                 calendarBlocks={calendarBlocks}
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
+                viewDate={viewDate}
+                onViewDateChange={setViewDate}
+                showWeekends={showWeekends}
                 onTaskClick={setSelectedTask}
                 onUpdateTask={handleTaskUpdate}
                 onAddTask={handleAddTask}

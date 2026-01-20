@@ -54,14 +54,15 @@ interface ServiceCardProps {
     art?: string;
     image?: string;
     delay?: number;
+    imageClassName?: string;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, art, image, delay = 0 }) => (
+const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, art, image, delay = 0, imageClassName }) => (
     <Reveal delay={delay} variant="fade-up" className="h-full">
-        <div className="bg-gray-100/50 rounded-xl p-8 md:p-10 flex flex-col justify-between min-h-[320px] h-full transition-all duration-300 hover:bg-gray-100 group">
+        <div className="bg-gray-100/50 rounded-xl p-8 md:p-10 flex flex-col justify-between h-[320px] transition-all duration-300 hover:bg-gray-100 group overflow-hidden relative">
             <div className="flex-1 flex items-center justify-center mb-8">
                 {image ? (
-                    <div className="relative w-32 h-32 scale-[1.8] translate-x-20 opacity-80 group-hover:opacity-100 transition-all group-hover:scale-[1.9] duration-500">
+                    <div className={`relative w-32 h-32 transition-all duration-500 ${imageClassName || "scale-[1.8] translate-x-20 opacity-80 group-hover:opacity-100 group-hover:scale-[1.9]"}`}>
                         <Image src={image} alt={title} width={128} height={128} className="w-full h-full object-contain mix-blend-multiply" />
                     </div>
                 ) : (
@@ -120,12 +121,14 @@ export const ServicesSection: React.FC = () => {
                             description="See your day as a timeline, not a to-do list. Every task has a place in time."
                             image="/clock.png"
                             delay={0.1}
+                            imageClassName="scale-[2.5] translate-x-32 group-hover:scale-[2.7] opacity-80 group-hover:opacity-100"
                         />
                         <ServiceCard
                             title="Drag-and-Drop Flow"
                             description="Schedule tasks by dragging them directly into your calendar. Planning takes seconds."
                             image="/cursor.png"
                             delay={0.2}
+                            imageClassName="scale-[2.5] translate-x-32 group-hover:scale-[2.7] opacity-80 group-hover:opacity-100"
                         />
                     </div>
 
@@ -134,19 +137,19 @@ export const ServicesSection: React.FC = () => {
                         <ServiceCard
                             title="Time Awareness"
                             description="Track expected vs. actual time to build execution rhythm and learn your true pace."
-                            art={ISO_FACE}
+                            image="/team.png"
                             delay={0.3}
                         />
                         <ServiceCard
                             title="Workload Monitor"
                             description="Leaders get transparent visibility into team capacity without micromanagement."
-                            art={ISO_GEARS}
+                            image="/workload.png"
                             delay={0.4}
                         />
                         <ServiceCard
                             title="Daily Patterns"
                             description="Build sustainable work rhythms that compound over time. Execution wisdom grows daily."
-                            art={ISO_CYCLE}
+                            image="/patterns.png"
                             delay={0.5}
                         />
                     </div>

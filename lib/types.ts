@@ -76,6 +76,16 @@ export interface MultiMemberBlock extends CalendarBlock {
     ownerColor: string;
 }
 
+/**
+ * Layout information for positioning a calendar block (Notion-style overlap handling)
+ */
+export interface BlockLayoutInfo {
+    columnIndex: number;
+    totalColumns: number;
+    widthPercent: number;
+    leftPercent: number;
+}
+
 // ============================================================================
 // Editable Table Types
 // ============================================================================
@@ -174,6 +184,9 @@ export interface WorkspaceViewProps {
     calendarBlocks: CalendarBlock[];
     selectedDate: Date;
     onSelectDate: (date: Date) => void;
+    viewDate: Date;
+    onViewDateChange: (date: Date) => void;
+    showWeekends: boolean;
     onTaskClick: (task: Task) => void;
     onUpdateTask: (task: Task) => void;
     onAddTask: () => void;

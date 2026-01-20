@@ -11,6 +11,7 @@ import {
     CalendarDayColumn,
     MemberSelector
 } from './calendar/';
+import { getBlocksWithLayout, BlockLayoutInfo } from './calendar/overlap-layout';
 import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
 import { useAuth } from '@/lib/auth/hooks';
 
@@ -68,7 +69,7 @@ const Calendar = React.memo(function Calendar({
         ? Array.from({ length: showWeekends ? 7 : 5 }, (_, i) => addDays(currentWeekStart, i))
         : [viewDate];
 
-    const getTaskStyle = useCallback((block: CalendarBlock | MultiMemberBlock, task: Task, blockIndex: number = 0, totalBlocks: number = 1) => {
+    const getTaskStyle = useCallback((block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => {
         const start = new Date(block.startTime);
         const end = new Date(block.endTime);
         const hours = start.getHours();
@@ -78,9 +79,8 @@ const Calendar = React.memo(function Calendar({
         const top = (hours * 60 + minutes) * (64 / 60);
         const height = duration * (64 / 60);
 
-        // Calculate horizontal offset for overlapping blocks
-        const offsetX = blockIndex * 3; // 3px offset per overlapping block
-        const widthReduction = (totalBlocks - 1) * 3; // Reduce width to accommodate offsets
+        // Notion-style: percentage-based positioning for side-by-side layout
+        const padding = 2; // px padding on each side
 
         let bgColor = 'bg-white border-[#E9E9E7] shadow-sm text-[#37352F]';
         if (task.status === 'in_progress') bgColor = 'bg-orange-50 border-orange-100 text-orange-800';
@@ -105,11 +105,12 @@ const Calendar = React.memo(function Calendar({
             top: `${top}px`,
             height: `${Math.max(height - 1, 24)}px`,
             position: 'absolute' as 'absolute',
-            left: `${2 + offsetX}px`,
-            right: `${2 + widthReduction}px`,
+            // Notion-style: side-by-side layout using percentages
+            left: `calc(${layout.leftPercent}% + ${padding}px)`,
+            width: `calc(${layout.widthPercent}% - ${padding * 2}px)`,
             backgroundColor: backgroundColor,
             className: `rounded-md p-1.5 text-xs border ${bgColor} hover:brightness-95 transition-all cursor-pointer overflow-hidden flex flex-col justify-start select-none`,
-            zIndex: 10 + blockIndex, // Stack blocks with offset
+            zIndex: 10 + layout.columnIndex, // Stack columns for visual layering
         };
     }, [selectedMemberIds, user]);
 
@@ -268,32 +269,15 @@ const Calendar = React.memo(function Calendar({
                     {/* Grid Columns */}
                     {displayedDays.map((date) => {
                         const dateStr = format(date, 'yyyy-MM-dd');
-                        
-                        // Get blocks for this day and calculate overlaps
+
+                        // Get blocks for this day
                         const dayBlocks = allBlocks.filter(b => {
                             const blockDate = format(new Date(b.startTime), 'yyyy-MM-dd');
                             return blockDate === dateStr;
                         });
 
-                        // Group overlapping blocks
-                        const blocksWithOverlapInfo = dayBlocks.map((block, index) => {
-                            const blockStart = new Date(block.startTime).getTime();
-                            const blockEnd = new Date(block.endTime).getTime();
-                            
-                            // Find overlapping blocks
-                            const overlapping = dayBlocks.filter((otherBlock, otherIndex) => {
-                                if (otherIndex >= index) return false; // Only check previous blocks
-                                const otherStart = new Date(otherBlock.startTime).getTime();
-                                const otherEnd = new Date(otherBlock.endTime).getTime();
-                                return (blockStart < otherEnd && blockEnd > otherStart);
-                            });
-
-                            return {
-                                block,
-                                overlapIndex: overlapping.length,
-                                totalOverlapping: overlapping.length + 1,
-                            };
-                        });
+                        // Calculate Notion-style layout for overlapping blocks
+                        const blocksWithLayout = getBlocksWithLayout(dayBlocks);
 
                         return (
                             <CalendarDayColumn
@@ -313,8 +297,9 @@ const Calendar = React.memo(function Calendar({
                                 onTaskClick={onTaskClick}
                                 onContextMenu={(e, taskId, blockId) => setContextMenu({ x: e.clientX, y: e.clientY, taskId, blockId })}
                                 onDragStart={handleDragStartInternal}
-                                blocksWithOverlapInfo={blocksWithOverlapInfo}
+                                blocksWithLayout={blocksWithLayout}
                                 isMultiMemberMode={selectedMemberIds.length > 1}
+                                currentUserId={user?.id}
                             />
                         );
                     })}

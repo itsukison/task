@@ -4,6 +4,7 @@ import React from 'react';
 import { format, isSameDay } from 'date-fns';
 import { Clock } from 'lucide-react';
 import { Task, CalendarBlock, MultiMemberBlock } from '@/lib/types';
+import { BlockLayoutInfo } from './overlap-layout';
 
 interface CalendarDayColumnProps {
   date: Date;
@@ -14,19 +15,19 @@ interface CalendarDayColumnProps {
   calendarBlocks: (CalendarBlock | MultiMemberBlock)[];
   draggingTask: Task | null;
   dragPreview: { dateStr: string; minutes: number } | null;
-  getTaskStyle: (block: CalendarBlock | MultiMemberBlock, task: Task, blockIndex?: number, totalBlocks?: number) => any;
+  getTaskStyle: (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => any;
   formatMinutesToTime: (minutes: number) => string;
   onDragOverDay: (e: React.DragEvent, dateStr: string) => void;
   onDrop: (e: React.DragEvent, dateStr: string) => void;
   onTaskClick: (task: Task) => void;
   onContextMenu: (e: React.MouseEvent, taskId: string, blockId: string) => void;
   onDragStart: (e: React.DragEvent, task: Task, blockId?: string) => void;
-  blocksWithOverlapInfo?: Array<{
+  blocksWithLayout?: Array<{
     block: CalendarBlock | MultiMemberBlock;
-    overlapIndex: number;
-    totalOverlapping: number;
+    layout: BlockLayoutInfo;
   }>;
   isMultiMemberMode?: boolean;
+  currentUserId?: string;  // For enabling drag only on own blocks
 }
 
 export const CalendarDayColumn = React.memo(function CalendarDayColumn({
@@ -45,18 +46,24 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   onTaskClick,
   onContextMenu,
   onDragStart,
-  blocksWithOverlapInfo,
-  isMultiMemberMode = false
+  blocksWithLayout,
+  isMultiMemberMode = false,
+  currentUserId
 }: CalendarDayColumnProps) {
-  const dayBlocks = blocksWithOverlapInfo || calendarBlocks
+  // Use provided layout or create default layout for blocks
+  const dayBlocks = blocksWithLayout || calendarBlocks
     .filter(b => {
       const blockDate = format(new Date(b.startTime), 'yyyy-MM-dd');
       return blockDate === dateStr;
     })
     .map(block => ({
       block,
-      overlapIndex: 0,
-      totalOverlapping: 1,
+      layout: {
+        columnIndex: 0,
+        totalColumns: 1,
+        widthPercent: 100,
+        leftPercent: 0,
+      } as BlockLayoutInfo,
     }));
 
   const isToday = isSameDay(date, new Date());
@@ -114,14 +121,18 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
 
       {/* Tasks Layer */}
       <div className="absolute inset-0 z-10">
-        {dayBlocks.map(({ block, overlapIndex, totalOverlapping }) => {
+        {dayBlocks.map(({ block, layout }) => {
           // Use embedded task from block (for multi-member mode) or fallback to tasks array
           const task = block.task || tasks.find(t => t.id === block.taskId);
           if (!task) return null;
 
-          const style = getTaskStyle(block, task, overlapIndex, totalOverlapping);
+          const style = getTaskStyle(block, task, layout);
           const isBeingDragged = draggingTask?.id === task.id;
           const isMultiMember = 'ownerName' in block;
+
+          // Only allow dragging own blocks
+          const isOwnBlock = block.ownerId === currentUserId;
+          const canDrag = isOwnBlock;
 
           // Generate initials for multi-member blocks
           const getInitials = (name: string) => {
@@ -132,15 +143,15 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             <div
               key={block.id}
               style={style}
-              className={`${style.className} pointer-events-auto ${isBeingDragged ? 'opacity-50' : ''}`}
+              className={`${style.className} pointer-events-auto ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''}`}
               onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onContextMenu(e, task.id, block.id);
               }}
-              draggable
-              onDragStart={(e) => onDragStart(e, task, block.id)}
+              draggable={canDrag}
+              onDragStart={(e) => canDrag && onDragStart(e, task, block.id)}
             >
               <div className="font-medium truncate leading-tight flex items-center gap-1.5">
                 {isMultiMember && isMultiMemberMode && (

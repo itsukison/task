@@ -130,11 +130,7 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
             throw new Error('Must be authenticated with an organization');
         }
 
-        // Check if task already has a block (limit to one block per task)
-        const existingBlock = calendarBlocks.find(b => b.taskId === input.taskId);
-        if (existingBlock) {
-            throw new Error('This task already has a scheduled time block. Please move or delete the existing block first.');
-        }
+        // Note: Multiple blocks per task are allowed for scheduling the same task at different times
 
         const insertData: CalendarBlockInsert = {
             organization_id: currentOrg.id,
@@ -250,7 +246,7 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
         });
     }, [calendarBlocks]);
 
-    // Helper: Check if a task already has a block
+    // Helper: Check if a task has at least one block scheduled
     const hasBlockForTask = useCallback((taskId: string): boolean => {
         return calendarBlocks.some(block => block.taskId === taskId);
     }, [calendarBlocks]);
