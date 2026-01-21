@@ -134,7 +134,7 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
             const pendingTransformed = pendingBlocks.map((row) => {
                 const status = assignmentMap.get(row.task_id);
                 return dbToCalendarBlock(row, {
-                    isPending: true,  // These are always pending (from other users' schedules)
+                    isPending: status === 'pending',  // Only pending if user hasn't accepted yet
                     status,
                 });
             });
@@ -252,14 +252,10 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
             throw new Error('Must be authenticated to update calendar blocks');
         }
 
-        // Verify ownership before updating
+        // Find block for optimistic update (no ownership check - RLS handles permissions)
         const blockToUpdate = calendarBlocks.find(b => b.id === id);
         if (!blockToUpdate) {
             throw new Error('Calendar block not found');
-        }
-
-        if (blockToUpdate.ownerId !== user.id) {
-            throw new Error('You can only update your own calendar blocks');
         }
 
         const updateData: CalendarBlockUpdate = {};
@@ -267,11 +263,11 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
         if (input.startTime !== undefined) updateData.start_time = input.startTime.toISOString();
         if (input.endTime !== undefined) updateData.end_time = input.endTime.toISOString();
 
+        // RLS policies enforce that only confirmed task owners can update blocks
         const { error: updateError } = await supabase
             .from('calendar_blocks')
             .update(updateData)
-            .eq('id', id)
-            .eq('owner_id', user.id);  // Additional safety check at DB level
+            .eq('id', id);
 
         if (updateError) {
             throw new Error(`Failed to update calendar block: ${updateError.message}`);
@@ -296,21 +292,17 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
             throw new Error('Must be authenticated to delete calendar blocks');
         }
 
-        // Verify ownership before deleting
+        // Find block for optimistic update (no ownership check - RLS handles permissions)
         const blockToDelete = calendarBlocks.find(b => b.id === id);
         if (!blockToDelete) {
             throw new Error('Calendar block not found');
         }
 
-        if (blockToDelete.ownerId !== user.id) {
-            throw new Error('You can only delete your own calendar blocks');
-        }
-
+        // RLS policies enforce that only confirmed task owners can delete blocks
         const { error: deleteError } = await supabase
             .from('calendar_blocks')
             .delete()
-            .eq('id', id)
-            .eq('owner_id', user.id);  // Additional safety check at DB level
+            .eq('id', id);
 
         if (deleteError) {
             throw new Error(`Failed to delete calendar block: ${deleteError.message}`);

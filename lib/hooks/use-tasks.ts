@@ -293,11 +293,17 @@ export function useTasks(): UseTasksReturn {
 
         // Handle owner updates if provided - use smart logic to preserve confirmed status
         if (input.ownerIds !== undefined && user) {
+            console.group('👥 UPDATING TASK OWNERS');
+            console.log('Task ID:', id);
+            console.log('New owner IDs:', input.ownerIds);
+
             // Get existing owners with their status
             const { data: existingOwners } = await supabase
                 .from('task_owners')
                 .select('user_id, status')
                 .eq('task_id', id);
+
+            console.log('Existing owners:', existingOwners);
 
             const existingUserIds = new Set(existingOwners?.map(o => o.user_id) || []);
             const newUserIds = new Set(input.ownerIds);
@@ -305,6 +311,7 @@ export function useTasks(): UseTasksReturn {
             // Remove owners not in new list
             const toRemove = [...existingUserIds].filter(uid => !newUserIds.has(uid));
             if (toRemove.length > 0) {
+                console.log('Removing owners:', toRemove);
                 await supabase
                     .from('task_owners')
                     .delete()
@@ -323,10 +330,20 @@ export function useTasks(): UseTasksReturn {
                     status: userId === user.id ? 'confirmed' as const : 'pending' as const,
                 }));
 
-                await supabase
+                console.log('Inserting new owners:', ownerInserts);
+                const { data: insertedOwners, error: insertError } = await supabase
                     .from('task_owners')
-                    .insert(ownerInserts);
+                    .insert(ownerInserts)
+                    .select();
+
+                if (insertError) {
+                    console.error('❌ Failed to insert owners:', insertError);
+                } else {
+                    console.log('✅ Inserted owners:', insertedOwners);
+                }
             }
+
+            console.groupEnd();
         }
 
         // Refetch to get updated data including owners
@@ -361,6 +378,32 @@ export function useTasks(): UseTasksReturn {
     const acceptAssignment = useCallback(async (taskId: string): Promise<void> => {
         if (!user || !currentOrg) throw new Error('Must be authenticated');
 
+        console.group('🔔 ACCEPT ASSIGNMENT');
+        console.log('Task ID:', taskId);
+        console.log('User ID:', user.id);
+        console.log('Org ID:', currentOrg.id);
+
+        // First, verify the record exists
+        console.log('🔍 Checking for existing task_owner record...');
+        const { data: existingRecords, error: checkError } = await supabase
+            .from('task_owners')
+            .select('*')
+            .eq('task_id', taskId)
+            .eq('user_id', user.id)
+            .eq('organization_id', currentOrg.id);
+
+        console.log('📋 Existing records:', existingRecords);
+        if (checkError) {
+            console.error('❌ Error checking records:', checkError);
+        }
+
+        // Also check ALL records for this task (to see what exists)
+        const { data: allTaskOwners } = await supabase
+            .from('task_owners')
+            .select('*')
+            .eq('task_id', taskId);
+        console.log('📋 All task_owners for this task:', allTaskOwners);
+
         // Optimistic update
         setTasks(prev => prev.map(task => {
             if (task.id !== taskId) return task;
@@ -372,18 +415,36 @@ export function useTasks(): UseTasksReturn {
             };
         }));
 
-        const { error } = await supabase
+        console.log('✅ Optimistic update applied');
+
+        const { data, error, count } = await supabase
             .from('task_owners')
             .update({ status: 'confirmed' })
             .eq('task_id', taskId)
             .eq('user_id', user.id)
-            .eq('organization_id', currentOrg.id);
+            .eq('organization_id', currentOrg.id)
+            .select();
+
+        console.log('📊 Update result:', { data, error, count });
 
         if (error) {
+            console.error('❌ Update failed:', error);
+            console.groupEnd();
             // Revert on error
             await fetchTasks();
             throw new Error(`Failed to accept assignment: ${error.message}`);
         }
+
+        if (!data || data.length === 0) {
+            console.warn('⚠️ No rows updated - task_owner record may not exist');
+        } else {
+            console.log('✅ Successfully updated', data.length, 'row(s)');
+        }
+
+        console.groupEnd();
+
+        // Refetch to ensure consistency
+        await fetchTasks();
     }, [user, currentOrg, fetchTasks]);
 
     // Reject a pending assignment

@@ -132,9 +132,13 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           const isMultiMember = 'ownerName' in block;
           const isPendingBlock = 'isPendingAssignment' in block && block.isPendingAssignment;
 
-          // Only allow dragging own blocks and non-pending blocks
-          const isOwnBlock = block.ownerId === currentUserId;
-          const canDrag = isOwnBlock && !isPendingBlock;
+          // Check if current user is a confirmed owner of the task
+          const isConfirmedOwner = task.owners?.some(
+            owner => owner.id === currentUserId && owner.status === 'confirmed'
+          ) ?? false;
+          
+          // Allow dragging if user is confirmed owner and assignment is not pending
+          const canDrag = isConfirmedOwner && !isPendingBlock;
 
           // Generate initials for multi-member blocks
           const getInitials = (name: string) => {

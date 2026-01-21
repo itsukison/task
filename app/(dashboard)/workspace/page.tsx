@@ -28,7 +28,8 @@ export default function WorkspacePage() {
         error: blocksError,
         createCalendarBlock,
         updateCalendarBlock,
-        deleteCalendarBlock
+        deleteCalendarBlock,
+        refetch: refetchCalendarBlocks
     } = useCalendarBlocks();
 
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -115,6 +116,27 @@ export default function WorkspacePage() {
         }
     };
 
+    // Assignment handlers with calendar blocks refetch
+    const handleAcceptAssignment = async (taskId: string) => {
+        try {
+            await acceptAssignment(taskId);
+            // Refetch calendar blocks immediately to unmute them
+            await refetchCalendarBlocks();
+        } catch (err) {
+            console.error('Failed to accept assignment:', err);
+        }
+    };
+
+    const handleRejectAssignment = async (taskId: string) => {
+        try {
+            await rejectAssignment(taskId);
+            // Refetch calendar blocks immediately to remove them
+            await refetchCalendarBlocks();
+        } catch (err) {
+            console.error('Failed to reject assignment:', err);
+        }
+    };
+
     // Calendar block handlers
     const handleCreateBlock = async (taskId: string, startTime: Date, endTime: Date) => {
         try {
@@ -188,8 +210,8 @@ export default function WorkspacePage() {
                 onSelectedMembersChange={setSelectedMemberIds}
                 multiMemberBlocks={multiMemberBlocks}
                 currentUserId={user?.id}
-                onAcceptAssignment={acceptAssignment}
-                onRejectAssignment={rejectAssignment}
+                onAcceptAssignment={handleAcceptAssignment}
+                onRejectAssignment={handleRejectAssignment}
             />
 
             {selectedTask && (
