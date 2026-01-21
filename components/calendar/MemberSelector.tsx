@@ -108,7 +108,11 @@ export function MemberSelector({
 
     const filteredMembers = visibleMembers.filter(m =>
         m.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ).sort((a, b) => {
+        if (a.id === user?.id) return -1;
+        if (b.id === user?.id) return 1;
+        return 0;
+    });
 
     // Compact trigger label
     const getCompactLabel = () => {

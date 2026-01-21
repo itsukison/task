@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/auth/hooks';
 import { Search } from 'lucide-react';
@@ -24,6 +24,15 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], onChang
     // Value should be an array of user IDs
     const selectedIds = Array.isArray(value) ? value as string[] : [];
     const selectedPeople = peopleOptions.filter(p => selectedIds.includes(p.id));
+
+    // Sort options to put current user at the top
+    const sortedOptions = useMemo(() => {
+        return [...peopleOptions].sort((a, b) => {
+            if (a.id === user?.id) return -1;
+            if (b.id === user?.id) return 1;
+            return 0;
+        });
+    }, [peopleOptions, user?.id]);
 
     // Calculate dropdown position when opened
     useEffect(() => {
@@ -81,12 +90,14 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], onChang
                             <div
                                 key={person.id}
                                 className="flex items-center gap-2"
-                                title={person.email}
+                                title={person.displayName}
                             >
                                 <div className="w-5 h-5 rounded-full bg-[#f0f0f0] border border-[#e0e0e0] text-[#37352f] flex items-center justify-center text-[10px] font-medium">
                                     {getInitials(person.displayName)}
                                 </div>
-                                <span className="text-sm text-[#37352F]">{person.displayName}</span>
+                                {selectedPeople.length === 1 && (
+                                    <span className="text-sm text-[#37352F]">{person.displayName}</span>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -101,6 +112,7 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], onChang
                     ref={dropdownRef}
                     className="fixed bg-white shadow-lg rounded-md border border-gray-200 min-w-[260px] max-h-[300px] overflow-hidden flex flex-col"
                     style={{ top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     {/* Search Bar */}
                     <div className="p-2 border-b border-gray-100">
@@ -119,8 +131,8 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], onChang
                     </div>
 
                     <div className="overflow-y-auto max-h-[200px] p-1">
-                        {peopleOptions.length > 0 ? (
-                            peopleOptions
+                        {sortedOptions.length > 0 ? (
+                            sortedOptions
                                 .filter(p => p.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
                                 .map((person) => {
                                     const isSelected = selectedIds.includes(person.id);
@@ -133,7 +145,10 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], onChang
                                                 "px-2 py-1.5 cursor-pointer rounded-sm flex items-center gap-2 mb-0.5 hover:bg-gray-100",
                                                 // isSelected ? "bg-orange-50" : "hover:bg-gray-100" // REMOVED highlight
                                             )}
-                                            onClick={() => togglePerson(person)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                togglePerson(person);
+                                            }}
                                         >
                                             {/* Avatar */}
                                             <div className="w-6 h-6 rounded-full bg-[#f0f0f0] text-[#37352f] flex items-center justify-center text-[10px] font-medium border border-[#e0e0e0]">

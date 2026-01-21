@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -61,22 +61,22 @@ export default function EditableTable<T extends { id: string }>({
         setColumnVisibility(visibility);
     }, [hiddenColumns]);
 
-    const handleSort = (columnId: string, desc: boolean) => {
+    const handleSort = useCallback((columnId: string, desc: boolean) => {
         if (onSortChange) {
             onSortChange({ columnId, direction: desc ? 'desc' : 'asc' });
         } else {
             setInternalSorting([{ id: columnId, desc }]);
         }
-    };
+    }, [onSortChange]);
 
-    const handleRowActionClick = (e: React.MouseEvent, rowId: string) => {
+    const handleRowActionClick = useCallback((e: React.MouseEvent, rowId: string) => {
         e.stopPropagation();
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         setActiveRowMenu({
             rowId,
             position: { top: rect.bottom + 4, left: rect.left }
         });
-    };
+    }, []);
 
     const columns = useTableColumns({
         tableColumns,

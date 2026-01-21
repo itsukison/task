@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { startOfDay, endOfDay } from 'date-fns';
 import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { EditableTable, TableColumn, ColumnOption, SortConfig } from './editable-table';
@@ -99,6 +99,12 @@ export default function TaskList({
     // Fetch organization members for people picker
     const { members: orgMembers } = useOrganizationMembers();
 
+    // Use refs to stabilize handleCellChange and prevent column regeneration/cell remounting
+    const tasksRef = useRef(tasks);
+    tasksRef.current = tasks;
+    const onUpdateTaskRef = useRef(onUpdateTask);
+    onUpdateTaskRef.current = onUpdateTask;
+
     // Transform tasks to include virtual ownerIds field
     type TaskWithOwnerIds = Task & { ownerIds: string[] };
 
@@ -135,14 +141,15 @@ export default function TaskList({
     }, [tasks, filterStatus, searchQuery, selectedDate]);
 
     // Handle cell value changes
-    const handleCellChange = (rowId: string, columnId: string, value: unknown) => {
-        const task = tasks.find(t => t.id === rowId);
+    // Stabilized with useCallback and refs to prevent table re-renders that close dropdowns
+    const handleCellChange = useCallback((rowId: string, columnId: string, value: unknown) => {
+        const task = tasksRef.current.find(t => t.id === rowId);
         if (!task) return;
 
         // Handle ownerIds changes (people picker)
         if (columnId === 'ownerIds') {
             const ownerIds = value as string[];
-            onUpdateTask({
+            onUpdateTaskRef.current({
                 ...task,
                 ownerIds,
             } as Task);
@@ -159,8 +166,8 @@ export default function TaskList({
             updatedTask.status = value as TaskStatus;
         }
 
-        onUpdateTask(updatedTask);
-    };
+        onUpdateTaskRef.current(updatedTask);
+    }, []);
 
     // Handle row click
     const handleRowClick = (row: Task) => {

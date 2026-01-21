@@ -36,8 +36,8 @@ export function SettingsForm() {
     const [workStartTime, setWorkStartTime] = useState('09:00');
     const [workEndTime, setWorkEndTime] = useState('18:00');
     const [showWeekends, setShowWeekends] = useState(false);
-    const [taskVisibility, setTaskVisibility] = useState<TaskVisibility>('leaders_only');
-    const [scheduleVisibility, setScheduleVisibility] = useState<ScheduleVisibility>('leaders_only');
+    const [taskVisibility, setTaskVisibility] = useState<TaskVisibility>('team');
+    const [scheduleVisibility, setScheduleVisibility] = useState<ScheduleVisibility>('team');
 
     // Theme options
     const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
@@ -56,8 +56,8 @@ export function SettingsForm() {
     useEffect(() => {
         if (profile) {
             setDisplayName(profile.display_name || '');
-            setTaskVisibility(profile.default_task_visibility || 'leaders_only');
-            setScheduleVisibility(profile.default_schedule_visibility || 'leaders_only');
+            setTaskVisibility(profile.default_task_visibility || 'team');
+            setScheduleVisibility(profile.default_schedule_visibility || 'team');
         }
     }, [profile]);
 
@@ -164,7 +164,7 @@ export function SettingsForm() {
             {/* Privacy & Visibility Section */}
             <SettingSection title="Privacy & Visibility">
                 <SettingRow
-                    title="Default task visibility"
+                    title="Task visibility"
                     description="Who can see new tasks you create."
                 >
                     <SelectDropdown
@@ -175,7 +175,7 @@ export function SettingsForm() {
                     />
                 </SettingRow>
                 <SettingRow
-                    title="Default schedule visibility"
+                    title="Schedule visibility"
                     description="Who can see your calendar blocks."
                 >
                     <SelectDropdown
