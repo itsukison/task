@@ -1,31 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AsciiArt } from './AsciiArt';
 import { Reveal } from './Reveal';
-
-const MAN_PORTRAIT = `
-    .---.
-   /     \\
-  |  o o  |
-   \\  =  /
-   /|   |\\
-  | |   | |
-`;
-
-const WOMAN_PORTRAIT = `
-     .--.
-    /   .\\
-   |  o_o |
-    \\  - /
-    /|  |\\
-`;
-
-const MEETING_ART = `
-   _   _   _
-  (o) (o) (o)
-  /|\\ /|\\ /|\\
-`;
+import Dither from './ditherbg';
 
 export const TestimonialSection: React.FC = () => {
     return (
@@ -33,154 +10,146 @@ export const TestimonialSection: React.FC = () => {
             <div className="max-w-[1280px] w-full px-6">
 
                 {/* Header Section */}
-                <div className="text-center max-w-3xl mx-auto mb-20">
+                <div className="text-center max-w-3xl mx-auto mb-10">
                     <Reveal delay={0.1}>
-                        <span className="font-serif italic text-gray-400 text-xl mb-4 block">Customer Stories</span>
+                        <span className="font-serif italic text-orange-500 text-xl mb-4 block">Community</span>
                         <h2 className="text-4xl md:text-5xl lg:text-6xl font-medium tracking-tighter text-foreground mb-6 leading-[1.05]">
-                            Teams Executing <br />
-                            with Chrono
+                            Built for <br />
+                            Deep Work
                         </h2>
                     </Reveal>
                     <Reveal delay={0.2}>
                         <p className="text-lg text-foreground/70 leading-relaxed max-w-2xl mx-auto">
-                            Real teams achieving real outcomes with time-aware planning. See how Chrono transforms daily execution.
+                            Join thousands who have traded busywork for execution.
                         </p>
                     </Reveal>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr mb-8">
 
-                    {/* Row 1 - Card 1: Stat (Accent Gradient) */}
+                    {/* Row 1 - Card 1: Stat with Dither */}
                     <div className="lg:col-span-1">
                         <Reveal delay={0.3} className="h-full">
-                            <div className="bg-gradient-to-br from-accent to-accent rounded-[2rem] p-6 flex flex-col justify-between min-h-[300px] h-full relative overflow-hidden group shadow-lg shadow-accent/10">
-                                {/* Abstract decorative bg */}
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-[80px] opacity-20 -translate-y-1/2 translate-x-1/2 group-hover:bg-white/30 transition-colors"></div>
-
-                                <div className="relative z-10 flex items-center gap-2 text-white mb-8">
-                                    <div className="bg-white/20 backdrop-blur-md w-8 h-8 rounded flex items-center justify-center">
-                                        <svg width="14" height="14" viewBox="0 0 40 40" fill="currentColor">
-                                            <path d="M20 5L35 30H5L20 5Z" />
-                                        </svg>
-                                    </div>
-                                    <span className="font-medium tracking-tight">Chrono</span>
+                            <div className="rounded-[2rem] relative overflow-hidden h-full min-h-[320px] shadow-sm transform transition-all duration-500 hover:scale-[1.02]">
+                                <div className="absolute inset-0">
+                                    <Dither
+                                        waveColor={[0.9, 0.3, 0.1]} // Orange/Red
+                                        waveSpeed={0.05}
+                                        enableMouseInteraction={true}
+                                        colorNum={4}
+                                    />
                                 </div>
 
-                                <div className="relative z-10 mt-auto">
-                                    <h3 className="text-5xl font-medium text-white tracking-tighter mb-2">13h/week</h3>
-                                    <p className="text-white/80 font-medium text-lg">Time saved in planning</p>
-                                </div>
-                            </div>
-                        </Reveal>
-                    </div>
-
-                    {/* Row 1 - Card 2: Testimonial (Light) */}
-                    <div className="lg:col-span-2">
-                        <Reveal delay={0.4} className="h-full">
-                            <div className="bg-gray-100 rounded-[2rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 min-h-[300px] h-full relative overflow-hidden">
-
-                                {/* Portrait */}
-                                <div className="w-full md:w-5/12 flex justify-center md:justify-start relative z-10">
-                                    <div className="w-full aspect-[4/5] bg-white border border-gray-200 rounded-2xl flex items-center justify-center shadow-sm relative overflow-hidden">
-                                        <AsciiArt art={MAN_PORTRAIT} className="bg-transparent border-none text-foreground scale-[1.5] font-black opacity-80" />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-gray-100/50 to-transparent"></div>
+                                <div className="relative z-10 p-8 h-full flex flex-col justify-between pointer-events-none">
+                                    <div className="flex items-center gap-2 text-white/90">
+                                        <div className="w-2 h-2 rounded-full bg-white"></div>
+                                        <span className="text-sm font-medium uppercase tracking-wider">Impact</span>
                                     </div>
-                                </div>
-
-                                {/* Content */}
-                                <div className="w-full md:w-7/12 relative z-10 flex flex-col justify-center h-full">
-                                    <div className="flex items-center gap-2 text-foreground mb-4">
-                                        <div className="bg-foreground text-background w-6 h-6 rounded flex items-center justify-center">
-                                            <svg width="10" height="10" viewBox="0 0 40 40" fill="currentColor">
-                                                <path d="M20 5L35 30H5L20 5Z" />
-                                            </svg>
-                                        </div>
-                                        <span className="font-bold tracking-tight">Chrono</span>
-                                    </div>
-
-                                    <h3 className="text-xl md:text-2xl font-medium text-foreground tracking-tight leading-snug mb-6">
-                                        &ldquo;Chrono cut our planning time from 15 hours to 2 hours per week. <span className="font-bold">That's 13 hours back</span> for actual execution.&rdquo;
-                                    </h3>
 
                                     <div>
-                                        <h4 className="font-bold text-foreground">Christanto Budiman</h4>
-                                        <p className="text-gray-500 text-sm">Founder, Sadewa</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 mt-6">
-                                        <div className="w-8 h-1.5 bg-foreground rounded-full"></div>
-                                        <div className="w-2 h-1.5 bg-gray-300 rounded-full"></div>
-                                        <div className="w-2 h-1.5 bg-gray-300 rounded-full"></div>
+                                        <h3 className="text-6xl font-medium text-white tracking-tighter mb-2">15+</h3>
+                                        <p className="text-white/80 font-medium text-xl leading-snug">Hours saved per week<br />on average.</p>
                                     </div>
                                 </div>
                             </div>
                         </Reveal>
                     </div>
 
-                    {/* Row 2 - Card 3: Light Gradient Shader */}
+                    {/* Row 1 - Card 2: Main Testimonial */}
+                    <div className="lg:col-span-2">
+                        <Reveal delay={0.4} className="h-full">
+                            <div className="bg-white rounded-[2rem] p-10 flex flex-col justify-between h-full relative overflow-hidden border border-gray-100 shadow-sm transition-all hover:shadow-md">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-100 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 opacity-50"></div>
+
+                                <div className="relative z-10 w-full">
+                                    <div className="flex gap-1 mb-6 text-orange-500">
+                                        {[1, 2, 3, 4, 5].map(i => (
+                                            <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                        ))}
+                                    </div>
+
+                                    <h3 className="text-2xl md:text-3xl font-medium text-foreground tracking-tight leading-snug mb-8">
+                                        &ldquo;Chrono is the first tool that actually respects my cognitive load. It doesn't just list tasks; it helps me <span className="text-orange-600 px-1 rounded">carve out time</span> for them.&rdquo;
+                                    </h3>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm">J</div>
+                                        <div>
+                                            <h4 className="text-base font-medium text-foreground leading-tight">Jessica Liang</h4>
+                                            <p className="text-sm text-gray-400">Product Designer</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Reveal>
+                    </div>
+
+                    {/* Row 2 - Card 3: Review */}
                     <div className="lg:col-span-1">
                         <Reveal delay={0.5} className="h-full">
-                            <div className="bg-white rounded-[2rem] p-6 flex flex-col justify-between min-h-[250px] h-full relative overflow-hidden group border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                                {/* Shader Gradient Background */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-accent/10 z-0"></div>
-                                <div className="absolute -top-10 -right-10 w-48 h-48 bg-accent/20 rounded-full blur-[60px]"></div>
-
-                                {/* Background Image Placeholder */}
-                                <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] group-hover:scale-105 transition-transform duration-700 z-0">
-                                    <AsciiArt art={WOMAN_PORTRAIT} className="bg-transparent border-none text-foreground scale-[2.0] font-black" />
-                                </div>
-
-                                <div className="relative z-10 flex items-center gap-2 text-foreground font-medium tracking-tight">
-                                    <span className="opacity-80 text-xl font-serif">bima</span>
-                                </div>
-
+                            <div className="bg-white rounded-[2rem] p-8 flex flex-col justify-between h-full min-h-[280px] relative overflow-hidden border border-gray-100 shadow-sm transition-all hover:shadow-md">
                                 <div className="relative z-10">
-                                    <h3 className="text-4xl font-medium text-foreground tracking-tighter mb-2">2.5x</h3>
-                                    <p className="text-gray-500 font-medium">Execution speed increase</p>
+                                    <div className="flex gap-1 mb-4 text-orange-500">
+                                        {[1, 2, 3, 4, 5].map(i => (
+                                            <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                        ))}
+                                    </div>
+                                    <p className="text-foreground/80 font-medium text-lg mb-6 leading-relaxed">
+                                        "Finally, a calendar that speaks the language of a maker. Essential for my daily workflow."
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white text-sm font-bold">M</div>
+                                    <div>
+                                        <span className="text-base font-medium text-foreground block leading-tight">Mark T.</span>
+                                        <span className="text-sm text-gray-400">Indie Developer</span>
+                                    </div>
                                 </div>
                             </div>
                         </Reveal>
                     </div>
 
-                    {/* Row 2 - Card 4: Soft Accent Shader */}
+                    {/* Row 2 - Card 4: Dither Visual */}
                     <div className="lg:col-span-1">
                         <Reveal delay={0.6} className="h-full">
-                            <div className="bg-white rounded-[2rem] p-6 flex flex-col justify-between min-h-[250px] h-full relative overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                                {/* Shader Gradient Background */}
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-accent/20 via-white to-white"></div>
-
-                                <div className="relative z-10 flex items-center gap-2 text-foreground font-medium tracking-tight">
-                                    <span className="text-accent text-2xl">✻</span>
-                                    <span className="text-xl">Mandala</span>
+                            <div className="rounded-[2rem] relative overflow-hidden h-full min-h-[280px] shadow-sm group">
+                                <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110">
+                                    <Dither
+                                        waveColor={[1.0, 0.6, 0.2]} // Yellow/Orange
+                                        waveSpeed={0.03}
+                                        enableMouseInteraction={true}
+                                        pixelSize={3}
+                                    />
                                 </div>
-
-                                <div className="relative z-10">
-                                    <h3 className="text-4xl font-medium text-foreground tracking-tighter mb-2">92%</h3>
-                                    <p className="text-gray-500 font-medium leading-tight">Workload forecast accuracy</p>
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <span className="bg-white/90 backdrop-blur-sm px-6 py-3 rounded-full text-foreground font-semibold tracking-tight shadow-lg">
+                                        Focus Mode
+                                    </span>
                                 </div>
                             </div>
                         </Reveal>
                     </div>
 
-                    {/* Row 2 - Card 5: Soft Gray Shader */}
+                    {/* Row 2 - Card 5: Another Stat */}
                     <div className="lg:col-span-1">
                         <Reveal delay={0.7} className="h-full">
-                            <div className="bg-gray-50/50 rounded-[2rem] p-6 flex flex-col justify-between min-h-[250px] h-full relative overflow-hidden group border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                                {/* Shader Gradient Background */}
-                                <div className="absolute inset-0 bg-gradient-to-tr from-gray-100 via-white to-white"></div>
-
-                                {/* Background Image Placeholder */}
-                                <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] group-hover:scale-105 transition-transform duration-700">
-                                    <AsciiArt art={MEETING_ART} className="bg-transparent border-none text-foreground scale-[2.0] font-black" />
-                                </div>
-
-                                <div className="relative z-10 flex items-center gap-2 text-foreground font-medium tracking-tight">
-                                    <span className="text-xl font-serif italic">Pandawa<span className="text-[10px] align-top not-italic font-sans ml-0.5 opacity-60">TM</span></span>
-                                </div>
-
+                            <div className="bg-white rounded-[2rem] p-8 flex flex-col justify-between h-full min-h-[280px] relative overflow-hidden border border-gray-100 shadow-sm transition-all hover:shadow-md">
                                 <div className="relative z-10">
-                                    <h3 className="text-4xl font-medium text-foreground tracking-tighter mb-2">35%</h3>
-                                    <p className="text-gray-500 font-medium">Productivity increase</p>
+                                    <div className="flex gap-1 mb-4 text-orange-500">
+                                        {[1, 2, 3, 4, 5].map(i => (
+                                            <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                        ))}
+                                    </div>
+                                    <p className="text-foreground/80 font-medium text-lg mb-6 leading-relaxed">
+                                        "We tried everything. Chrono is the only tool that actually changed how we operate. Instant adoption."
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 text-xs font-bold">D</div>
+                                    <div>
+                                        <span className="text-sm font-medium text-foreground block leading-tight">David K.</span>
+                                        <span className="text-xs text-gray-400">CTO, Nexus</span>
+                                    </div>
                                 </div>
                             </div>
                         </Reveal>

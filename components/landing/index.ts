@@ -8,4 +8,3 @@ export { AutomationSection } from './AutomationSection';
 export { TestimonialSection } from './TestimonialSection';
 export { FooterSection } from './FooterSection';
 export { Reveal } from './Reveal';
-export { AsciiArt } from './AsciiArt';

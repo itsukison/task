@@ -31,24 +31,24 @@ export const ProcessSection: React.FC = () => {
             label: 'Plan',
             title: "Start with Clarity",
             text: "Plan your day based on available time, not wishful thinking. Chrono shows exactly what fits in your calendar, so you start every day with realistic expectations.",
-            color: "bg-[#E7E5E4]", // Warm Stone
-            cardColor: "text-stone-800"
+            color: "bg-[#8ecae6]", // Light Marigold
+            cardColor: "text-orange-950"
         },
         {
             id: 1,
             label: 'Execute',
             title: "Stay in Flow",
             text: "Drag tasks into your calendar. Resize blocks as reality unfolds. Chrono adapts with you, keeping time and tasks synchronized without breaking your focus.",
-            color: "bg-[#FFDBC7]", // Soft Apricot/Clay
-            cardColor: "text-orange-950"
+            color: "bg-[#219ebc]", // Vibrant Orange
+            cardColor: "text-white"
         },
         {
             id: 2,
             label: 'Review',
             title: "Learn Your Rhythm",
             text: "See where time actually goes. Spot patterns in your execution. Improve daily. With Chrono, execution wisdom compounds over time.",
-            color: "bg-[#D4DEE7]", // Muted Steel/Slate
-            cardColor: "text-slate-800"
+            color: "bg-[#ffb703]", // Deep Burnt Orange
+            cardColor: "text-white"
         }
     ];
 

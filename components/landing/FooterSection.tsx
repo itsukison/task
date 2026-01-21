@@ -2,24 +2,10 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { AsciiArt } from './AsciiArt';
 import { Reveal } from './Reveal';
 import Link from 'next/link';
 
-const PYRAMID_ASCII = `
-    /\\
-   /  \\
-  /____\\
-`;
 
-const CUBE_ASCII = `
-   +---+
-  /   /|
- +---+ |
- |   | +
- |   |/
- +---+
-`;
 
 export const FooterSection: React.FC = () => {
     return (
@@ -48,7 +34,7 @@ export const FooterSection: React.FC = () => {
 
                 <div className="max-w-2xl mx-auto relative z-10">
                     <Reveal delay={0.1}>
-                        <span className="font-serif italic text-gray-400 text-xl mb-4 block">Get Started!</span>
+                        <span className="font-serif italic text-orange-500 text-xl mb-4 block">Get Started!</span>
                         <h2 className="text-5xl md:text-6xl font-medium tracking-tighter text-foreground mb-6 leading-[1.1]">
                             Ready to master <br />
                             <span className="text-accent">your time?</span>

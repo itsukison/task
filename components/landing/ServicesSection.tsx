@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { AsciiArt } from './AsciiArt';
+
 import { Reveal } from './Reveal';
 
 const ISO_BLOCKS = `
@@ -61,15 +61,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, art, imag
     <Reveal delay={delay} variant="fade-up" className="h-full">
         <div className="bg-gray-100/50 rounded-xl p-8 md:p-10 flex flex-col justify-between h-[320px] transition-all duration-300 hover:bg-gray-100 group overflow-hidden relative">
             <div className="flex-1 flex items-center justify-center mb-8">
-                {image ? (
-                    <div className={`relative w-32 h-32 transition-all duration-500 ${imageClassName || "scale-[1.8] translate-x-20 opacity-80 group-hover:opacity-100 group-hover:scale-[1.9]"}`}>
-                        <Image src={image} alt={title} width={128} height={128} className="w-full h-full object-contain mix-blend-multiply" />
-                    </div>
-                ) : (
-                    <div className="opacity-40 group-hover:opacity-60 transition-opacity">
-                        <AsciiArt art={art || ''} className="bg-transparent border-none text-foreground font-bold scale-150" />
-                    </div>
-                )}
+                <div className={`relative w-32 h-32 transition-all duration-500 ${imageClassName || "scale-[1.8] translate-x-20 opacity-80 group-hover:opacity-100 group-hover:scale-[1.9]"}`}>
+                    <Image src={image || ''} alt={title} width={128} height={128} className="w-full h-full object-contain mix-blend-multiply" />
+                </div>
             </div>
             <div>
                 <h3 className="text-2xl md:text-3xl font-medium mb-3 text-foreground tracking-tight">{title}</h3>
@@ -87,10 +81,7 @@ export const ServicesSection: React.FC = () => {
                 {/* Header Section */}
                 <div className="mb-20">
                     <Reveal delay={0.1}>
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="w-4 h-[1px] bg-gray-300"></div>
-                            <span className="text-xs font-mono uppercase tracking-widest text-gray-500">/ OUR SERVICES</span>
-                        </div>
+                        <span className="font-serif italic text-orange-500 text-xl mb-4 block">Our Services</span>
                     </Reveal>
 
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
