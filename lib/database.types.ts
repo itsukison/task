@@ -205,23 +205,29 @@ export type Database = {
       }
       task_owners: {
         Row: {
+          assigned_by: string | null
           created_at: string
           id: string
           organization_id: string
+          status: Database["public"]["Enums"]["assignment_status"]
           task_id: string
           user_id: string
         }
         Insert: {
+          assigned_by?: string | null
           created_at?: string
           id?: string
           organization_id: string
+          status?: Database["public"]["Enums"]["assignment_status"]
           task_id: string
           user_id: string
         }
         Update: {
+          assigned_by?: string | null
           created_at?: string
           id?: string
           organization_id?: string
+          status?: Database["public"]["Enums"]["assignment_status"]
           task_id?: string
           user_id?: string
         }
@@ -452,6 +458,7 @@ export type Database = {
       }
     }
     Enums: {
+      assignment_status: "pending" | "confirmed"
       member_role: "leader" | "employee"
       schedule_visibility: "private" | "team" | "leaders_only"
       task_status: "planned" | "in_progress" | "overrun" | "completed"

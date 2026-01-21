@@ -21,7 +21,7 @@ const formatDateToLocalISO = (date: Date): string => {
 export default function WorkspacePage() {
     const { user } = useAuth();
     const { preferences } = useUserPreferences();
-    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask } = useTasks();
+    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment } = useTasks();
     const {
         calendarBlocks,
         loading: blocksLoading,
@@ -187,6 +187,9 @@ export default function WorkspacePage() {
                 selectedMemberIds={selectedMemberIds}
                 onSelectedMembersChange={setSelectedMemberIds}
                 multiMemberBlocks={multiMemberBlocks}
+                currentUserId={user?.id}
+                onAcceptAssignment={acceptAssignment}
+                onRejectAssignment={rejectAssignment}
             />
 
             {selectedTask && (

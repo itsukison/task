@@ -29,6 +29,9 @@ export default function WorkspaceView({
     selectedMemberIds,
     onSelectedMembersChange,
     multiMemberBlocks,
+    currentUserId,
+    onAcceptAssignment,
+    onRejectAssignment,
 }: WorkspaceViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<TaskStatus | 'ALL'>('ALL');
@@ -171,6 +174,9 @@ export default function WorkspaceView({
                             calendarBlocks={calendarBlocks}
                             viewMode={calendarView}
                             viewDate={viewDate}
+                            currentUserId={currentUserId}
+                            onAcceptAssignment={onAcceptAssignment}
+                            onRejectAssignment={onRejectAssignment}
                         />
                     }
                 />

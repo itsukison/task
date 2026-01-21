@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, GripVertical, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TableColumn } from '@/lib/types';
+import { TableColumn, AssignmentStatus } from '@/lib/types';
 import { Cell } from './cells';
 import { HeaderMenu } from './menus';
 import { DataTypeIcon } from './utils';
@@ -18,6 +18,7 @@ interface UseTableColumnsProps<T> {
     onHideColumn?: (columnId: string) => void;
     onOpenRow?: (rowId: string) => void;
     handleRowActionClick: (e: React.MouseEvent, rowId: string) => void;
+    getOwnerStatuses?: (row: T) => Record<string, AssignmentStatus>;
 }
 
 export function useTableColumns<T extends { id: string }>({
@@ -29,6 +30,7 @@ export function useTableColumns<T extends { id: string }>({
     onHideColumn,
     onOpenRow,
     handleRowActionClick,
+    getOwnerStatuses,
 }: UseTableColumnsProps<T>) {
     return useMemo<ColumnDef<T>[]>(() => {
         // Row action handle column (hidden by default, visible on hover)
@@ -110,6 +112,7 @@ export function useTableColumns<T extends { id: string }>({
                                 dataType={col.dataType}
                                 options={col.options}
                                 peopleOptions={col.peopleOptions}
+                                ownerStatuses={col.dataType === 'people' && getOwnerStatuses ? getOwnerStatuses(row.original) : undefined}
                                 onChange={onCellChange}
                             />
                         </div>
@@ -149,5 +152,5 @@ export function useTableColumns<T extends { id: string }>({
         };
 
         return [dragColumn, ...dataColumns, addColumn];
-    }, [tableColumns, onCellChange, activeHeaderMenu, onHideColumn, onOpenRow, setActiveHeaderMenu, handleSort, handleRowActionClick]);
+    }, [tableColumns, onCellChange, activeHeaderMenu, onHideColumn, onOpenRow, setActiveHeaderMenu, handleSort, handleRowActionClick, getOwnerStatuses]);
 }

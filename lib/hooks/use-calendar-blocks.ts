@@ -4,15 +4,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/hooks';
 import { Database } from '@/lib/database.types';
-import { CalendarBlock, Task } from '@/lib/types';
+import { CalendarBlock, Task, AssignmentStatus } from '@/lib/types';
 
 // Database row types
 type DbCalendarBlock = Database['public']['Tables']['calendar_blocks']['Row'];
 type CalendarBlockInsert = Database['public']['Tables']['calendar_blocks']['Insert'];
 type CalendarBlockUpdate = Database['public']['Tables']['calendar_blocks']['Update'];
 
+// Extended CalendarBlock with pending assignment info
+export interface CalendarBlockWithPending extends CalendarBlock {
+    isPendingAssignment?: boolean;  // True if this block is from a pending task assignment
+    assignmentStatus?: AssignmentStatus;  // The user's assignment status for the task
+}
+
 // Transform database row to frontend CalendarBlock
-function dbToCalendarBlock(row: DbCalendarBlock & { task?: Task | null }): CalendarBlock {
+function dbToCalendarBlock(
+    row: DbCalendarBlock & { task?: Task | null },
+    pendingInfo?: { isPending: boolean; status?: AssignmentStatus }
+): CalendarBlockWithPending {
     return {
         id: row.id,
         taskId: row.task_id,
@@ -23,6 +32,8 @@ function dbToCalendarBlock(row: DbCalendarBlock & { task?: Task | null }): Calen
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         task: row.task ?? undefined,
+        isPendingAssignment: pendingInfo?.isPending ?? false,
+        assignmentStatus: pendingInfo?.status,
     };
 }
 
@@ -40,7 +51,7 @@ export interface UpdateCalendarBlockInput {
 }
 
 export interface UseCalendarBlocksReturn {
-    calendarBlocks: CalendarBlock[];
+    calendarBlocks: CalendarBlockWithPending[];
     loading: boolean;
     error: string | null;
     createCalendarBlock: (input: CreateCalendarBlockInput) => Promise<CalendarBlock>;
@@ -48,18 +59,18 @@ export interface UseCalendarBlocksReturn {
     deleteCalendarBlock: (id: string) => Promise<void>;
     refetch: () => Promise<void>;
     // Helper to get blocks for a specific date range
-    getBlocksForDateRange: (start: Date, end: Date) => CalendarBlock[];
+    getBlocksForDateRange: (start: Date, end: Date) => CalendarBlockWithPending[];
     // Helper to check if a task already has a block
     hasBlockForTask: (taskId: string) => boolean;
 }
 
 export function useCalendarBlocks(): UseCalendarBlocksReturn {
     const { user, currentOrg } = useAuth();
-    const [calendarBlocks, setCalendarBlocks] = useState<CalendarBlock[]>([]);
+    const [calendarBlocks, setCalendarBlocks] = useState<CalendarBlockWithPending[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch calendar blocks
+    // Fetch calendar blocks (own blocks + blocks from pending task assignments)
     const fetchCalendarBlocks = useCallback(async () => {
         if (!currentOrg || !user) {
             setCalendarBlocks([]);
@@ -69,19 +80,71 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
 
         try {
             setError(null);
-            const { data, error: fetchError } = await supabase
+
+            // Step 1: Fetch own blocks
+            const { data: ownBlocks, error: ownError } = await supabase
                 .from('calendar_blocks')
                 .select('*')
                 .eq('organization_id', currentOrg.id)
-                .eq('owner_id', user.id)  // Only fetch blocks owned by current user
+                .eq('owner_id', user.id)
                 .order('start_time', { ascending: true });
 
-            if (fetchError) throw fetchError;
+            if (ownError) throw ownError;
 
-            const transformedBlocks = (data || []).map((row) =>
-                dbToCalendarBlock(row)
+            // Step 2: Fetch task assignments for current user (to find pending blocks)
+            const { data: taskAssignments, error: assignmentError } = await supabase
+                .from('task_owners')
+                .select('task_id, status')
+                .eq('user_id', user.id)
+                .eq('organization_id', currentOrg.id);
+
+            if (assignmentError) throw assignmentError;
+
+            // Create a map of task_id -> assignment status
+            const assignmentMap = new Map<string, AssignmentStatus>(
+                (taskAssignments || []).map(a => [a.task_id, a.status])
             );
-            setCalendarBlocks(transformedBlocks);
+
+            // Step 3: Fetch blocks from other users for tasks where current user is assigned
+            const assignedTaskIds = taskAssignments?.map(a => a.task_id) || [];
+            let pendingBlocks: DbCalendarBlock[] = [];
+
+            if (assignedTaskIds.length > 0) {
+                const { data: otherBlocks, error: otherError } = await supabase
+                    .from('calendar_blocks')
+                    .select('*')
+                    .eq('organization_id', currentOrg.id)
+                    .neq('owner_id', user.id)  // Blocks from other users
+                    .in('task_id', assignedTaskIds)
+                    .order('start_time', { ascending: true });
+
+                if (otherError) throw otherError;
+                pendingBlocks = otherBlocks || [];
+            }
+
+            // Step 4: Transform and combine blocks
+            const ownTransformed = (ownBlocks || []).map((row) => {
+                const status = assignmentMap.get(row.task_id);
+                return dbToCalendarBlock(row, {
+                    isPending: status === 'pending',
+                    status,
+                });
+            });
+
+            const pendingTransformed = pendingBlocks.map((row) => {
+                const status = assignmentMap.get(row.task_id);
+                return dbToCalendarBlock(row, {
+                    isPending: true,  // These are always pending (from other users' schedules)
+                    status,
+                });
+            });
+
+            // Combine and sort by start time
+            const allBlocks = [...ownTransformed, ...pendingTransformed].sort((a, b) =>
+                new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+            );
+
+            setCalendarBlocks(allBlocks);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Failed to fetch calendar blocks';
             setError(message);
@@ -101,8 +164,8 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
 
         fetchCalendarBlocks();
 
-        // Subscribe to real-time changes
-        const channel = supabase
+        // Subscribe to real-time changes on calendar_blocks
+        const blocksChannel = supabase
             .channel(`calendar_blocks:${currentOrg.id}`)
             .on(
                 'postgres_changes',
@@ -119,8 +182,27 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
             )
             .subscribe();
 
+        // Subscribe to task_owners changes (for assignment status updates)
+        const taskOwnersChannel = supabase
+            .channel(`calendar_task_owners:${currentOrg.id}:${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'task_owners',
+                    filter: `organization_id=eq.${currentOrg.id}`,
+                },
+                () => {
+                    // Refetch when task_owners change (assignment accepted/rejected)
+                    fetchCalendarBlocks();
+                }
+            )
+            .subscribe();
+
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(blocksChannel);
+            supabase.removeChannel(taskOwnersChannel);
         };
     }, [currentOrg, user, fetchCalendarBlocks]);
 

@@ -11,8 +11,9 @@ import { cn } from '@/lib/utils';
 /**
  * People selector cell with multi-select dropdown
  * Displays selected users as avatars, allows adding/removing owners
+ * Shows muted styling for pending assignments
  */
-export function PeopleCell({ value, rowId, columnId, peopleOptions = [], onChange }: CellProps) {
+export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerStatuses = {}, onChange }: CellProps) {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const triggerRef = useRef<HTMLDivElement>(null);
@@ -86,20 +87,37 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], onChang
             >
                 {selectedPeople.length > 0 ? (
                     <div className="flex items-center gap-1 flex-wrap">
-                        {selectedPeople.map(person => (
-                            <div
-                                key={person.id}
-                                className="flex items-center gap-2"
-                                title={person.displayName}
-                            >
-                                <div className="w-5 h-5 rounded-full bg-[#f0f0f0] border border-[#e0e0e0] text-[#37352f] flex items-center justify-center text-[10px] font-medium">
-                                    {getInitials(person.displayName)}
+                        {selectedPeople.map(person => {
+                            const isPending = ownerStatuses[person.id] === 'pending';
+                            return (
+                                <div
+                                    key={person.id}
+                                    className={cn(
+                                        "flex items-center gap-2",
+                                        isPending && "opacity-50"
+                                    )}
+                                    title={isPending ? `${person.displayName} (pending)` : person.displayName}
+                                >
+                                    <div className={cn(
+                                        "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium",
+                                        isPending
+                                            ? "bg-gray-100 border border-dashed border-gray-300 text-gray-400"
+                                            : "bg-[#f0f0f0] border border-[#e0e0e0] text-[#37352f]"
+                                    )}>
+                                        {getInitials(person.displayName)}
+                                    </div>
+                                    {selectedPeople.length === 1 && (
+                                        <span className={cn(
+                                            "text-sm",
+                                            isPending ? "text-gray-400" : "text-[#37352F]"
+                                        )}>
+                                            {person.displayName}
+                                            {isPending && <span className="text-xs ml-1">(pending)</span>}
+                                        </span>
+                                    )}
                                 </div>
-                                {selectedPeople.length === 1 && (
-                                    <span className="text-sm text-[#37352F]">{person.displayName}</span>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <span className="text-gray-300 text-sm">Empty</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { DataType, ColumnOption, PeopleOption } from '@/lib/types';
+import { DataType, ColumnOption, PeopleOption, AssignmentStatus } from '@/lib/types';
 
 // ============================================================================
 // Internal Component Types - Used only within editable-table module
@@ -16,6 +16,7 @@ export interface CellProps {
     dataType: DataType;
     options?: ColumnOption[];
     peopleOptions?: PeopleOption[];
+    ownerStatuses?: Record<string, AssignmentStatus>;  // Map of owner ID to assignment status
     onChange: (rowId: string, columnId: string, value: unknown) => void;
 }
 

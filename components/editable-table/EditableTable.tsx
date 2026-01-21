@@ -36,6 +36,10 @@ export default function EditableTable<T extends { id: string }>({
     onSortChange,
     hiddenColumns = [],
     onHideColumn,
+    isPendingRow,
+    onAcceptRow,
+    onRejectRow,
+    getOwnerStatuses,
 }: EditableTableProps<T>) {
     const [internalSorting, setInternalSorting] = useState<SortingState>([]);
     const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
@@ -87,6 +91,7 @@ export default function EditableTable<T extends { id: string }>({
         onHideColumn,
         onOpenRow,
         handleRowActionClick,
+        getOwnerStatuses,
     });
 
     const table = useReactTable({
@@ -117,6 +122,9 @@ export default function EditableTable<T extends { id: string }>({
                     onRowClick={onRowClick}
                     onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
+                    isPendingRow={isPendingRow}
+                    onAcceptRow={onAcceptRow}
+                    onRejectRow={onRejectRow}
                 />
 
                 {/* Add Row Button - aligned with first column */}

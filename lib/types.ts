@@ -25,12 +25,19 @@ export type ScheduleVisibility = Database['public']['Enums']['schedule_visibilit
 export type MemberRole = Database['public']['Enums']['member_role'];
 
 /**
- * Owner profile from JOIN
+ * Assignment status enum for task owner assignments
+ */
+export type AssignmentStatus = Database['public']['Enums']['assignment_status'];
+
+/**
+ * Owner profile from JOIN with assignment status
  */
 export interface OwnerProfile {
     id: string;
     display_name: string;
     email: string;
+    status?: AssignmentStatus;    // Assignment status: pending or confirmed
+    assignedBy?: string;          // User ID of who assigned this owner
 }
 
 /**
@@ -162,6 +169,12 @@ export interface EditableTableProps<T extends { id: string }> {
     // Column visibility
     hiddenColumns?: string[];
     onHideColumn?: (columnId: string) => void;
+    // Pending assignment handling
+    isPendingRow?: (row: T) => boolean;
+    onAcceptRow?: (rowId: string) => void;
+    onRejectRow?: (rowId: string) => void;
+    // Owner statuses for display
+    getOwnerStatuses?: (row: T) => Record<string, AssignmentStatus>;
 }
 
 /**
@@ -201,6 +214,10 @@ export interface WorkspaceViewProps {
     selectedMemberIds?: string[];
     onSelectedMembersChange?: (memberIds: string[]) => void;
     multiMemberBlocks?: MultiMemberBlock[];
+    // Pending assignment handling
+    currentUserId?: string;
+    onAcceptAssignment?: (taskId: string) => void;
+    onRejectAssignment?: (taskId: string) => void;
 }
 
 export interface CalendarProps {
@@ -253,6 +270,10 @@ export interface TaskListProps {
     calendarBlocks?: CalendarBlock[];
     viewMode?: 'week' | 'day';
     viewDate?: Date;
+    // Pending assignment handling
+    currentUserId?: string;
+    onAcceptAssignment?: (taskId: string) => void;
+    onRejectAssignment?: (taskId: string) => void;
 }
 
 export interface TaskModalProps {

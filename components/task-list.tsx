@@ -4,7 +4,7 @@ import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { startOfDay, endOfDay } from 'date-fns';
 import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { EditableTable, TableColumn, ColumnOption, SortConfig } from './editable-table';
-import { Task, TaskStatus, TaskListProps, PeopleOption } from '@/lib/types';
+import { Task, TaskStatus, TaskListProps, PeopleOption, AssignmentStatus } from '@/lib/types';
 import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
 import { Input } from './ui/primitives';
 
@@ -94,6 +94,9 @@ export default function TaskList({
     calendarBlocks = [],
     viewMode,
     viewDate,
+    currentUserId,
+    onAcceptAssignment,
+    onRejectAssignment,
 }: TaskListProps) {
     const [showSortMenu, setShowSortMenu] = useState(false);
     // Fetch organization members for people picker
@@ -185,6 +188,25 @@ export default function TaskList({
     };
 
     const columns = useMemo(() => getTaskColumns(orgMembers), [orgMembers]);
+
+    // Check if a task is pending for the current user
+    const isPendingTask = useCallback((task: Task) => {
+        if (!currentUserId) return false;
+        return task.owners.some(
+            owner => owner.id === currentUserId && owner.status === 'pending'
+        );
+    }, [currentUserId]);
+
+    // Get owner statuses for a task (for PeopleCell display)
+    const getOwnerStatuses = useCallback((task: Task): Record<string, AssignmentStatus> => {
+        const statuses: Record<string, AssignmentStatus> = {};
+        task.owners.forEach(owner => {
+            if (owner.status) {
+                statuses[owner.id] = owner.status;
+            }
+        });
+        return statuses;
+    }, []);
 
     const handleSortChange = (sort: SortConfig | null) => {
         onSortChange?.(sort);
@@ -334,6 +356,10 @@ export default function TaskList({
                     onSortChange={onSortChange}
                     hiddenColumns={hiddenColumns}
                     onHideColumn={onHideColumn}
+                    isPendingRow={isPendingTask}
+                    onAcceptRow={onAcceptAssignment}
+                    onRejectRow={onRejectAssignment}
+                    getOwnerStatuses={getOwnerStatuses}
                 />
             </div>
         </div>

@@ -4,6 +4,7 @@ import React from 'react';
 import { format, isSameDay } from 'date-fns';
 import { Clock } from 'lucide-react';
 import { Task, CalendarBlock, MultiMemberBlock } from '@/lib/types';
+import { CalendarBlockWithPending } from '@/lib/hooks/use-calendar-blocks';
 import { BlockLayoutInfo } from './overlap-layout';
 
 interface CalendarDayColumnProps {
@@ -12,7 +13,7 @@ interface CalendarDayColumnProps {
   selectedDate: Date;
   hours: number[];
   tasks: Task[];
-  calendarBlocks: (CalendarBlock | MultiMemberBlock)[];
+  calendarBlocks: (CalendarBlock | MultiMemberBlock | CalendarBlockWithPending)[];
   draggingTask: Task | null;
   dragPreview: { dateStr: string; minutes: number } | null;
   getTaskStyle: (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => any;
@@ -129,10 +130,11 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           const style = getTaskStyle(block, task, layout);
           const isBeingDragged = draggingTask?.id === task.id;
           const isMultiMember = 'ownerName' in block;
+          const isPendingBlock = 'isPendingAssignment' in block && block.isPendingAssignment;
 
-          // Only allow dragging own blocks
+          // Only allow dragging own blocks and non-pending blocks
           const isOwnBlock = block.ownerId === currentUserId;
-          const canDrag = isOwnBlock;
+          const canDrag = isOwnBlock && !isPendingBlock;
 
           // Generate initials for multi-member blocks
           const getInitials = (name: string) => {
@@ -143,7 +145,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             <div
               key={block.id}
               style={style}
-              className={`${style.className} pointer-events-auto ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''}`}
+              className={`${style.className} pointer-events-auto ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''}`}
               onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
               onContextMenu={(e) => {
                 e.preventDefault();

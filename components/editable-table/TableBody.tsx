@@ -3,19 +3,27 @@
 import React from 'react';
 import { flexRender, Row } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
+import { AcceptRejectButtons } from './cells/AcceptRejectButtons';
 
 interface TableBodyProps<T extends { id: string }> {
     rows: Row<T>[];
     onRowClick?: (row: T) => void;
     onDragStart?: (rowId: string) => void;
     onDragEnd?: () => void;
+    // Pending assignment handling
+    isPendingRow?: (row: T) => boolean;
+    onAcceptRow?: (rowId: string) => void;
+    onRejectRow?: (rowId: string) => void;
 }
 
 export function TableBody<T extends { id: string }>({
     rows,
     onRowClick,
     onDragStart,
-    onDragEnd
+    onDragEnd,
+    isPendingRow,
+    onAcceptRow,
+    onRejectRow,
 }: TableBodyProps<T>) {
     const handleDragStart = (e: React.DragEvent, row: Row<T>) => {
         onDragStart?.(row.original.id);
@@ -33,38 +41,51 @@ export function TableBody<T extends { id: string }>({
 
     return (
         <div>
-            {rows.map(row => (
-                <div
-                    key={row.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, row)}
-                    onDragEnd={handleDragEnd}
-                    className={cn(
-                        'flex group border-b border-[#e0e0e0]',
-                        'hover:bg-[#f7f7f5] transition-colors cursor-pointer'
-                    )}
-                    onClick={() => onRowClick?.(row.original)}
-                >
-                    {row.getVisibleCells().map((cell, cellIndex) => (
-                        <div
-                            key={cell.id}
-                            className={cn(
-                                'flex items-center',
-                                // Add left border for columns after drag and first data column
-                                cell.column.id !== 'drag' && cellIndex > 1 && 'border-l border-[#e0e0e0]'
-                            )}
-                            style={{ width: cell.column.getSize() }}
-                            onClick={(e) => {
-                                if (cell.column.id !== 'drag') {
-                                    e.stopPropagation();
-                                }
-                            }}
-                        >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </div>
-                    ))}
-                </div>
-            ))}
+            {rows.map(row => {
+                const isPending = isPendingRow?.(row.original) ?? false;
+                return (
+                    <div
+                        key={row.id}
+                        draggable={!isPending}  // Don't allow dragging pending rows
+                        onDragStart={(e) => !isPending && handleDragStart(e, row)}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                            'flex group border-b border-[#e0e0e0]',
+                            'hover:bg-[#f7f7f5] transition-colors cursor-pointer',
+                            isPending && 'bg-orange-50/30'  // Subtle highlight for pending rows
+                        )}
+                        onClick={() => onRowClick?.(row.original)}
+                    >
+                        {row.getVisibleCells().map((cell, cellIndex) => (
+                            <div
+                                key={cell.id}
+                                className={cn(
+                                    'flex items-center',
+                                    // Add left border for columns after drag and first data column
+                                    cell.column.id !== 'drag' && cellIndex > 1 && 'border-l border-[#e0e0e0]'
+                                )}
+                                style={{ width: cell.column.getSize() }}
+                                onClick={(e) => {
+                                    if (cell.column.id !== 'drag') {
+                                        e.stopPropagation();
+                                    }
+                                }}
+                            >
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                        ))}
+                        {/* Accept/Reject buttons for pending rows */}
+                        {isPending && onAcceptRow && onRejectRow && (
+                            <div className="flex items-center ml-auto">
+                                <AcceptRejectButtons
+                                    onAccept={() => onAcceptRow(row.original.id)}
+                                    onReject={() => onRejectRow(row.original.id)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 }
