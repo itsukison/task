@@ -36,9 +36,22 @@ export function MemberSelector({
     useEffect(() => {
         if (isOpen && triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
+            const screenWidth = window.innerWidth;
+            const DROPDOWN_WIDTH = 280; // min-w-[280px]
+
+            let left = rect.left;
+
+            // If dropdown overflows the right screen edge, align top-right instead of top-left
+            // 20px buffer for scrollbar/margin
+            if (left + DROPDOWN_WIDTH > screenWidth - 20) {
+                left = rect.right - DROPDOWN_WIDTH;
+                // Ensure it doesn't go off-screen to the left either
+                if (left < 10) left = 10;
+            }
+
             setDropdownPos({
                 top: rect.bottom + 4,
-                left: rect.left,
+                left,
             });
             // Focus search input
             setTimeout(() => inputRef.current?.focus(), 0);

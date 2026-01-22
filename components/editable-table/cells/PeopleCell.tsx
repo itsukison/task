@@ -7,6 +7,7 @@ import { Search } from 'lucide-react';
 import { CellProps } from '../types';
 import { PeopleOption } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useEditableTable } from '../EditableTableContext';
 
 /**
  * People selector cell with multi-select dropdown
@@ -15,7 +16,11 @@ import { cn } from '@/lib/utils';
  */
 export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerStatuses = {}, onChange }: CellProps) {
     const { user } = useAuth();
-    const [isOpen, setIsOpen] = useState(false);
+    const { activePopup, setActivePopup } = useEditableTable();
+
+    // Check if this specific cell is the active popup
+    const isOpen = activePopup?.rowId === rowId && activePopup?.columnId === columnId;
+
     const triggerRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
@@ -24,7 +29,15 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerSt
 
     // Value should be an array of user IDs
     const selectedIds = Array.isArray(value) ? value as string[] : [];
-    const selectedPeople = peopleOptions.filter(p => selectedIds.includes(p.id));
+
+    const selectedPeople = useMemo(() => {
+        const people = peopleOptions.filter(p => selectedIds.includes(p.id));
+        return people.sort((a, b) => {
+            if (a.id === user?.id) return -1;
+            if (b.id === user?.id) return 1;
+            return 0;
+        });
+    }, [peopleOptions, selectedIds, user?.id]);
 
     // Sort options to put current user at the top
     const sortedOptions = useMemo(() => {
@@ -39,9 +52,22 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerSt
     useEffect(() => {
         if (isOpen && triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
+            const screenWidth = window.innerWidth;
+            const DROPDOWN_WIDTH = 260; // min-w-[260px]
+
+            let left = rect.left;
+
+            // If dropdown overflows the right screen edge, align top-right instead of top-left
+            // 20px buffer for scrollbar/margin
+            if (left + DROPDOWN_WIDTH > screenWidth - 20) {
+                left = rect.right - DROPDOWN_WIDTH;
+                // Ensure it doesn't go off-screen to the left either
+                if (left < 10) left = 10;
+            }
+
             setDropdownPos({
                 top: rect.bottom + 4,
-                left: rect.left,
+                left,
             });
             // Focus search input
             setTimeout(() => inputRef.current?.focus(), 0);
@@ -53,19 +79,36 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerSt
     // Close on click outside
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
+            if (!isOpen) return;
+
             const target = e.target as Node;
             if (
                 triggerRef.current && !triggerRef.current.contains(target) &&
                 dropdownRef.current && !dropdownRef.current.contains(target)
             ) {
-                setIsOpen(false);
+                // If clicking another cell trigger, let that cell handle the click
+                // Otherwise close the popup
+                setActivePopup(null);
             }
         };
+
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen]);
+    }, [isOpen, setActivePopup]);
+
+    // Toggle dropdown
+    const handleToggleDropdown = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isOpen) {
+            setActivePopup(null);
+        } else {
+            setActivePopup({ rowId, columnId });
+        }
+    };
+
+
 
     const togglePerson = (person: PeopleOption) => {
         const newIds = selectedIds.includes(person.id)
@@ -83,7 +126,7 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerSt
         <div className="relative w-full h-full" ref={triggerRef}>
             <div
                 className="w-full h-full px-2 py-1.5 cursor-pointer flex items-center gap-1"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggleDropdown}
             >
                 {selectedPeople.length > 0 ? (
                     <div className="flex items-center gap-1 flex-wrap">

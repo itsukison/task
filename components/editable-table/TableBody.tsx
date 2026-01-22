@@ -76,7 +76,7 @@ export function TableBody<T extends { id: string }>({
                         ))}
                         {/* Accept/Reject buttons for pending rows */}
                         {isPending && onAcceptRow && onRejectRow && (
-                            <div className="flex items-center ml-auto">
+                            <div className="flex items-center -ml-4">
                                 <AcceptRejectButtons
                                     onAccept={() => onAcceptRow(row.original.id)}
                                     onReject={() => onRejectRow(row.original.id)}

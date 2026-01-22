@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, User, CheckCircle2, Sparkles, Play, Pause, MoreHorizontal, Calendar, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Task, TaskStatus, TaskModalProps } from '@/lib/types';
@@ -28,10 +28,51 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
         }
     };
 
+    // Keep a ref to the latest edited task to avoid stale closures in timeouts
+    const editedTaskRef = useRef(editedTask);
+    const pendingSaveRef = useRef(false);
+
+    useEffect(() => {
+        editedTaskRef.current = editedTask;
+    }, [editedTask]);
+
+    // Save on unmount if there's a pending change
+    useEffect(() => {
+        return () => {
+            if (pendingSaveRef.current && editedTaskRef.current) {
+                onUpdate(editedTaskRef.current);
+            }
+        };
+    }, []);
+
+    // Debounce description updates
+    useEffect(() => {
+        if (!editedTask || !task) return;
+
+        // Only trigger update if description has changed and it's different from initial/prop task
+        if (editedTask.description !== task.description) {
+            // Mark as having pending changes
+            pendingSaveRef.current = true;
+
+            const timer = setTimeout(() => {
+                // Use the ref to get the absolute latest state when the timer fires
+                if (editedTaskRef.current) {
+                    onUpdate(editedTaskRef.current);
+                    pendingSaveRef.current = false; // Mark as saved
+                }
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [editedTask?.description]);
+
     const handleChange = (field: keyof Task, value: any) => {
         const newTask = { ...editedTask, [field]: value };
         setEditedTask(newTask);
-        onUpdate(newTask);
+
+        // Immediate update for non-description fields
+        if (field !== 'description') {
+            onUpdate(newTask);
+        }
     };
 
     const getStatusColor = (status: TaskStatus) => {
@@ -113,11 +154,22 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                             <div className="w-36 flex items-center gap-2 text-[#787774] text-sm">
                                 <User size={16} /> Owner
                             </div>
-                            <div className="flex-1 flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center text-[10px]">
-                                    {editedTask.owners?.[0]?.display_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?'}
-                                </div>
-                                <span className="text-sm text-[#37352F]">{editedTask.owners?.[0]?.display_name ?? 'Unassigned'}</span>
+                            <div className="flex-1 flex items-center gap-2 flex-wrap">
+                                {editedTask.owners && editedTask.owners.length > 0 ? (
+                                    editedTask.owners.map((owner) => (
+                                        <div key={owner.id} className="flex items-center gap-2 bg-gray-50 pr-2 rounded-full border border-transparent hover:border-gray-200 transition-colors">
+                                            <div className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center text-[10px] ring-2 ring-white">
+                                                {owner.display_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?'}
+                                            </div>
+                                            <span className="text-sm text-[#37352F]">{owner.display_name}</span>
+                                            {owner.status === 'pending' && (
+                                                <span className="text-[10px] text-orange-600 bg-orange-50 px-1 rounded ml-1">Pending</span>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <span className="text-sm text-gray-400 italic">Unassigned</span>
+                                )}
                             </div>
                         </div>
 

@@ -38,7 +38,7 @@ function getTaskColumns(orgMembers: PeopleOption[]): TableColumn<Task>[] {
             id: 'title',
             label: 'Task Name',
             dataType: 'text',
-            width: 250,
+            width: 200,
             minWidth: 150,
         },
         {
