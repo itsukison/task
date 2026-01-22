@@ -167,8 +167,29 @@ export function calculateDayBlockLayouts(
         return new Map();
     }
 
-    // Convert to blocks with timing info
-    const blocksWithTime: BlockWithTime[] = dayBlocks.map(block => ({
+    // De-duplicate blocks: when multiple owners have blocks for the SAME task at the SAME time,
+    // they should be treated as ONE block, not overlapping blocks.
+    // This prevents multi-owner tasks from appearing at half-width.
+    const seenTaskTimeSlots = new Map<string, CalendarBlock | MultiMemberBlock>();
+    const uniqueBlocks: (CalendarBlock | MultiMemberBlock)[] = [];
+    const duplicateToOriginal = new Map<string, string>(); // Maps duplicate block IDs to the kept block ID
+
+    for (const block of dayBlocks) {
+        // Create a key based on taskId + startTime + endTime
+        const timeSlotKey = `${block.taskId}-${block.startTime}-${block.endTime}`;
+
+        if (!seenTaskTimeSlots.has(timeSlotKey)) {
+            seenTaskTimeSlots.set(timeSlotKey, block);
+            uniqueBlocks.push(block);
+        } else {
+            // This is a duplicate - map it to the original block for layout lookup
+            const originalBlock = seenTaskTimeSlots.get(timeSlotKey)!;
+            duplicateToOriginal.set(block.id, originalBlock.id);
+        }
+    }
+
+    // Convert to blocks with timing info using unique blocks only
+    const blocksWithTime: BlockWithTime[] = uniqueBlocks.map(block => ({
         block,
         startMs: new Date(block.startTime).getTime(),
         endMs: new Date(block.endTime).getTime()
@@ -180,8 +201,18 @@ export function calculateDayBlockLayouts(
     // Assign columns within each cluster
     clusters.forEach(cluster => assignColumnsToCluster(cluster));
 
-    // Calculate final layout
-    return calculateBlockLayouts(clusters);
+    // Calculate final layout for unique blocks
+    const layoutMap = calculateBlockLayouts(clusters);
+
+    // Add layout info for duplicate blocks (same layout as their original)
+    for (const [duplicateId, originalId] of duplicateToOriginal) {
+        const originalLayout = layoutMap.get(originalId);
+        if (originalLayout) {
+            layoutMap.set(duplicateId, originalLayout);
+        }
+    }
+
+    return layoutMap;
 }
 
 /**

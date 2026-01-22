@@ -5,6 +5,10 @@ import { flexRender, Row } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { AcceptRejectButtons } from './cells/AcceptRejectButtons';
 
+// Pre-create transparent drag image to prevent favicon from appearing during drag
+const transparentDragImage = new Image();
+transparentDragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
 interface TableBodyProps<T extends { id: string }> {
     rows: Row<T>[];
     onRowClick?: (row: T) => void;
@@ -29,10 +33,7 @@ export function TableBody<T extends { id: string }>({
         onDragStart?.(row.original.id);
         e.dataTransfer.setData('rowId', row.original.id);
         e.dataTransfer.effectAllowed = 'copyMove';
-
-        const img = new Image();
-        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-        e.dataTransfer.setDragImage(img, 0, 0);
+        e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
     };
 
     const handleDragEnd = () => {

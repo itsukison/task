@@ -84,7 +84,7 @@ export interface UseTasksReturn {
 }
 
 export function useTasks(): UseTasksReturn {
-    const { user, currentOrg } = useAuth();
+    const { user, currentOrg, profile } = useAuth();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -211,7 +211,7 @@ export function useTasks(): UseTasksReturn {
             description: input.description ?? null,
             status: input.status ?? 'planned',
             expected_time_minutes: input.expectedTime,
-            visibility: input.visibility ?? 'leaders_only',
+            visibility: input.visibility ?? profile?.default_task_visibility ?? 'team',
             scheduled_date: input.scheduledDate ?? null,
         };
 

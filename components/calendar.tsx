@@ -17,6 +17,10 @@ import { useAuth } from '@/lib/auth/hooks';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
+// Pre-create transparent drag image to prevent favicon from appearing during drag
+const transparentDragImage = new Image();
+transparentDragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
 const Calendar = React.memo(function Calendar({
     tasks,
     calendarBlocks,
@@ -141,9 +145,7 @@ const Calendar = React.memo(function Calendar({
         } else {
             setDragSource('task-list');
         }
-        const img = new Image();
-        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-        e.dataTransfer.setDragImage(img, 0, 0);
+        e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
     }, [onDragStart]);
 
     const handleDrop = useCallback((e: React.DragEvent, dateStr: string) => {
@@ -183,13 +185,14 @@ const Calendar = React.memo(function Calendar({
 
     // Combine calendar blocks with multi-member blocks for rendering
     const allBlocks = React.useMemo(() => {
-        // Only use multi-member view when MORE THAN ONE member is selected
-        if (selectedMemberIds.length > 1 && multiMemberBlocks.length > 0) {
+        // Use multi-member view unless ONLY the current user is selected
+        const isOnlySelfSelected = selectedMemberIds.length === 1 && selectedMemberIds[0] === user?.id;
+        if (!isOnlySelfSelected && selectedMemberIds.length > 0) {
             return multiMemberBlocks;
         }
-        // Otherwise use regular calendar blocks (single user view)
+        // Use regular calendar blocks when only viewing own schedule
         return calendarBlocks;
-    }, [calendarBlocks, multiMemberBlocks, selectedMemberIds]);
+    }, [calendarBlocks, multiMemberBlocks, selectedMemberIds, user?.id]);
 
     return (
         <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans relative pl-3">

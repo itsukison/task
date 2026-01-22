@@ -26,10 +26,13 @@ const USER_COLORS = [
 function dbToMultiMemberBlock(
     row: DbCalendarBlock & {
         user_profiles?: { display_name: string; default_schedule_visibility: string; email: string } | null;
-        tasks?: any;
     },
-    colorIndex: number
+    colorIndex: number,
+    taskOwnersMap: Map<string, Array<{ id: string; display_name: string; email: string; status: 'pending' | 'confirmed' }>>,
+    tasksMap: Map<string, { id: string; title: string; status: string; expected_time_minutes: number | null; visibility: string }>
 ): MultiMemberBlock {
+    const taskData = tasksMap.get(row.task_id);
+
     return {
         id: row.id,
         taskId: row.task_id,
@@ -41,20 +44,16 @@ function dbToMultiMemberBlock(
         updatedAt: row.updated_at,
         ownerName: row.user_profiles?.display_name || 'Unknown',
         ownerColor: USER_COLORS[colorIndex % USER_COLORS.length],
-        // Include task data from the query
-        task: row.tasks ? {
-            id: row.tasks.id,
-            title: row.tasks.title || '',
+        // Manually construct task from tasksMap and taskOwnersMap
+        task: taskData ? {
+            id: taskData.id,
+            title: taskData.title || '',
             description: null,
-            status: row.tasks.status || 'planned',
-            expectedTime: row.tasks.expected_time_minutes ?? 30, // Use actual value from DB
+            status: (taskData.status as 'planned' | 'in_progress' | 'overrun' | 'completed') || 'planned',
+            expectedTime: taskData.expected_time_minutes ?? 30,
             actualTime: 0,
             visibility: 'team' as const,
-            owners: row.user_profiles ? [{
-                id: row.owner_id,
-                display_name: row.user_profiles.display_name || 'Unknown',
-                email: row.user_profiles.email || '',
-            }] : [],
+            owners: taskOwnersMap.get(row.task_id) || [],
             ownerId: row.owner_id,
             organizationId: row.organization_id,
             scheduledDate: null,
@@ -142,59 +141,151 @@ export function useMultiMemberBlocks({
                 showWeekends,
             });
 
-            // Fetch calendar blocks (without user_profiles join since no FK exists)
-            console.log('🔄 Step 1: Fetching calendar blocks...');
-            const { data: blocksData, error: blocksError } = await supabase
+            // Step 1: Fetch blocks owned by selected members (without task join to avoid RLS issues)
+            console.log('🔄 Step 1: Fetching owned calendar blocks...');
+            const { data: ownedBlocks, error: ownedError } = await supabase
                 .from('calendar_blocks')
-                .select(`
-                    *,
-                    tasks (
-                        id,
-                        title,
-                        status,
-                        expected_time_minutes
-                    )
-                `)
+                .select('*')
                 .eq('organization_id', currentOrg.id)
                 .in('owner_id', selectedMemberIds)
                 .gte('start_time', weekStart.toISOString())
                 .lte('start_time', weekEnd.toISOString())
                 .order('start_time', { ascending: true });
 
-            if (blocksError) {
-                console.error('❌ Error fetching calendar blocks:', blocksError);
-                throw blocksError;
+            if (ownedError) {
+                console.error('❌ Error fetching owned blocks:', ownedError);
+                throw ownedError;
             }
 
-            console.log('✅ Step 1 complete:', { blocksCount: blocksData?.length });
+            console.log('✅ Step 1 complete:', { ownedBlocksCount: ownedBlocks?.length });
 
-            // Fetch user profiles for the selected members
-            console.log('🔄 Step 2: Fetching user profiles...');
+            // Step 2: Fetch task assignments for selected members
+            console.log('🔄 Step 2: Fetching task assignments...');
+            const { data: taskAssignments, error: assignmentError } = await supabase
+                .from('task_owners')
+                .select('task_id, user_id, status')
+                .in('user_id', selectedMemberIds)
+                .eq('organization_id', currentOrg.id);
+
+            if (assignmentError) {
+                console.error('❌ Error fetching assignments:', assignmentError);
+                throw assignmentError;
+            }
+
+            console.log('✅ Step 2 complete:', { assignmentsCount: taskAssignments?.length });
+
+            // Step 3: Fetch blocks from OTHER users for tasks where selected members are assigned
+            const assignedTaskIds = [...new Set((taskAssignments || []).map(a => a.task_id))];
+            let assignedBlocks: typeof ownedBlocks = [];
+
+            if (assignedTaskIds.length > 0) {
+                console.log('🔄 Step 3: Fetching blocks for assigned tasks...');
+                const { data: otherBlocks, error: otherError } = await supabase
+                    .from('calendar_blocks')
+                    .select('*')
+                    .eq('organization_id', currentOrg.id)
+                    .not('owner_id', 'in', `(${selectedMemberIds.join(',')})`)  // NOT owned by selected members
+                    .in('task_id', assignedTaskIds)  // But for tasks they're assigned to
+                    .gte('start_time', weekStart.toISOString())
+                    .lte('start_time', weekEnd.toISOString())
+                    .order('start_time', { ascending: true });
+
+                if (otherError) {
+                    console.error('❌ Error fetching assigned blocks:', otherError);
+                    throw otherError;
+                }
+
+                assignedBlocks = otherBlocks || [];
+                console.log('✅ Step 3 complete:', { assignedBlocksCount: assignedBlocks.length });
+            }
+
+            // Combine owned and assigned blocks
+            const allBlocks = [...(ownedBlocks || []), ...assignedBlocks];
+            console.log('📦 Combined blocks:', { totalCount: allBlocks.length });
+
+            // Step 3.5: Fetch tasks for all blocks separately (bypasses RLS issues with joins)
+            const blockTaskIds = [...new Set(allBlocks.map(b => b.task_id))];
+            console.log('🔄 Step 3.5: Fetching tasks for blocks...');
+            const { data: tasksData, error: tasksError } = await supabase
+                .from('tasks')
+                .select('id, title, status, expected_time_minutes, visibility')
+                .in('id', blockTaskIds);
+
+            if (tasksError) {
+                console.error('❌ Error fetching tasks:', tasksError);
+                throw tasksError;
+            }
+
+            console.log('✅ Step 3.5 complete:', { tasksCount: tasksData?.length });
+
+            // Create tasks map for quick lookup
+            const tasksMap = new Map(
+                (tasksData || []).map(task => [task.id, task])
+            );
+
+            // Step 4: Fetch user profiles for block owners
+            const allOwnerIds = [...new Set(allBlocks.map(b => b.owner_id))];
+            console.log('🔄 Step 4: Fetching user profiles...');
             const { data: profilesData, error: profilesError } = await supabase
                 .from('user_profiles')
                 .select('id, display_name, email, default_schedule_visibility')
-                .in('id', selectedMemberIds);
+                .in('id', allOwnerIds);
 
             if (profilesError) {
                 console.error('❌ Error fetching user profiles:', profilesError);
                 throw profilesError;
             }
 
-            console.log('✅ Step 2 complete:', { profilesCount: profilesData?.length });
+            console.log('✅ Step 4 complete:', { profilesCount: profilesData?.length });
 
-            // Create a map of user profiles for quick lookup
+            // Step 5: Fetch all task owners for the tasks in blocks
+            const allTaskIds = [...new Set(allBlocks.map(b => b.task_id))];
+            console.log('🔄 Step 5: Fetching task owners...');
+            const { data: taskOwnersData, error: taskOwnersError } = await supabase
+                .from('task_owners')
+                .select(`
+                    task_id,
+                    user_id,
+                    status,
+                    user_profiles!task_owners_user_profiles_fkey (
+                        id,
+                        display_name,
+                        email
+                    )
+                `)
+                .in('task_id', allTaskIds);
+
+            if (taskOwnersError) {
+                console.error('❌ Error fetching task owners:', taskOwnersError);
+                throw taskOwnersError;
+            }
+
+            console.log('✅ Step 5 complete:', { taskOwnersCount: taskOwnersData?.length });
+
+            // Create lookup maps
             const profilesMap = new Map(
                 (profilesData || []).map(profile => [profile.id, profile])
             );
 
-            console.log('📦 Query results:', {
-                blocksCount: blocksData?.length,
-                profilesCount: profilesData?.length,
+            // Create task owners map: taskId -> array of owners
+            const taskOwnersMap = new Map<string, Array<{ id: string; display_name: string; email: string; status: 'pending' | 'confirmed' }>>();
+            (taskOwnersData || []).forEach((to: any) => {
+                if (!taskOwnersMap.has(to.task_id)) {
+                    taskOwnersMap.set(to.task_id, []);
+                }
+                if (to.user_profiles) {
+                    taskOwnersMap.get(to.task_id)!.push({
+                        id: to.user_profiles.id,
+                        display_name: to.user_profiles.display_name,
+                        email: to.user_profiles.email,
+                        status: to.status as 'pending' | 'confirmed',
+                    });
+                }
             });
 
             // Filter blocks based on visibility rules
             console.log('🔍 Filtering blocks with currentUserRole:', currentUserRole);
-            const filteredData = (blocksData || []).filter((block) => {
+            const filteredData = allBlocks.filter((block) => {
                 const profile = profilesMap.get(block.owner_id);
                 const visibility = profile?.default_schedule_visibility;
                 const isOwner = block.owner_id === user.id;
@@ -255,7 +346,7 @@ export function useMultiMemberBlocks({
                     } : null,
                 };
 
-                return dbToMultiMemberBlock(rowWithProfile, colorIndex);
+                return dbToMultiMemberBlock(rowWithProfile, colorIndex, taskOwnersMap, tasksMap);
             });
 
             console.log('✅ Successfully transformed blocks:', {
@@ -265,6 +356,7 @@ export function useMultiMemberBlocks({
                     ownerName: b.ownerName,
                     ownerColor: b.ownerColor,
                     startTime: b.startTime,
+                    taskOwners: b.task?.owners?.map(o => o.display_name),
                 })),
             });
 

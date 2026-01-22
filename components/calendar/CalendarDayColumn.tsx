@@ -72,9 +72,8 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
 
   return (
     <div
-      className={`flex-1 border-r border-[#E9E9E7] last:border-r-0 relative group ${
-        isSameDay(date, selectedDate) ? 'bg-orange-50/10' : ''
-      }`}
+      className={`flex-1 border-r border-[#E9E9E7] last:border-r-0 relative group ${isSameDay(date, selectedDate) ? 'bg-orange-50/10' : ''
+        }`}
       onDragOver={(e) => onDragOverDay(e, dateStr)}
       onDrop={(e) => onDrop(e, dateStr)}
     >
@@ -125,7 +124,10 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
         {dayBlocks.map(({ block, layout }) => {
           // Use embedded task from block (for multi-member mode) or fallback to tasks array
           const task = block.task || tasks.find(t => t.id === block.taskId);
-          if (!task) return null;
+          if (!task) {
+            console.warn('⚠️ Block has no task data:', { blockId: block.id, taskId: block.taskId, startTime: block.startTime, hasEmbeddedTask: !!block.task });
+            return null;
+          }
 
           const style = getTaskStyle(block, task, layout);
           const isBeingDragged = draggingTask?.id === task.id;
@@ -136,7 +138,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           const isConfirmedOwner = task.owners?.some(
             owner => owner.id === currentUserId && owner.status === 'confirmed'
           ) ?? false;
-          
+
           // Allow dragging if user is confirmed owner and assignment is not pending
           const canDrag = isConfirmedOwner && !isPendingBlock;
 
@@ -147,7 +149,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
 
           return (
             <div
-              key={block.id}
+              key={`${block.id}-${task.expectedTime}`}
               style={style}
               className={`${style.className} pointer-events-auto ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''}`}
               onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}

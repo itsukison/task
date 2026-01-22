@@ -186,8 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: data.user.id,
         email: data.user.email!,
         display_name: displayName,
-        default_task_visibility: 'leaders_only',
-        default_schedule_visibility: 'leaders_only',
+        default_task_visibility: 'team',
+        default_schedule_visibility: 'team',
       });
 
     if (profileError) {
