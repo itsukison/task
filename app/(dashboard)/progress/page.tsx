@@ -8,6 +8,7 @@ import {
     ProgressHeader,
     ProgressTabBar,
     TeamOverviewTable,
+    TasksReportTable,
     MemberTasksModal,
     type ProgressTab,
     type MemberStats,
@@ -41,6 +42,12 @@ export default function ProgressPage() {
         return members.map((member) => {
             const memberTasks = teamTasks.filter((t) => t.ownerId === member.id);
 
+            // Find in_progress tasks, sorted by most recently updated first
+            const inProgressTasks = memberTasks
+                .filter((t) => t.status === 'in_progress')
+                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                .map((t) => ({ id: t.id, title: t.title }));
+
             return {
                 memberId: member.id,
                 memberName: member.displayName,
@@ -51,6 +58,7 @@ export default function ProgressPage() {
                 ).length,
                 estimatedMinutes: memberTasks.reduce((sum, t) => sum + t.expectedTime, 0),
                 actualMinutes: memberTasks.reduce((sum, t) => sum + (t.actualTime || 0), 0),
+                currentTasks: inProgressTasks,
             };
         });
     }, [members, teamTasks]);
@@ -98,15 +106,10 @@ export default function ProgressPage() {
                 )}
 
                 {activeTab === 'reports' && (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="text-center">
-                            <div className="text-4xl mb-2">📊</div>
-                            <h3 className="text-lg font-medium text-[#37352F] mb-1">Reports Coming Soon</h3>
-                            <p className="text-sm text-[#787774]">
-                                Analytics and insights will be available in a future update.
-                            </p>
-                        </div>
-                    </div>
+                    <TasksReportTable
+                        tasks={teamTasks}
+                        loading={isLoading}
+                    />
                 )}
             </div>
 

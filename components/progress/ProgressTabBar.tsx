@@ -20,7 +20,6 @@ const tabs: { id: ProgressTab; label: string; icon: React.ReactNode; disabled?: 
         id: 'reports',
         label: 'Reports',
         icon: <BarChart3 size={14} />,
-        disabled: true,
     },
 ];
 

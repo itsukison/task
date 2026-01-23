@@ -10,6 +10,7 @@ export interface MemberStats {
     tasksLeft: number;
     estimatedMinutes: number;
     actualMinutes: number;
+    currentTasks: { id: string; title: string }[];  // Tasks with in_progress status, sorted by updatedAt desc
 }
 
 interface TeamOverviewTableProps {
@@ -65,6 +66,7 @@ export function TeamOverviewTable({
                 <thead className="bg-[#F7F7F5] border-b border-[#E9E9E7] text-xs text-[#787774] font-medium">
                     <tr>
                         <th className="px-6 py-3">Members</th>
+                        <th className="px-6 py-3">Currently Working On</th>
                         <th className="px-6 py-3 text-center">Tasks Today</th>
                         <th className="px-6 py-3 text-center">Tasks Left</th>
                         <th className="px-6 py-3 text-right">Est. Time</th>
@@ -88,6 +90,22 @@ export function TeamOverviewTable({
                                         <div className="text-xs text-[#9B9A97]">{member.memberEmail}</div>
                                     </div>
                                 </div>
+                            </td>
+                            <td className="px-6 py-4">
+                                {member.currentTasks.length > 0 ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-[#37352F] truncate max-w-[180px]" title={member.currentTasks[0].title}>
+                                            {member.currentTasks[0].title}
+                                        </span>
+                                        {member.currentTasks.length > 1 && (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700">
+                                                +{member.currentTasks.length - 1}
+                                            </span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <span className="text-[#9B9A97] text-sm">—</span>
+                                )}
                             </td>
                             <td className="px-6 py-4 text-center">
                                 <span className="text-[#37352F] font-medium">{member.tasksToday}</span>
