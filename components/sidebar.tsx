@@ -186,17 +186,20 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
                 {/* Quick Actions */}
                 <div className="px-2 py-1 flex flex-col gap-0.5 mb-4">
-                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#5F5E5B] hover:bg-[#EFEFED] rounded-md cursor-pointer transition-colors">
+                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
                         <Search size={16} />
-                        <span>Search</span>
+                        <span className="flex-1">Search</span>
+                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">Soon</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#5F5E5B] hover:bg-[#EFEFED] rounded-md cursor-pointer transition-colors">
+                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
                         <Home size={16} />
-                        <span>Home</span>
+                        <span className="flex-1">Home</span>
+                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">Soon</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#5F5E5B] hover:bg-[#EFEFED] rounded-md cursor-pointer transition-colors">
+                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
                         <PlusCircle size={16} />
-                        <span>New Page</span>
+                        <span className="flex-1">New Page</span>
+                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">Soon</span>
                     </div>
                 </div>
 
