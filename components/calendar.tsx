@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useLayoutEffect } from 'react';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task, CalendarBlock, CalendarProps, MultiMemberBlock } from '@/lib/types';
@@ -53,13 +53,56 @@ const Calendar = React.memo(function Calendar({
     // Track drag source: 'task-list' for new blocks, 'calendar' for moving existing
     const [dragSource, setDragSource] = useState<'task-list' | 'calendar' | null>(null);
 
-    // Scroll to 8 AM on mount
+    // Zoom state
+    const [hourHeight, setHourHeight] = useState(64);
+    // Ref to store zoom anchor point for cursor-centered zooming
+    const zoomAnchorRef = useRef<{ timeHours: number, offsetY: number } | null>(null);
+
+    // Scroll to 8 AM on mount (only if not zooming)
     useEffect(() => {
-        if (containerRef.current) {
-            const rowHeight = 64;
-            containerRef.current.scrollTop = 8 * rowHeight;
+        if (containerRef.current && !zoomAnchorRef.current) {
+            containerRef.current.scrollTop = 8 * hourHeight;
         }
-    }, []);
+    }, []); // Run once on mount
+
+    // Handle Pinch-to-Zoom
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+
+                // Calculate anchor point before zoom
+                const rect = container.getBoundingClientRect();
+                const offsetY = e.clientY - rect.top;
+                const scrollTop = container.scrollTop;
+                const timeHours = (scrollTop + offsetY) / hourHeight;
+
+                zoomAnchorRef.current = { timeHours, offsetY };
+
+                const delta = -e.deltaY;
+                setHourHeight(prev => {
+                    const newHeight = Math.max(40, Math.min(200, prev + delta * 0.5));
+                    return newHeight;
+                });
+            }
+        };
+
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        return () => container.removeEventListener('wheel', handleWheel);
+    }, [hourHeight]); // Add hourHeight dependency to ensure fresh state access in handler if needed
+
+    // Restore scroll position after zoom to keep cursor centered
+    useLayoutEffect(() => {
+        if (containerRef.current && zoomAnchorRef.current) {
+            const { timeHours, offsetY } = zoomAnchorRef.current;
+            const newScrollTop = timeHours * hourHeight - offsetY;
+            containerRef.current.scrollTop = newScrollTop;
+            zoomAnchorRef.current = null;
+        }
+    }, [hourHeight]);
 
     // Global click listener to close context menu
     useEffect(() => {
@@ -80,8 +123,8 @@ const Calendar = React.memo(function Calendar({
         const minutes = start.getMinutes();
         const duration = (end.getTime() - start.getTime()) / (1000 * 60); // minutes
 
-        const top = (hours * 60 + minutes) * (64 / 60);
-        const height = duration * (64 / 60);
+        const top = (hours * 60 + minutes) * (hourHeight / 60);
+        const height = duration * (hourHeight / 60);
 
         // Notion-style: percentage-based positioning for side-by-side layout
         const padding = 2; // px padding on each side
@@ -113,10 +156,10 @@ const Calendar = React.memo(function Calendar({
             left: `calc(${layout.leftPercent}% + ${padding}px)`,
             width: `calc(${layout.widthPercent}% - ${padding * 2}px)`,
             backgroundColor: backgroundColor,
-            className: `rounded-md p-1.5 text-xs border ${bgColor} hover:brightness-95 transition-all cursor-pointer overflow-hidden flex flex-col justify-start select-none`,
+            className: `rounded-md p-1.5 text-xs border ${bgColor} hover:brightness-95 transition-colors cursor-pointer overflow-hidden flex flex-col justify-start select-none`,
             zIndex: 10 + layout.columnIndex, // Stack columns for visual layering
         };
-    }, [selectedMemberIds, user]);
+    }, [selectedMemberIds, user, hourHeight]); // Added hourHeight dependency
 
     const formatMinutesToTime = useCallback((totalMinutes: number) => {
         const h = Math.floor(totalMinutes / 60);
@@ -130,7 +173,7 @@ const Calendar = React.memo(function Calendar({
 
         const rect = e.currentTarget.getBoundingClientRect();
         const offsetY = e.clientY - rect.top;
-        const minutes = Math.floor((offsetY / 64) * 60);
+        const minutes = Math.floor((offsetY / hourHeight) * 60);
         const snapped = Math.max(0, Math.min(1440 - 15, Math.round(minutes / 15) * 15));
 
         setDragPreview({ dateStr, minutes: snapped });
@@ -244,6 +287,17 @@ const Calendar = React.memo(function Calendar({
                             )}
                         </div>
                     )}
+
+                    {/* Zoom Controls */}
+                    <div className="flex items-center gap-1 ml-2">
+                        <button
+                            onClick={() => setHourHeight(64)}
+                            className="text-xs px-2 py-1 text-[#787774] hover:bg-[#EFEFED] rounded-md transition-colors"
+                            title="Reset Zoom"
+                        >
+                            Reset Zoom
+                        </button>
+                    </div>
                 </div>
 
                 {/* Member Selector (Compact) */}
@@ -265,9 +319,9 @@ const Calendar = React.memo(function Calendar({
 
             {/* Scrollable Grid */}
             <div className="flex-1 overflow-y-auto relative custom-scrollbar" ref={containerRef}>
-                <div className="flex relative" style={{ height: HOURS.length * 64 }}>
+                <div className="flex relative" style={{ height: HOURS.length * hourHeight }}>
 
-                    <CalendarTimeColumn hours={HOURS} />
+                    <CalendarTimeColumn hours={HOURS} hourHeight={hourHeight} />
 
                     {/* Grid Columns */}
                     {displayedDays.map((date) => {
@@ -289,6 +343,7 @@ const Calendar = React.memo(function Calendar({
                                 dateStr={dateStr}
                                 selectedDate={selectedDate}
                                 hours={HOURS}
+                                hourHeight={hourHeight}
                                 tasks={tasks}
                                 calendarBlocks={allBlocks}
                                 draggingTask={draggingTask}
@@ -300,6 +355,8 @@ const Calendar = React.memo(function Calendar({
                                 onTaskClick={onTaskClick}
                                 onContextMenu={(e, taskId, blockId) => setContextMenu({ x: e.clientX, y: e.clientY, taskId, blockId })}
                                 onDragStart={handleDragStartInternal}
+                                onUpdateBlock={onUpdateBlock}
+                                onUpdateTask={onTaskUpdate}
                                 blocksWithLayout={blocksWithLayout}
                                 isMultiMemberMode={selectedMemberIds.length > 1}
                                 currentUserId={user?.id}

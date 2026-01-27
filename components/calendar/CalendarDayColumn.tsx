@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format, isSameDay } from 'date-fns';
 import { Clock } from 'lucide-react';
 import { Task, CalendarBlock, MultiMemberBlock } from '@/lib/types';
@@ -12,6 +12,7 @@ interface CalendarDayColumnProps {
   dateStr: string;
   selectedDate: Date;
   hours: number[];
+  hourHeight?: number;
   tasks: Task[];
   calendarBlocks: (CalendarBlock | MultiMemberBlock | CalendarBlockWithPending)[];
   draggingTask: Task | null;
@@ -23,6 +24,8 @@ interface CalendarDayColumnProps {
   onTaskClick: (task: Task) => void;
   onContextMenu: (e: React.MouseEvent, taskId: string, blockId: string) => void;
   onDragStart: (e: React.DragEvent, task: Task, blockId?: string) => void;
+  onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
+  onUpdateTask?: (task: Task) => void;
   blocksWithLayout?: Array<{
     block: CalendarBlock | MultiMemberBlock;
     layout: BlockLayoutInfo;
@@ -36,6 +39,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   dateStr,
   selectedDate,
   hours,
+  hourHeight = 64,
   tasks,
   calendarBlocks,
   draggingTask,
@@ -47,10 +51,110 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   onTaskClick,
   onContextMenu,
   onDragStart,
+  onUpdateBlock,
+  onUpdateTask,
   blocksWithLayout,
   isMultiMemberMode = false,
   currentUserId
 }: CalendarDayColumnProps) {
+  // Resize state
+  const [resizingBlockId, setResizingBlockId] = useState<string | null>(null);
+  const [resizeHeight, setResizeHeight] = useState<number | null>(null);
+  const [justResized, setJustResized] = useState(false);
+  // Store optimistic resize state to keep height after mouseup
+  const [optimisticResizeBlock, setOptimisticResizeBlock] = useState<{ blockId: string, height: number } | null>(null);
+  const resizeRef = useRef<{ startY: number, startHeight: number, expectedTime: number, startTime: Date, taskId: string } | null>(null);
+
+  // Global resize handlers
+  useEffect(() => {
+    if (!resizingBlockId) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizeRef.current) return;
+
+      const deltaY = e.clientY - resizeRef.current.startY;
+      // 15 mins = 16px (64px per hour) at default
+      // Snap to 15 mins
+      const rawCurrentHeight = Math.max(resizeRef.current.startHeight + deltaY, 15); // min 15px visual
+
+      // Calculate minutes for snapping
+      const minutes = Math.round((rawCurrentHeight / (hourHeight / 60)) / 15) * 15;
+      const snappedHeight = minutes * (hourHeight / 60);
+
+      setResizeHeight(Math.max(snappedHeight, Math.max(16, (15 * (hourHeight / 60))))); // Min 15 mins
+    };
+
+    const handleMouseUp = () => {
+      if (resizingBlockId && resizeRef.current && onUpdateBlock) {
+        const currentHeight = resizeHeight ?? resizeRef.current.startHeight;
+        const durationMinutes = Math.round(currentHeight / (hourHeight / 60));
+
+        const endTime = new Date(resizeRef.current.startTime);
+        endTime.setMinutes(endTime.getMinutes() + durationMinutes);
+
+        // Update calendar block duration
+        onUpdateBlock(resizingBlockId, resizeRef.current.startTime, endTime);
+
+        // Update task expectedTime if it changed
+        if (onUpdateTask && durationMinutes !== resizeRef.current.expectedTime) {
+          const task = tasks.find(t => t.id === resizeRef.current?.taskId);
+          if (task) {
+            onUpdateTask({
+              ...task,
+              expectedTime: durationMinutes
+            });
+          }
+        }
+
+        // Flag that we just resized to prevent modal from opening
+        setJustResized(true);
+        setTimeout(() => setJustResized(false), 100);
+      }
+
+      // Store optimistic resize state to keep block at new height
+      if (resizeHeight !== null && resizingBlockId) {
+        setOptimisticResizeBlock({ blockId: resizingBlockId, height: resizeHeight });
+      }
+
+      setResizingBlockId(null);
+      // Clear optimistic state after data propagates
+      setTimeout(() => {
+        setResizeHeight(null);
+        setOptimisticResizeBlock(null);
+      }, 300);
+      resizeRef.current = null;
+      document.body.style.cursor = '';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizingBlockId, resizeHeight, onUpdateBlock]);
+
+  const handleResizeStart = (e: React.MouseEvent, block: CalendarBlock | MultiMemberBlock, task: Task) => {
+    e.stopPropagation();
+    e.preventDefault(); // Prevent drag start
+
+    const start = new Date(block.startTime);
+    const end = new Date(block.endTime);
+    const duration = (end.getTime() - start.getTime()) / (1000 * 60);
+    const startHeight = duration * (hourHeight / 60);
+
+    setResizingBlockId(block.id);
+    setResizeHeight(startHeight);
+    resizeRef.current = {
+      startY: e.clientY,
+      startHeight: startHeight,
+      expectedTime: task.expectedTime,
+      startTime: start,
+      taskId: task.id
+    };
+    document.body.style.cursor = 'ns-resize';
+  };
   // Use provided layout or create default layout for blocks
   const dayBlocks = blocksWithLayout || calendarBlocks
     .filter(b => {
@@ -82,7 +186,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
         <div
           key={hour}
           className="h-16 border-b border-[#E9E9E7] box-border w-full absolute left-0 right-0 pointer-events-none z-0"
-          style={{ top: `${hour * 64}px` }}
+          style={{ top: `${hour * hourHeight}px`, height: `${hourHeight}px` }}
         >
           <div className="absolute w-full border-t border-dashed border-gray-100 top-1/2 left-0"></div>
         </div>
@@ -92,7 +196,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       {isToday && (
         <div
           className="absolute left-0 right-0 border-t border-red-500 z-20 pointer-events-none flex items-center"
-          style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (64 / 60)}px` }}
+          style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (hourHeight / 60)}px` }}
         >
           <div className="w-1.5 h-1.5 bg-red-500 rounded-full -ml-[3px]"></div>
         </div>
@@ -102,12 +206,12 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       {isPreviewing && draggingTask && (
         <div
           style={{
-            top: `${dragPreview!.minutes * (64 / 60)}px`,
-            height: `${Math.max(draggingTask.expectedTime, 30) * (64 / 60) - 1}px`,
+            top: `${dragPreview!.minutes * (hourHeight / 60)}px`,
+            height: `${Math.max(draggingTask.expectedTime, 30) * (hourHeight / 60) - 1}px`,
             left: '2px',
             right: '2px',
           }}
-          className="absolute z-30 rounded-md bg-accent/20 border-2 border-accent/50 pointer-events-none transition-all duration-75 flex flex-col justify-start p-1.5"
+          className="absolute z-30 rounded-md bg-accent/20 border-2 border-accent/50 pointer-events-none flex flex-col justify-start p-1.5"
         >
           <div className="font-medium text-accent-dark truncate leading-tight text-xs">
             {draggingTask.title}
@@ -139,6 +243,16 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             owner => owner.id === currentUserId && owner.status === 'confirmed'
           ) ?? false;
 
+          const isResizing = resizingBlockId === block.id;
+          const hasOptimisticHeight = optimisticResizeBlock?.blockId === block.id;
+
+          // Apply resize height during active resize or optimistic state
+          if ((isResizing && resizeHeight !== null) || hasOptimisticHeight) {
+            const heightToUse = isResizing ? resizeHeight : optimisticResizeBlock!.height;
+            style.height = `${heightToUse! - 1}px`;
+            style.zIndex = 50; // Bring to front while resizing
+          }
+
           // Allow dragging if user is confirmed owner and assignment is not pending
           const canDrag = isConfirmedOwner && !isPendingBlock;
 
@@ -151,14 +265,19 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             <div
               key={`${block.id}-${task.expectedTime}`}
               style={style}
-              className={`${style.className} pointer-events-auto ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''}`}
-              onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
+              className={`${style.className} pointer-events-auto ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''} group/block`}
+              onClick={(e) => {
+                e.stopPropagation();
+                // Prevent modal from opening if we just finished resizing
+                if (justResized) return;
+                onTaskClick(task);
+              }}
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onContextMenu(e, task.id, block.id);
               }}
-              draggable={canDrag}
+              draggable={canDrag && !resizingBlockId}
               onDragStart={(e) => canDrag && onDragStart(e, task, block.id)}
             >
               <div className="font-medium truncate leading-tight flex items-center gap-1.5">
@@ -176,7 +295,18 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
               </div>
               {task.expectedTime >= 45 && (
                 <div className="opacity-70 truncate mt-0.5 text-[10px] flex items-center gap-1">
-                  <Clock size={10} /> {format(new Date(block.startTime), 'HH:mm')} ({task.expectedTime}m)
+                  <Clock size={10} /> {format(new Date(block.startTime), 'HH:mm')} ({isResizing ? Math.round((resizeHeight || 0) / (hourHeight / 60)) : task.expectedTime}m)
+                </div>
+              )}
+
+              {/* Resize Handle */}
+              {canDrag && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize opacity-0 group-hover/block:opacity-100 hover:bg-black/5 transition-opacity z-20 flex justify-center items-end pb-0.5"
+                  onMouseDown={(e) => handleResizeStart(e, block, task)}
+                >
+                  {/* Visual indicator (optional, like small handle lines) */}
+                  <div className="w-4 h-0.5 bg-gray-400/50 rounded-full mb-0.5"></div>
                 </div>
               )}
             </div>

@@ -26,7 +26,7 @@ export function WorkspaceHeader({
                 <div>
                     <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">Workspace</h1>
                     <p className="text-[#787774] text-sm">
-                        For <span className="font-semibold text-accent">{format(viewDate, 'MMMM yyyy')}</span>
+                        For <span className="font-semibold text-accent">{format(viewDate, 'EEEE, MMMM d, yyyy')}</span>
                     </p>
                 </div>
 
