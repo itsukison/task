@@ -143,7 +143,7 @@ export default function ProgressPage() {
 
                 {activeTab === 'kanban' && (
                     <div className="h-full overflow-hidden">
-                        <KanbanBoard tasks={filteredTasks} members={membersWithVisibility} />
+                        <KanbanBoard tasks={filteredTasks} />
                     </div>
                 )}
             </div>
