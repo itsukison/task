@@ -41,6 +41,23 @@ export interface OwnerProfile {
 }
 
 /**
+ * Status of an organization join request
+ */
+export type JoinRequestStatus = 'pending' | 'rejected';
+
+/**
+ * Join request structure
+ */
+export interface JoinRequest {
+    id: string;
+    organizationId: string;
+    userId: string;
+    status: JoinRequestStatus;
+    createdAt: string;
+    user?: OwnerProfile;  // Joined user profile
+}
+
+/**
  * Task entity representing a schedulable work item
  * Uses camelCase for TypeScript ergonomics, maps from snake_case database columns
  */

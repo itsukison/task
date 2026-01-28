@@ -12,7 +12,8 @@ interface CreateOrgResult {
 interface JoinOrgResult {
     organizationId: string;
     organizationName: string;
-    role: 'leader' | 'employee';
+    role: 'leader' | 'employee' | null;
+    status: 'active' | 'pending';
 }
 
 interface InviteCodeOptions {
@@ -56,16 +57,22 @@ export function useOrganization() {
 
         const normalizedCode = normalizeInviteCode(inviteCode);
 
-        // Step 1: Validate invite code (without org JOIN - RLS blocks it for non-members)
+        // Step 1: Validate invite code and get org name in one query
+        // We join organizations here since organization_invites has a FK to organizations
         const { data: invite, error: inviteError } = await supabase
             .from('organization_invites')
-            .select('id, organization_id, expires_at, max_uses, used_count')
+            .select('id, organization_id, expires_at, max_uses, used_count, organizations(id, name)')
             .eq('invite_code', normalizedCode)
             .single();
 
         if (inviteError || !invite) {
             throw new Error('Invalid invite code');
         }
+
+        // Extract org name from the joined data
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const orgData = invite.organizations as any;
+        const orgName = orgData?.name || 'Unknown Organization';
 
         // Check expiration
         if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
@@ -89,56 +96,59 @@ export function useOrganization() {
             throw new Error('You are already a member of this organization');
         }
 
-        // Step 2: Add user as employee
-        const { error: memberError } = await supabase
-            .from('organization_members')
-            .insert({
-                organization_id: invite.organization_id,
-                user_id: user.id,
-                role: 'employee',
-            });
+        // Check for existing request
+        const { data: existingRequest } = await supabase
+            .from('organization_join_requests')
+            .select('id, status')
+            .eq('organization_id', invite.organization_id)
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-        if (memberError) {
-            console.error('Error joining organization:', memberError);
-            throw new Error(`Failed to join organization: ${memberError.message}`);
-        }
+        if (existingRequest) {
+            if (existingRequest.status === 'pending') {
+                // Already pending, just return the pending state
+                // (user might have missed the previous screen)
+            } else if (existingRequest.status === 'rejected') {
+                // Allow re-application: update status back to pending
+                const { error: updateError } = await supabase
+                    .from('organization_join_requests')
+                    .update({ status: 'pending', created_at: new Date().toISOString() })
+                    .eq('id', existingRequest.id);
 
-        // Step 3: Increment used_count (best effort, don't fail if this errors)
-        await supabase
-            .from('organization_invites')
-            .update({ used_count: (invite.used_count ?? 0) + 1 })
-            .eq('id', invite.id);
+                if (updateError) {
+                    console.error('Error re-applying:', updateError);
+                    throw new Error('Failed to re-apply. Please try again.');
+                }
+            }
+        } else {
+            // Step 2: Create new join request
+            const { error: requestError } = await supabase
+                .from('organization_join_requests')
+                .insert({
+                    organization_id: invite.organization_id,
+                    user_id: user.id,
+                    status: 'pending',
+                });
 
-        // Step 4: Create user preferences
-        const { error: prefError } = await supabase
-            .from('user_preferences')
-            .insert({
-                organization_id: invite.organization_id,
-                user_id: user.id,
-            });
+            if (requestError) {
+                console.error('Error creating join request:', requestError);
+                throw new Error(`Failed to join organization: ${requestError.message}`);
+            }
 
-        if (prefError) {
-            console.error('Error creating preferences:', prefError);
-        }
+            // Step 3: Increment used_count (best effort)
+            await supabase
+                .from('organization_invites')
+                .update({ used_count: (invite.used_count ?? 0) + 1 })
+                .eq('id', invite.id);
 
-        // Step 5: Refresh organizations
-        await refreshOrganizations();
-
-        // Step 6: Fetch org details (user is now a member, RLS allows this)
-        const { data: org, error: orgError } = await supabase
-            .from('organizations')
-            .select('id, name')
-            .eq('id', invite.organization_id)
-            .single();
-
-        if (orgError || !org) {
-            throw new Error('Organization not found');
+            // Note: We do NOT create user_preferences yet. That happens on approval.
         }
 
         return {
-            organizationId: org.id,
-            organizationName: org.name,
-            role: 'employee',
+            organizationId: invite.organization_id,
+            organizationName: orgName,
+            role: null,
+            status: 'pending'
         };
     }, [user, refreshOrganizations]);
 

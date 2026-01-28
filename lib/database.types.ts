@@ -147,6 +147,45 @@ export type Database = {
           },
         ]
       }
+      organization_join_requests: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_join_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_join_requests_user_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -562,3 +601,15 @@ export type Enums<
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
   ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
   : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      assignment_status: ["pending", "confirmed"],
+      member_role: ["leader", "employee"],
+      schedule_visibility: ["private", "team", "leaders_only"],
+      task_status: ["planned", "in_progress", "overrun", "completed"],
+      task_visibility: ["private", "team", "leaders_only"],
+    },
+  },
+} as const

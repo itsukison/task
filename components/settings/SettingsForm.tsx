@@ -5,6 +5,7 @@ import { Moon, Sun, Monitor } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth/hooks';
 import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
+import { useJoinRequests } from '@/lib/hooks/use-join-requests';
 import {
     SettingSection,
     SettingRow,
@@ -40,6 +41,9 @@ export function SettingsForm() {
     const [taskVisibility, setTaskVisibility] = useState<TaskVisibility>('team');
     const [scheduleVisibility, setScheduleVisibility] = useState<ScheduleVisibility>('team');
     const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+
+    const { requests } = useJoinRequests();
+    const pendingCount = requests.length;
 
     // Theme options
     const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
@@ -244,9 +248,14 @@ export function SettingsForm() {
                         <button
                             type="button"
                             onClick={() => setIsMembersModalOpen(true)}
-                            className="w-full flex items-center justify-center px-4 py-2 bg-white border border-[#E9E9E7] rounded-lg text-sm font-medium text-[#37352F] hover:bg-[#F7F7F5] transition-colors"
+                            className="w-full flex items-center justify-between px-4 py-2 bg-white border border-[#E9E9E7] rounded-lg text-sm font-medium text-[#37352F] hover:bg-[#F7F7F5] transition-colors"
                         >
-                            Manage Members
+                            <span>Manage Members</span>
+                            {currentOrg?.role === 'leader' && pendingCount > 0 && (
+                                <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#EB5757] text-[10px] font-bold text-white">
+                                    {pendingCount}
+                                </span>
+                            )}
                         </button>
                     </div>
                 </SettingSection>

@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth/hooks';
 import { useOrganization } from '@/lib/hooks/use-organization';
 import { CreateOrgForm } from '@/components/onboarding/CreateOrgForm';
 import { JoinOrgForm } from '@/components/onboarding/JoinOrgForm';
+import { PendingRequestCard } from '@/components/onboarding/PendingRequestCard';
 
 type OnboardingMode = 'create' | 'join';
 
@@ -14,9 +15,37 @@ export default function OnboardingPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const [pendingRequest, setPendingRequest] = useState<{ orgName: string } | null>(null);
+
     const router = useRouter();
     const { user, signOut, loading: authLoading, initialized } = useAuth();
     const { createOrganization, joinOrganization } = useOrganization();
+
+    // Check for pending requests on mount
+    React.useEffect(() => {
+        if (!user) return;
+
+        const checkPendingRequests = async () => {
+            // We can check this via a direct Supabase call since we don't have a specialized hook for "my requests" yet
+            // but we can query organization_join_requests where user_id = user.id
+            const { supabase } = await import('@/lib/supabase');
+
+            const { data, error } = await supabase
+                .from('organization_join_requests')
+                .select('status, organizations(name)')
+                .eq('user_id', user.id)
+                .eq('status', 'pending')
+                .maybeSingle();
+
+            if (data && data.organizations) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setPendingRequest({ orgName: (data.organizations as any).name });
+                setMode('join'); // Switch to join mode context visually if needed, or just show the card
+            }
+        };
+
+        checkPendingRequests();
+    }, [user]);
 
     // Wait for auth to be initialized before rendering
     if (!initialized || authLoading) {
@@ -53,8 +82,12 @@ export default function OnboardingPage() {
         setLoading(true);
 
         try {
-            await joinOrganization(inviteCode);
-            router.push('/workspace');
+            const result = await joinOrganization(inviteCode);
+            if (result.status === 'pending') {
+                setPendingRequest({ orgName: result.organizationName });
+            } else {
+                router.push('/workspace');
+            }
         } catch (err: any) {
             console.error('Join org error:', err);
             setError(err.message || 'Failed to join organization');
@@ -72,38 +105,42 @@ export default function OnboardingPage() {
         <div className="min-h-screen w-full flex items-center justify-center bg-white">
             <div className="w-full max-w-md px-8">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <h1 className="text-2xl font-semibold text-[#37352F] mb-2">
-                        Welcome to Chrono
-                    </h1>
-                    <p className="text-sm text-[#787774]">
-                        {user.email}
-                    </p>
-                </div>
+                {!pendingRequest && (
+                    <div className="text-center mb-8">
+                        <h1 className="text-2xl font-semibold text-[#37352F] mb-2">
+                            Welcome to Chrono
+                        </h1>
+                        <p className="text-sm text-[#787774]">
+                            {user.email}
+                        </p>
+                    </div>
+                )}
 
                 {/* Mode Toggle */}
-                <div className="flex mb-6 bg-[#F7F6F3] rounded-lg p-1">
-                    <button
-                        type="button"
-                        onClick={() => { setMode('create'); setError(''); }}
-                        className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${mode === 'create'
-                            ? 'bg-white text-[#37352F] shadow-sm'
-                            : 'text-[#787774] hover:text-[#37352F]'
-                            }`}
-                    >
-                        Create Organization
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { setMode('join'); setError(''); }}
-                        className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${mode === 'join'
-                            ? 'bg-white text-[#37352F] shadow-sm'
-                            : 'text-[#787774] hover:text-[#37352F]'
-                            }`}
-                    >
-                        Join with Code
-                    </button>
-                </div>
+                {!pendingRequest && (
+                    <div className="flex mb-6 bg-[#F7F6F3] rounded-lg p-1">
+                        <button
+                            type="button"
+                            onClick={() => { setMode('create'); setError(''); }}
+                            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${mode === 'create'
+                                ? 'bg-white text-[#37352F] shadow-sm'
+                                : 'text-[#787774] hover:text-[#37352F]'
+                                }`}
+                        >
+                            Create Organization
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setMode('join'); setError(''); }}
+                            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${mode === 'join'
+                                ? 'bg-white text-[#37352F] shadow-sm'
+                                : 'text-[#787774] hover:text-[#37352F]'
+                                }`}
+                        >
+                            Join with Code
+                        </button>
+                    </div>
+                )}
 
                 {/* Error Message */}
                 {error && (
@@ -112,18 +149,24 @@ export default function OnboardingPage() {
                     </div>
                 )}
 
-                {/* Create Organization Form */}
-                {mode === 'create' && (
-                    <CreateOrgForm loading={loading} onSubmit={handleCreateOrg} />
-                )}
+                {pendingRequest ? (
+                    <PendingRequestCard orgName={pendingRequest.orgName} />
+                ) : (
+                    <>
+                        {/* Create Organization Form */}
+                        {mode === 'create' && (
+                            <CreateOrgForm loading={loading} onSubmit={handleCreateOrg} />
+                        )}
 
-                {/* Join Organization Form */}
-                {mode === 'join' && (
-                    <JoinOrgForm
-                        loading={loading}
-                        onSubmit={handleJoinOrg}
-                        onError={setError}
-                    />
+                        {/* Join Organization Form */}
+                        {mode === 'join' && (
+                            <JoinOrgForm
+                                loading={loading}
+                                onSubmit={handleJoinOrg}
+                                onError={setError}
+                            />
+                        )}
+                    </>
                 )}
 
                 {/* Sign Out Link */}

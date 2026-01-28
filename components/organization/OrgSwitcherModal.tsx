@@ -52,10 +52,17 @@ export function OrgSwitcherModal({ isOpen, onClose }: OrgSwitcherModalProps) {
 
         try {
             const result = await joinOrganization(inviteCode);
-            setSuccess(`Joined "${result.organizationName}"! You can switch to it from the sidebar.`);
-            await refreshOrganizations();
-            // Auto-close after short delay
-            setTimeout(() => onClose(), 1500);
+
+            if (result.status === 'pending') {
+                // Request sent, not joined yet
+                setSuccess(`Request sent to "${result.organizationName}"! You will be notified when approved.`);
+                // Don't auto-close - let user see the message
+            } else {
+                // Immediately joined (for future use if we add direct join)
+                setSuccess(`Joined "${result.organizationName}"! You can switch to it from the sidebar.`);
+                await refreshOrganizations();
+                setTimeout(() => onClose(), 1500);
+            }
         } catch (err: any) {
             console.error('Join org error:', err);
             setError(err.message || 'Failed to join organization');

@@ -7,6 +7,7 @@ import { Calendar, BarChart2, Settings, Menu, ChevronsLeft, Search, PlusCircle, 
 import { cn } from '@/lib/utils';
 import { SidebarProps, ViewMode } from '@/lib/types';
 import { useAuth } from '@/lib/auth/hooks';
+import { useJoinRequests } from '@/lib/hooks/use-join-requests';
 import { OrgSwitcherModal } from '@/components/organization/OrgSwitcherModal';
 
 const navItems: { id: ViewMode; href: string; icon: typeof Calendar; label: string }[] = [
@@ -31,13 +32,84 @@ function getInitials(name: string | null | undefined): string {
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const { profile, currentOrg, organizations, signOut, switchOrganization } = useAuth();
+    const { user, profile, currentOrg, organizations, signOut, switchOrganization, refreshOrganizations } = useAuth();
 
+    // State for local UI
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [orgMenuOpen, setOrgMenuOpen] = useState(false);
     const [joinOrgModalOpen, setJoinOrgModalOpen] = useState(false);
+    const [newOrgIds, setNewOrgIds] = useState<string[]>([]);
+
     const userMenuRef = useRef<HTMLDivElement>(null);
     const orgMenuRef = useRef<HTMLDivElement>(null);
+
+    // Filter "New" organizations (client-side specific feature)
+    useEffect(() => {
+        if (!user || organizations.length === 0) return;
+
+        const storageKey = `taskos_seen_orgs_${user.id}`;
+        try {
+            const seenIdsJson = localStorage.getItem(storageKey);
+            const currentIds = organizations.map(o => o.id);
+
+            if (!seenIdsJson) {
+                // First time load or new device - Assume all current are "seen" to avoid notification spam
+                // UNLESS the array is length 1 (just joined?) - but safer to just sync.
+                localStorage.setItem(storageKey, JSON.stringify(currentIds));
+                setNewOrgIds([]);
+            } else {
+                const seenIds = JSON.parse(seenIdsJson) as string[];
+                const newIds = currentIds.filter(id => !seenIds.includes(id));
+                setNewOrgIds(newIds);
+
+                // If we have just opened the menu, we should technically mark them as seen,
+                // but we handle that in the menu open handler to keep the badge while viewing.
+            }
+        } catch (e) {
+            console.error('Error accessing localStorage:', e);
+        }
+    }, [organizations, user]);
+
+    // Handle marking orgs as seen when menu opens
+    useEffect(() => {
+        if (orgMenuOpen && user && newOrgIds.length > 0) {
+            // When menu opens, update storage so they are not "new" next time
+            // But we keep `newOrgIds` state populated so the "New" badges are visible during this interaction
+            const storageKey = `taskos_seen_orgs_${user.id}`;
+            const currentIds = organizations.map(o => o.id);
+            localStorage.setItem(storageKey, JSON.stringify(currentIds));
+        }
+    }, [orgMenuOpen, user, organizations, newOrgIds.length]);
+
+    // Realtime subscription for organization membership changes
+    useEffect(() => {
+        if (!user) return;
+
+        // Import supabase here to avoid server component issues if any (though this file is 'use client')
+        // We need to use the client one
+        const { supabase } = require('@/lib/supabase');
+
+        const channel = supabase
+            .channel('org-membership-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'organization_members',
+                    filter: `user_id=eq.${user.id}`
+                },
+                () => {
+                    // Refresh organizations when added to a new one
+                    refreshOrganizations();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user, refreshOrganizations]);
 
     // Close menus when clicking outside
     useEffect(() => {
@@ -76,11 +148,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     };
 
     const orgInitial = currentOrg?.name?.[0]?.toUpperCase() || 'O';
+    // const userInitials = ... (moved to helper)
     const userInitials = getInitials(profile?.display_name);
     const userName = profile?.display_name || 'User';
     const userEmail = profile?.email || '';
     const orgName = currentOrg?.name || 'Organization';
-    const hasMultipleOrgs = organizations.length > 1;
+    const hasNewOrgs = newOrgIds.length > 0;
+
+    // Pending requests for leaders
+    const { requests } = useJoinRequests();
+    const pendingCount = requests.length;
 
     return (
         <>
@@ -93,12 +170,26 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                         : "opacity-0 -translate-x-4 pointer-events-none"
                 )}
             >
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="p-2 text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                    <Menu size={20} />
-                </button>
+                <div className="relative">
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        className="p-2 text-gray-500 hover:text-gray-900 transition-colors"
+                    >
+                        <Menu size={20} />
+                    </button>
+                    {/* Collapsed Badge (Leader Requests) */}
+                    {!isOpen && pendingCount > 0 && currentOrg?.role === 'leader' && (
+                        <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-[#EB5757] rounded-full border-2 border-white" />
+                    )}
+                    {/* Collapsed Badge (New Org) - only show if not showing leader badge to avoid clutter, or offset it? 
+                        Let's prioritize leader requests, or just show if either exists (but distinct implies blue vs red?)
+                        User asked for notification "so they detect". Let's use blue for New Org to differentiate? 
+                        Or standard red. Let's use Red for both.
+                    */}
+                    {!isOpen && hasNewOrgs && !(pendingCount > 0 && currentOrg?.role === 'leader') && (
+                        <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white" />
+                    )}
+                </div>
             </div>
 
             {/* Sidebar Container */}
@@ -116,7 +207,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 <div className="relative" ref={orgMenuRef}>
                     <div
                         onClick={() => setOrgMenuOpen(!orgMenuOpen)}
-                        className="px-3 py-3 hover:bg-[#EFEFED] transition-colors m-1 rounded-md flex items-center justify-between group/header cursor-pointer"
+                        className="px-3 py-3 hover:bg-[#EFEFED] transition-colors m-1 rounded-md flex items-center justify-between group/header cursor-pointer relative"
                     >
                         <div className="flex items-center gap-2 overflow-hidden">
                             <div className="w-5 h-5 bg-accent rounded text-white flex-shrink-0 flex items-center justify-center text-[10px] font-bold">
@@ -128,6 +219,12 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                 orgMenuOpen && "rotate-180"
                             )} />
                         </div>
+
+                        {/* New Org Notification Badge (Outer) */}
+                        {hasNewOrgs && !orgMenuOpen && (
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full" />
+                        )}
+
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -159,8 +256,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                             <div className="w-5 h-5 bg-accent rounded text-white flex-shrink-0 flex items-center justify-center text-[10px] font-bold">
                                                 {org.name[0]?.toUpperCase() || 'O'}
                                             </div>
-                                            <span className="truncate">{org.name}</span>
-                                            <span className="text-xs text-[#9B9A97] ml-auto">{org.role}</span>
+                                            <span className="truncate flex-1">{org.name}</span>
+
+                                            {/* New Badge */}
+                                            {newOrgIds.includes(org.id) && (
+                                                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold mr-1">
+                                                    New
+                                                </span>
+                                            )}
+
+                                            <span className="text-xs text-[#9B9A97]">{org.role}</span>
                                         </div>
                                     ))}
                                 </>
@@ -211,7 +316,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                             key={item.id}
                             href={item.href}
                             className={cn(
-                                "w-full flex items-center gap-2.5 px-3 py-1 text-sm rounded-md transition-colors mb-0.5",
+                                "w-full flex items-center gap-2.5 px-3 py-1 text-sm rounded-md transition-colors mb-0.5 relative group/link",
                                 isActive(item.href)
                                     ? "bg-[#EFEFED] text-[#37352F] font-medium"
                                     : "text-[#5F5E5B] hover:bg-[#EFEFED]"
@@ -221,7 +326,14 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                 size={16}
                                 className={isActive(item.href) ? "text-[#37352F]" : "text-[#9B9A97]"}
                             />
-                            {item.label}
+                            <span className="flex-1">{item.label}</span>
+
+                            {/* Notification Badge for Settings */}
+                            {item.id === 'settings' && pendingCount > 0 && currentOrg?.role === 'leader' && (
+                                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-[#EB5757] text-white text-[10px] font-bold rounded-full">
+                                    {pendingCount}
+                                </span>
+                            )}
                         </Link>
                     ))}
                 </div>

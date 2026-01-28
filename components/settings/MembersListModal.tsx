@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Trash2, X } from 'lucide-react';
+import { Check, X, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/hooks';
 import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
+import { useJoinRequests } from '@/lib/hooks/use-join-requests';
 import { MemberRole } from '@/lib/types';
 import { SelectDropdown } from '@/components/ui/settings-primitives';
 import { cn } from '@/lib/utils';
@@ -16,18 +17,25 @@ interface MembersListModalProps {
 
 export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
     const { currentOrg, user: currentUser } = useAuth();
-    const { membersWithVisibility, loading, updateMemberRole, removeMember } = useOrganizationMembers();
+    const { membersWithVisibility, loading: membersLoading, updateMemberRole, removeMember } = useOrganizationMembers();
+    const { requests, loading: requestsLoading, acceptRequest, rejectRequest } = useJoinRequests();
 
-    // Confirmation state
+    // Confirmation state for existing members
     const [confirmAction, setConfirmAction] = useState<{
         type: 'role' | 'remove';
         userId: string;
         data?: { newRole: MemberRole; isSelf?: boolean };
     } | null>(null);
 
+    // Confirmation state for requests (optional? maybe just accept/reject directly)
+    // Let's do direct action for requests for speed, or maybe confirm reject?
+    // User asked for "manage members button notification banner, which when clicked, opens up the member list as usual but showing the option to accept or reject the new member at the top of the list"
+
     if (!isOpen) return null;
 
     const isLeader = currentOrg?.role === 'leader';
+    const loading = membersLoading || requestsLoading;
+
     const roleOptions: { value: MemberRole; label: string }[] = [
         { value: 'leader', label: 'Leader' },
         { value: 'employee', label: 'Employee' },
@@ -41,8 +49,6 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                 data: { newRole, isSelf: true }
             });
         } else {
-            // Direct update for others is fine, but maybe good to confirm?
-            // For now, let's confirm for important changes
             updateMemberRole(userId, newRole);
         }
     };
@@ -102,6 +108,53 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                             <X size={18} />
                         </button>
                     </div>
+
+                    {/* Pending Requests Banner / Section */}
+                    {isLeader && requests.length > 0 && (
+                        <div className="px-6 py-3 bg-accent/5 border-b border-accent/10">
+                            <h3 className="text-xs font-semibold text-accent uppercase tracking-wider mb-2">
+                                Pending Requests ({requests.length})
+                            </h3>
+                            <div className="space-y-1">
+                                {requests.map((request) => (
+                                    <div
+                                        key={request.id}
+                                        className="flex items-center justify-between py-2 px-3 bg-white border border-[#E9E9E7] rounded-md shadow-sm"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EFEFED] text-[#5F5E5B] border border-[#E9E9E7] text-xs font-medium">
+                                                {request.user?.display_name?.charAt(0).toUpperCase() || '?'}
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-[#37352F]">
+                                                    {request.user?.display_name || 'Unknown User'}
+                                                </div>
+                                                <div className="text-xs text-[#787774]">
+                                                    {request.user?.email}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => acceptRequest(request.id, request.userId)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-medium rounded hover:bg-accent-dark transition-colors"
+                                            >
+                                                <Check size={14} />
+                                                Accept
+                                            </button>
+                                            <button
+                                                onClick={() => rejectRequest(request.id)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E9E9E7] text-[#5F5E5B] text-xs font-medium rounded hover:bg-[#F7F6F3] transition-colors"
+                                            >
+                                                <X size={14} />
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-6">
