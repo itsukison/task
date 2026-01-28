@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/auth/hooks';
 import { Search } from 'lucide-react';
 import { CellProps } from '../types';
+import { Checkbox } from "@/components/ui/checkbox"
 import { PeopleOption } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useEditableTable } from '../EditableTableContext';
@@ -187,8 +188,27 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerSt
                         />
                     </div>
 
-                    <div className="px-3 py-2 text-xs text-gray-500 font-medium bg-gray-50/50">
-                        Select as many as you like
+                    <div className="px-3 py-1.5 text-xs text-gray-500 font-medium bg-gray-50/50">
+                        <div className="flex items-center space-x-2 py-0.5">
+                            <Checkbox
+                                id="select-all-people"
+                                checked={sortedOptions.length > 0 && selectedIds.length === sortedOptions.length}
+                                onCheckedChange={(checked) => {
+                                    if (checked) {
+                                        onChange(rowId, columnId, sortedOptions.map(p => p.id));
+                                    } else {
+                                        onChange(rowId, columnId, []);
+                                    }
+                                }}
+                                className="h-3.5 w-3.5"
+                            />
+                            <label
+                                htmlFor="select-all-people"
+                                className="text-[11px] font-medium text-[#37352F] cursor-pointer select-none"
+                            >
+                                Select all
+                            </label>
+                        </div>
                     </div>
 
                     <div className="overflow-y-auto max-h-[200px] p-1">

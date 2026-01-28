@@ -12,15 +12,23 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { MemberSelector } from "@/components/calendar/MemberSelector"
+import { PeopleOptionWithVisibility } from "@/lib/types"
 
 interface ProgressHeaderProps {
     selectedDate: Date;
     onDateChange: (date: Date) => void;
+    members: PeopleOptionWithVisibility[];
+    selectedMemberIds: string[];
+    onSelectedMembersChange: (memberIds: string[]) => void;
 }
 
 export function ProgressHeader({
     selectedDate,
     onDateChange,
+    members,
+    selectedMemberIds,
+    onSelectedMembersChange,
 }: ProgressHeaderProps) {
     return (
         <div className="pt-12 px-8 pb-4 flex-shrink-0 ml-2">
@@ -33,6 +41,15 @@ export function ProgressHeader({
                 </div>
 
                 <div className="flex items-center gap-4">
+                    {/* Member Selector */}
+                    <MemberSelector
+                        members={members}
+                        selectedMemberIds={selectedMemberIds}
+                        onSelectedMembersChange={onSelectedMembersChange}
+                        showAllOption={true}
+                        compact
+                    />
+
                     {/* Date Picker */}
                     <div className="flex items-center gap-2">
                         <Popover>

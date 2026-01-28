@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/settings-primitives';
 import { SettingsSkeleton } from './SettingsSkeleton';
 import { InviteCodeSection } from './InviteCodeSection';
+import { MembersListModal } from './MembersListModal';
 
 type Theme = 'light' | 'dark' | 'system';
 type TaskVisibility = 'private' | 'team' | 'leaders_only';
@@ -38,6 +39,7 @@ export function SettingsForm() {
     const [showWeekends, setShowWeekends] = useState(false);
     const [taskVisibility, setTaskVisibility] = useState<TaskVisibility>('team');
     const [scheduleVisibility, setScheduleVisibility] = useState<ScheduleVisibility>('team');
+    const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 
     // Theme options
     const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
@@ -216,7 +218,7 @@ export function SettingsForm() {
                 </SettingRow>
             </SettingSection>
 
-            {/* Organization Section */}
+            {/* Organization Info & Members Button */}
             {currentOrg && (
                 <SettingSection title="Organization">
                     <SettingRow
@@ -238,7 +240,24 @@ export function SettingsForm() {
                             {currentOrg.role === 'leader' ? 'Leader' : 'Employee'}
                         </span>
                     </SettingRow>
+                    <div className="pt-2">
+                        <button
+                            type="button"
+                            onClick={() => setIsMembersModalOpen(true)}
+                            className="w-full flex items-center justify-center px-4 py-2 bg-white border border-[#E9E9E7] rounded-lg text-sm font-medium text-[#37352F] hover:bg-[#F7F7F5] transition-colors"
+                        >
+                            Manage Members
+                        </button>
+                    </div>
                 </SettingSection>
+            )}
+
+            {/* Members Modal */}
+            {currentOrg && (
+                <MembersListModal
+                    isOpen={isMembersModalOpen}
+                    onClose={() => setIsMembersModalOpen(false)}
+                />
             )}
 
             {/* Invite Codes Section (Leaders Only) */}

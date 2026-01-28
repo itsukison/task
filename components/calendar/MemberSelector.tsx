@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/auth/hooks';
 import { Search, Lock, ChevronDown } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox"
 import { PeopleOptionWithVisibility } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,7 @@ interface MemberSelectorProps {
     selectedMemberIds: string[];
     onSelectedMembersChange: (memberIds: string[]) => void;
     compact?: boolean;
+    showAllOption?: boolean;
 }
 
 export function MemberSelector({
@@ -19,6 +21,7 @@ export function MemberSelector({
     selectedMemberIds,
     onSelectedMembersChange,
     compact = false,
+    showAllOption = false,
 }: MemberSelectorProps) {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
@@ -127,6 +130,21 @@ export function MemberSelector({
         return 0;
     });
 
+    // Check if all selectable members are selected
+    const selectableMembers = visibleMembers.filter(m => isSelectable(m));
+    const isAllSelected = selectableMembers.length > 0 && selectableMembers.every(m => selectedMemberIds.includes(m.id));
+
+    const toggleSelectAll = (checked: boolean) => {
+        if (checked) {
+            // Select all selectable members
+            const allIds = selectableMembers.map(m => m.id);
+            onSelectedMembersChange(allIds);
+        } else {
+            // Deselect all
+            onSelectedMembersChange([]);
+        }
+    };
+
     // Compact trigger label
     const getCompactLabel = () => {
         if (selectedMembers.length === 0) return 'Select';
@@ -138,55 +156,72 @@ export function MemberSelector({
             : `${selectedMembers.length} members`;
     };
 
-    return (
-        <div className="relative" ref={triggerRef}>
-            {compact ? (
-                /* Compact chip trigger */
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#37352F] bg-white border border-[#E9E9E7] rounded-md hover:bg-gray-50 transition-colors"
-                >
-                    {selectedMembers.length > 0 && (
-                        <div className="w-5 h-5 rounded-full bg-[#f0f0f0] text-[#37352f] flex items-center justify-center text-[9px] font-medium">
-                            {getInitials(selectedMembers[0].displayName)}
-                        </div>
-                    )}
-                    <span>{getCompactLabel()}</span>
-                    <ChevronDown size={12} className={cn('text-[#787774] transition-transform', isOpen && 'rotate-180')} />
-                </button>
-            ) : (
-                /* Full-width trigger (original style) */
-                <div
-                    className="flex items-center gap-2 px-3 py-2 bg-white border border-[#E9E9E7] rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => setIsOpen(!isOpen)}
-                >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {selectedMembers.length > 0 ? (
-                            <>
-                                <div className="flex -space-x-2">
-                                    {selectedMembers.slice(0, 3).map(member => (
-                                        <div
-                                            key={member.id}
-                                            className="w-6 h-6 rounded-full bg-[#f0f0f0] border-2 border-white text-[#37352f] flex items-center justify-center text-[10px] font-medium"
-                                            title={member.displayName}
-                                        >
-                                            {getInitials(member.displayName)}
-                                        </div>
-                                    ))}
-                                </div>
-                                <span className="text-sm text-[#37352F] truncate">
-                                    {selectedMembers.length === 1
-                                        ? selectedMembers[0].displayName
-                                        : `${selectedMembers.length} members`}
-                                </span>
-                            </>
+    // Helper for trigger rendering
+    const maxVisibleAvatars = 3;
+    const isAllVisibleSelected = isAllSelected; // Alias for clarity
+
+    // Determine what to show in trigger
+    let triggerContent;
+
+    if (compact) {
+        // Compact behavior (Calendar)
+        triggerContent = (
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#37352F] bg-white border border-[#E9E9E7] rounded-md hover:bg-gray-50 transition-colors"
+            >
+                {selectedMembers.length > 0 && (
+                    <div className="w-5 h-5 rounded-full bg-[#f0f0f0] text-[#37352f] flex items-center justify-center text-[9px] font-medium">
+                        {getInitials(selectedMembers[0].displayName)}
+                    </div>
+                )}
+                <span>{getCompactLabel()}</span>
+                <ChevronDown size={12} className={cn('text-[#787774] transition-transform', isOpen && 'rotate-180')} />
+            </button>
+        );
+    } else {
+        // Full width behavior (Global Filter) - AVATAR STACK
+        triggerContent = (
+            <div
+                className="flex items-center gap-2 px-3 py-1.5 bg-white border border-[#E9E9E7] rounded-md cursor-pointer hover:bg-gray-50 transition-colors h-9 min-w-[120px]"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className="flex items-center justify-between w-full gap-2">
+                    <div className="flex items-center">
+                        {selectedMembers.length === 0 ? (
+                            <span className="text-sm text-gray-400">Select</span>
+                        ) : isAllVisibleSelected ? (
+                            <span className="text-sm text-[#37352F] font-medium">All Members</span>
                         ) : (
-                            <span className="text-sm text-gray-400">Select members to view</span>
+                            <div className="flex -space-x-2.5 items-center">
+                                {selectedMembers.slice(0, maxVisibleAvatars).map(member => (
+                                    <div
+                                        key={member.id}
+                                        className="w-6 h-6 rounded-full bg-[#f0f0f0] border-2 border-white text-[#37352f] flex items-center justify-center text-[10px] font-medium shadow-sm z-10"
+                                        title={member.displayName}
+                                    >
+                                        {getInitials(member.displayName)}
+                                    </div>
+                                ))}
+                                {selectedMembers.length > maxVisibleAvatars && (
+                                    <div
+                                        className="w-6 h-6 rounded-full bg-[#f0f0f0] border-2 border-white text-[#787774] flex items-center justify-center text-[9px] font-medium shadow-sm z-0 relative"
+                                    >
+                                        +{selectedMembers.length - maxVisibleAvatars}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
-                    <ChevronDown size={12} className={cn('text-[#37352F] transition-transform', isOpen && 'rotate-180')} />
+                    <ChevronDown size={14} className={cn('text-[#787774] transition-transform flex-shrink-0', isOpen && 'rotate-180')} />
                 </div>
-            )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative" ref={triggerRef}>
+            {triggerContent}
 
             {/* Portal dropdown to body to escape overflow:hidden */}
             {isOpen && typeof document !== 'undefined' && createPortal(
@@ -208,8 +243,25 @@ export function MemberSelector({
                         />
                     </div>
 
-                    <div className="px-3 py-2 text-xs text-gray-500 font-medium bg-gray-50/50">
-                        Select members to view their schedules
+                    <div className="px-3 py-1.5 text-xs text-gray-500 font-medium bg-gray-50/50">
+                        {showAllOption ? (
+                            <div className="flex items-center space-x-2 py-0.5">
+                                <Checkbox
+                                    id="select-all"
+                                    checked={isAllSelected}
+                                    onCheckedChange={(checked) => toggleSelectAll(checked as boolean)}
+                                    className="h-3.5 w-3.5"
+                                />
+                                <label
+                                    htmlFor="select-all"
+                                    className="text-[11px] font-medium text-[#37352F] cursor-pointer select-none"
+                                >
+                                    Select all
+                                </label>
+                            </div>
+                        ) : (
+                            "Select members to view their schedules"
+                        )}
                     </div>
 
                     <div className="overflow-y-auto max-h-[300px] p-1">

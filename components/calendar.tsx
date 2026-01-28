@@ -307,6 +307,7 @@ const Calendar = React.memo(function Calendar({
                         selectedMemberIds={selectedMemberIds}
                         onSelectedMembersChange={onSelectedMembersChange}
                         compact
+                        showAllOption={true}
                     />
                 )}
             </div>

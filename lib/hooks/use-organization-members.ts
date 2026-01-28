@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/hooks';
-import { PeopleOption, PeopleOptionWithVisibility } from '@/lib/types';
+import { PeopleOption, PeopleOptionWithVisibility, MemberRole } from '@/lib/types';
 
 export interface UseOrganizationMembersReturn {
     members: PeopleOption[];
     membersWithVisibility: PeopleOptionWithVisibility[];
     loading: boolean;
     error: string | null;
+    updateMemberRole: (userId: string, role: MemberRole) => Promise<void>;
+    removeMember: (userId: string) => Promise<void>;
 }
 
 export function useOrganizationMembers(): UseOrganizationMembersReturn {
@@ -79,10 +81,55 @@ export function useOrganizationMembers(): UseOrganizationMembersReturn {
         fetchMembers();
     }, [fetchMembers]);
 
+    const updateMemberRole = async (userId: string, role: MemberRole) => {
+        if (!currentOrg) return;
+
+        try {
+            const { error } = await supabase
+                .from('organization_members')
+                .update({ role })
+                .eq('organization_id', currentOrg.id)
+                .eq('user_id', userId);
+
+            if (error) throw error;
+
+            // Optimistic update
+            setMembersWithVisibility(prev => prev.map(member =>
+                member.id === userId ? { ...member, role } : member
+            ));
+        } catch (err) {
+            console.error('Error updating member role:', err);
+            throw err;
+        }
+    };
+
+    const removeMember = async (userId: string) => {
+        if (!currentOrg) return;
+
+        try {
+            const { error } = await supabase
+                .from('organization_members')
+                .delete()
+                .eq('organization_id', currentOrg.id)
+                .eq('user_id', userId);
+
+            if (error) throw error;
+
+            // Optimistic update
+            setMembersWithVisibility(prev => prev.filter(member => member.id !== userId));
+            setMembers(prev => prev.filter(member => member.id !== userId));
+        } catch (err) {
+            console.error('Error removing member:', err);
+            throw err;
+        }
+    };
+
     return {
         members,
         membersWithVisibility,
         loading,
         error,
+        updateMemberRole,
+        removeMember
     };
 }

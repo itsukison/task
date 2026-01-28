@@ -3,7 +3,7 @@
 import React from 'react';
 import { Users, BarChart3 } from 'lucide-react';
 
-export type ProgressTab = 'overview' | 'reports';
+export type ProgressTab = 'overview' | 'reports' | 'kanban';
 
 interface ProgressTabBarProps {
     activeTab: ProgressTab;
@@ -20,6 +20,11 @@ const tabs: { id: ProgressTab; label: string; icon: React.ReactNode; disabled?: 
         id: 'reports',
         label: 'Reports',
         icon: <BarChart3 size={14} />,
+    },
+    {
+        id: 'kanban',
+        label: 'By Status',
+        icon: <div className="rotate-90"><BarChart3 size={14} /></div>, // Temporary icon or use Kanban icon if available
     },
 ];
 

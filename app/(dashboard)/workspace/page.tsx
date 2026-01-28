@@ -141,6 +141,14 @@ export default function WorkspacePage() {
     const handleCreateBlock = async (taskId: string, startTime: Date, endTime: Date) => {
         try {
             await createCalendarBlock({ taskId, startTime, endTime });
+
+            // Sync task's scheduledDate to match the block's date
+            const newDateISO = formatDateToLocalISO(startTime);
+            const task = tasks.find(t => t.id === taskId);
+            // Only update if date changed
+            if (task && task.scheduledDate !== newDateISO) {
+                await updateTask(taskId, { scheduledDate: newDateISO });
+            }
         } catch (err) {
             console.error('Failed to create calendar block:', err);
             // TODO: Show toast notification
@@ -150,6 +158,22 @@ export default function WorkspacePage() {
     const handleUpdateBlock = async (blockId: string, startTime: Date, endTime: Date) => {
         try {
             await updateCalendarBlock(blockId, { startTime, endTime });
+
+            // Find the block/task to sync scheduledDate
+            // Note: In multi-member view we use multiMemberBlocks, otherwise calendarBlocks
+            const block = calendarBlocks.find(b => b.id === blockId) || multiMemberBlocks.find(b => b.id === blockId);
+
+            if (block) {
+                const newDateISO = formatDateToLocalISO(startTime);
+                // We need to find the task to check/update its date
+                // Note: block.taskId is available on both CalendarBlock and MultiMemberBlock
+                const task = tasks.find(t => t.id === block.taskId);
+
+                if (task && task.scheduledDate !== newDateISO) {
+                    await updateTask(block.taskId, { scheduledDate: newDateISO });
+                }
+            }
+
             // Refetch multi-member blocks to reflect the change immediately in multi-member view
             if (selectedMemberIds.length > 1) {
                 refetchMultiMemberBlocks();
