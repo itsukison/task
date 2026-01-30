@@ -7,6 +7,7 @@ import { KanbanTaskContent } from "./KanbanCard"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/lib/auth/hooks"
 import TaskModal from "@/components/task-modal"
+import { useLanguage } from '@/lib/i18n';
 
 interface KanbanBoardProps {
     tasks: Task[]
@@ -180,24 +181,25 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
 }
 
 function ColumnBadge({ columnId, count }: { columnId: string, count: number }) {
+    const { t } = useLanguage();
     let colorClass = "bg-gray-100 text-gray-600"
     let label = columnId
 
     switch (columnId) {
         case "planned":
-            label = "Not started"
+            label = t('tasks.status.planned')
             colorClass = "bg-gray-100 text-gray-600"
             break
         case "in_progress":
-            label = "In progress"
+            label = t('tasks.status.in_progress')
             colorClass = "bg-blue-100 text-blue-600"
             break
         case "completed":
-            label = "Done"
+            label = t('tasks.status.completed')
             colorClass = "bg-green-100 text-green-600"
             break
         case "overrun":
-            label = "Overrun"
+            label = t('tasks.status.overrun')
             colorClass = "bg-red-100 text-red-600"
             break
     }

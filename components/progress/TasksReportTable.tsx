@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Task, TaskStatus, OwnerProfile } from '@/lib/types';
+import { useLanguage } from '@/lib/i18n';
 
 interface TasksReportTableProps {
     tasks: Task[];
@@ -18,11 +19,11 @@ const STATUS_PRIORITY: Record<TaskStatus, number> = {
 };
 
 // Status display configuration
-const STATUS_CONFIG: Record<TaskStatus, { label: string; bgColor: string; textColor: string }> = {
-    planned: { label: 'Planned', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
-    in_progress: { label: 'In Progress', bgColor: 'bg-amber-100', textColor: 'text-amber-800' },
-    overrun: { label: 'Overrun', bgColor: 'bg-red-100', textColor: 'text-red-800' },
-    completed: { label: 'Completed', bgColor: 'bg-green-100', textColor: 'text-green-800' },
+const STATUS_CONFIG: Record<TaskStatus, { bgColor: string; textColor: string }> = {
+    planned: { bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
+    in_progress: { bgColor: 'bg-amber-100', textColor: 'text-amber-800' },
+    overrun: { bgColor: 'bg-red-100', textColor: 'text-red-800' },
+    completed: { bgColor: 'bg-green-100', textColor: 'text-green-800' },
 };
 
 // Get initials from display name
@@ -80,6 +81,8 @@ export function TasksReportTable({
     loading = false,
     onTaskClick,
 }: TasksReportTableProps) {
+    const { t } = useLanguage();
+
     // Sort tasks by status priority, then by owner count (descending)
     const sortedTasks = useMemo(() => {
         return [...tasks].sort((a, b) => {
@@ -95,7 +98,7 @@ export function TasksReportTable({
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-sm text-[#787774]">Loading tasks data...</div>
+                <div className="text-sm text-[#787774]">{t('common.loading_tasks')}</div>
             </div>
         );
     }
@@ -105,9 +108,9 @@ export function TasksReportTable({
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <div className="text-4xl mb-2">📋</div>
-                    <h3 className="text-lg font-medium text-[#37352F] mb-1">No tasks found</h3>
+                    <h3 className="text-lg font-medium text-[#37352F] mb-1">{t('kanban.no_tasks')}</h3>
                     <p className="text-sm text-[#787774]">
-                        Tasks will appear here when team members create them.
+                        {t('common.no_tasks_description')}
                     </p>
                 </div>
             </div>
@@ -119,11 +122,11 @@ export function TasksReportTable({
             <table className="w-full text-left">
                 <thead className="bg-[#F7F7F5] border-b border-[#E9E9E7] text-xs text-[#787774] font-medium">
                     <tr>
-                        <th className="px-6 py-3">Task</th>
-                        <th className="px-6 py-3 text-center">Status</th>
-                        <th className="px-6 py-3">Owners</th>
-                        <th className="px-6 py-3 text-right">Est. Time</th>
-                        <th className="px-6 py-3 text-right">Act. Time</th>
+                        <th className="px-6 py-3">{t('headers.task')}</th>
+                        <th className="px-6 py-3 text-center">{t('headers.status')}</th>
+                        <th className="px-6 py-3">{t('headers.owners')}</th>
+                        <th className="px-6 py-3 text-right">{t('headers.est_time')}</th>
+                        <th className="px-6 py-3 text-right">{t('headers.act_time')}</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9E9E7]">
@@ -134,9 +137,8 @@ export function TasksReportTable({
                             <tr
                                 key={task.id}
                                 onClick={() => onTaskClick?.(task.id)}
-                                className={`hover:bg-[#F7F7F5] transition-colors ${
-                                    onTaskClick ? 'cursor-pointer' : ''
-                                }`}
+                                className={`hover:bg-[#F7F7F5] transition-colors ${onTaskClick ? 'cursor-pointer' : ''
+                                    }`}
                             >
                                 <td className="px-6 py-4">
                                     <div className="font-medium text-[#37352F] truncate max-w-[300px]">
@@ -152,7 +154,7 @@ export function TasksReportTable({
                                     <span
                                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.bgColor} ${statusConfig.textColor}`}
                                     >
-                                        {statusConfig.label}
+                                        {t('tasks.status.' + task.status)}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/popover"
 import { MemberSelector } from "@/components/calendar/MemberSelector"
 import { PeopleOptionWithVisibility } from "@/lib/types"
+import { useLanguage, dateLocales } from '@/lib/i18n';
 
 interface ProgressHeaderProps {
     selectedDate: Date;
@@ -30,13 +31,15 @@ export function ProgressHeader({
     selectedMemberIds,
     onSelectedMembersChange,
 }: ProgressHeaderProps) {
+    const { language, t } = useLanguage();
+
     return (
         <div className="pt-12 px-8 pb-4 flex-shrink-0 ml-2">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">Team Progress</h1>
+                    <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">{t('kanban.team_progress')}</h1>
                     <p className="text-[#787774] text-sm">
-                        Viewing <span className="font-semibold text-accent">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</span>
+                        {t('common.viewing_prefix')}<span className="font-semibold text-accent">{format(selectedDate, 'PPPP', { locale: dateLocales[language] })}</span>{t('common.viewing_suffix')}
                     </p>
                 </div>
 
@@ -63,7 +66,7 @@ export function ProgressHeader({
                                     )}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                                    {selectedDate ? format(selectedDate, "PPP", { locale: dateLocales[language] }) : <span>{t('common.pick_date')}</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="end">

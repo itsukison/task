@@ -9,6 +9,7 @@ import { SidebarProps, ViewMode } from '@/lib/types';
 import { useAuth } from '@/lib/auth/hooks';
 import { useJoinRequests } from '@/lib/hooks/use-join-requests';
 import { OrgSwitcherModal } from '@/components/organization/OrgSwitcherModal';
+import { useLanguage } from '@/lib/i18n';
 
 const navItems: { id: ViewMode; href: string; icon: typeof Calendar; label: string }[] = [
     { id: 'workspace', href: '/workspace', icon: Calendar, label: 'Task Tracker' },
@@ -33,6 +34,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const { user, profile, currentOrg, organizations, signOut, switchOrganization, refreshOrganizations } = useAuth();
+    const { t } = useLanguage();
 
     // State for local UI
     const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -241,7 +243,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                         <div className="absolute top-full left-1 right-1 mt-1 bg-white rounded-md shadow-lg border border-[#E9E9E7] py-1 mx-1 z-50">
                             {organizations.length > 0 && (
                                 <>
-                                    <div className="px-3 py-1.5 text-xs font-semibold text-[#9B9A97]">Switch Organization</div>
+                                    <div className="px-3 py-1.5 text-xs font-semibold text-[#9B9A97]">{t('settings.switch_org')}</div>
                                     {organizations.map((org) => (
                                         <div
                                             key={org.id}
@@ -282,7 +284,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                     className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer text-[#5F5E5B] hover:bg-[#EFEFED] transition-colors"
                                 >
                                     <Plus size={16} className="text-[#9B9A97]" />
-                                    <span>Join or create organization</span>
+                                    <span>{t('settings.join_create_org')}</span>
                                 </div>
                             </div>
                         </div>
@@ -293,24 +295,24 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 <div className="px-2 py-1 flex flex-col gap-0.5 mb-4">
                     <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
                         <Search size={16} />
-                        <span className="flex-1">Search</span>
-                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">Soon</span>
+                        <span className="flex-1">{t('navigation.search')}</span>
+                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">{t('navigation.soon')}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
                         <Home size={16} />
-                        <span className="flex-1">Home</span>
-                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">Soon</span>
+                        <span className="flex-1">{t('navigation.home')}</span>
+                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">{t('navigation.soon')}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
                         <PlusCircle size={16} />
-                        <span className="flex-1">New Page</span>
-                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">Soon</span>
+                        <span className="flex-1">{t('navigation.new_page')}</span>
+                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">{t('navigation.soon')}</span>
                     </div>
                 </div>
 
                 {/* Navigation */}
                 <div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
-                    <div className="text-xs font-semibold text-[#9B9A97] px-3 py-2 mb-1">Favorites</div>
+                    <div className="text-xs font-semibold text-[#9B9A97] px-3 py-2 mb-1">{t('navigation.favorites')}</div>
                     {navItems.map((item) => (
                         <Link
                             key={item.id}
@@ -326,7 +328,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                 size={16}
                                 className={isActive(item.href) ? "text-[#37352F]" : "text-[#9B9A97]"}
                             />
-                            <span className="flex-1">{item.label}</span>
+                            <span className="flex-1">{t('navigation.' + item.id)}</span>
 
                             {/* Notification Badge for Settings */}
                             {item.id === 'settings' && pendingCount > 0 && currentOrg?.role === 'leader' && (
@@ -383,7 +385,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                     className="flex items-center gap-2.5 px-3 py-1.5 text-sm text-[#37352F] hover:bg-[#EFEFED] cursor-pointer transition-colors"
                                 >
                                     <LogOut size={14} className="text-[#9B9A97]" />
-                                    <span>Log out</span>
+                                    <span>{t('navigation.logout')}</span>
                                 </div>
                             </div>
                         </div>

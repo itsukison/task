@@ -28,6 +28,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     );
 }
 
+import { LanguageProvider } from '@/lib/i18n';
+
+// ... (DashboardContent implementation remains same) ...
+
 export default function DashboardLayout({
     children,
 }: {
@@ -35,7 +39,9 @@ export default function DashboardLayout({
 }) {
     return (
         <AuthProvider>
-            <DashboardContent>{children}</DashboardContent>
+            <LanguageProvider>
+                <DashboardContent>{children}</DashboardContent>
+            </LanguageProvider>
         </AuthProvider>
     );
 }

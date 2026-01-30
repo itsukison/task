@@ -17,7 +17,9 @@ import { useAuth } from '@/lib/auth/hooks';
 import { HOURS } from './calendar/constants';
 import { useCalendarZoom } from './calendar/useCalendarZoom';
 import { useCalendarState } from './calendar/useCalendarState';
+
 import { useCalendarDrag } from './calendar/useCalendarDrag';
+import { useLanguage } from '@/lib/i18n';
 
 /**
  * Main Calendar Component
@@ -54,6 +56,7 @@ const Calendar = React.memo(function Calendar({
 }: CalendarProps) {
   const { membersWithVisibility } = useOrganizationMembers();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Use extracted hooks
@@ -158,23 +161,21 @@ const Calendar = React.memo(function Calendar({
             <div className="flex bg-[#EFEFED] p-0.5 rounded-md">
               <button
                 onClick={() => onViewChange('week')}
-                className={`px-2 py-0.5 text-xs font-medium rounded-sm transition-all ${
-                  view === 'week'
+                className={`px-2 py-0.5 text-xs font-medium rounded-sm transition-all ${view === 'week'
                     ? 'bg-white text-[#37352F] shadow-sm'
                     : 'bg-transparent text-[#787774] hover:text-[#37352F]'
-                }`}
+                  }`}
               >
-                Week
+                {t('calendar.week')}
               </button>
               <button
                 onClick={() => onViewChange('day')}
-                className={`px-2 py-0.5 text-xs font-medium rounded-sm transition-all ${
-                  view === 'day'
+                className={`px-2 py-0.5 text-xs font-medium rounded-sm transition-all ${view === 'day'
                     ? 'bg-white text-[#37352F] shadow-sm'
                     : 'bg-transparent text-[#787774] hover:text-[#37352F]'
-                }`}
+                  }`}
               >
-                Day
+                {t('calendar.day')}
               </button>
             </div>
           )}
@@ -195,7 +196,7 @@ const Calendar = React.memo(function Calendar({
                   onClick={onToday}
                   className="px-2 py-1 text-xs font-medium hover:bg-[#EFEFED] text-[#37352F]"
                 >
-                  Today
+                  {t('calendar.today')}
                 </button>
               )}
               {onNext && (
@@ -219,9 +220,9 @@ const Calendar = React.memo(function Calendar({
                 }
               }}
               className="text-xs px-2 py-1 text-[#787774] hover:bg-[#EFEFED] rounded-md transition-colors"
-              title="Reset Zoom"
+              title={t('calendar.reset_zoom')}
             >
-              Reset Zoom
+              {t('calendar.reset_zoom')}
             </button>
           </div>
         </div>
@@ -293,7 +294,7 @@ const Calendar = React.memo(function Calendar({
           })}
         </div>
       </div>
-    </div>
+    </div >
   );
 });
 

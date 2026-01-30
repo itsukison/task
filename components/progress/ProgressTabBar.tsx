@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Users, BarChart3 } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 
 export type ProgressTab = 'overview' | 'reports' | 'kanban';
 
@@ -10,25 +11,28 @@ interface ProgressTabBarProps {
     onTabChange: (tab: ProgressTab) => void;
 }
 
-const tabs: { id: ProgressTab; label: string; icon: React.ReactNode; disabled?: boolean }[] = [
+const getTabs = (t: any): { id: ProgressTab; label: string; icon: React.ReactNode; disabled?: boolean }[] => [
     {
         id: 'overview',
-        label: 'Team Overview',
+        label: t('kanban.tabs.overview'),
         icon: <Users size={14} />,
     },
     {
         id: 'reports',
-        label: 'Reports',
+        label: t('kanban.tabs.reports'),
         icon: <BarChart3 size={14} />,
     },
     {
         id: 'kanban',
-        label: 'By Status',
+        label: t('kanban.tabs.kanban'),
         icon: <div className="rotate-90"><BarChart3 size={14} /></div>, // Temporary icon or use Kanban icon if available
     },
 ];
 
 export function ProgressTabBar({ activeTab, onTabChange }: ProgressTabBarProps) {
+    const { t } = useLanguage();
+    const tabs = useMemo(() => getTabs(t), [t]);
+
     return (
         <div className="px-8 ml-2 border-b border-[#E9E9E7]">
             <div className="flex items-center gap-1">

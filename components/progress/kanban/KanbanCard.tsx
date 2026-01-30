@@ -4,10 +4,13 @@ import { cn } from "@/lib/utils"
 import { Task } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Clock } from "lucide-react"
+import { useLanguage } from '@/lib/i18n';
 
 
 
 export function KanbanTaskContent({ task }: { task: Task }) {
+    const { t } = useLanguage();
+
     // Status Badge Color Map
     const statusColor = useMemo(() => {
         switch (task.status) {
@@ -21,11 +24,13 @@ export function KanbanTaskContent({ task }: { task: Task }) {
 
     const statusLabel = useMemo(() => {
         switch (task.status) {
-            case "in_progress": return "In Progress"
-            case "completed": return "Done"
-            default: return task.status.replace("_", " ") // fallback
+            case "in_progress": return t('tasks.status.in_progress')
+            case "completed": return t('tasks.status.completed')
+            case "planned": return t('tasks.status.planned')
+            case "overrun": return t('tasks.status.overrun')
+            default: return (task.status as string).replace("_", " ") // fallback
         }
-    }, [task.status])
+    }, [task.status, t])
 
     return (
         <div className="flex flex-col gap-2">

@@ -9,6 +9,7 @@ import { useCalendarBlocks } from '@/lib/hooks/use-calendar-blocks';
 import { useMultiMemberBlocks } from '@/lib/hooks/use-multi-member-blocks';
 import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
 import { useAuth } from '@/lib/auth/hooks';
+import { useLanguage } from '@/lib/i18n';
 
 // Convert Date to YYYY-MM-DD in local timezone (avoid UTC conversion)
 const formatDateToLocalISO = (date: Date): string => {
@@ -19,6 +20,7 @@ const formatDateToLocalISO = (date: Date): string => {
 };
 
 export default function WorkspacePage() {
+    const { t } = useLanguage();
     const { user } = useAuth();
     const { preferences } = useUserPreferences();
     const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment } = useTasks();
@@ -97,7 +99,7 @@ export default function WorkspacePage() {
         } catch (err) {
             console.error('Failed to delete task:', err);
             // Show user-friendly error
-            alert('Unable to delete this task. You can only delete tasks you own.');
+            alert(t('common.alert_delete_own'));
         }
     };
 
@@ -196,7 +198,7 @@ export default function WorkspacePage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="text-[#787774]">Loading...</div>
+                <div className="text-[#787774]">{t('common.loading')}</div>
             </div>
         );
     }
@@ -206,7 +208,7 @@ export default function WorkspacePage() {
     if (error) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="text-red-500">Error: {error}</div>
+                <div className="text-red-500">{t('common.error')}: {error}</div>
             </div>
         );
     }

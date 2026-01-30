@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '@/lib/i18n';
 
 export interface MemberStats {
     memberId: string;
@@ -44,10 +45,12 @@ export function TeamOverviewTable({
     onMemberClick,
     loading = false,
 }: TeamOverviewTableProps) {
+    const { t } = useLanguage();
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-sm text-[#787774]">Loading team data...</div>
+                <div className="text-sm text-[#787774]">{t('common.loading')}</div>
             </div>
         );
     }
@@ -55,7 +58,7 @@ export function TeamOverviewTable({
     if (memberStats.length === 0) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-sm text-[#787774]">No team members found</div>
+                <div className="text-sm text-[#787774]">{t('common.no_members')}</div>
             </div>
         );
     }
@@ -65,12 +68,12 @@ export function TeamOverviewTable({
             <table className="w-full text-left">
                 <thead className="bg-[#F7F7F5] border-b border-[#E9E9E7] text-xs text-[#787774] font-medium">
                     <tr>
-                        <th className="px-6 py-3">Members</th>
-                        <th className="px-6 py-3">Currently Working On</th>
-                        <th className="px-6 py-3 text-center">Tasks Today</th>
-                        <th className="px-6 py-3 text-center">Tasks Left</th>
-                        <th className="px-6 py-3 text-right">Est. Time</th>
-                        <th className="px-6 py-3 text-right">Act. Time</th>
+                        <th className="px-6 py-3">{t('headers.members')}</th>
+                        <th className="px-6 py-3">{t('headers.working_on')}</th>
+                        <th className="px-6 py-3 text-center">{t('headers.tasks_today')}</th>
+                        <th className="px-6 py-3 text-center">{t('headers.tasks_left')}</th>
+                        <th className="px-6 py-3 text-right">{t('headers.est_time')}</th>
+                        <th className="px-6 py-3 text-right">{t('headers.act_time')}</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9E9E7]">
@@ -109,16 +112,16 @@ export function TeamOverviewTable({
                             </td>
                             <td className="px-6 py-4 text-center">
                                 <span className="text-[#37352F] font-medium">{member.tasksToday}</span>
-                                <span className="text-[#9B9A97] ml-1 text-sm">tasks</span>
+                                <span className="text-[#9B9A97] ml-1 text-sm">{t('stats.tasks_count')}</span>
                             </td>
                             <td className="px-6 py-4 text-center">
                                 {member.tasksLeft > 0 ? (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                        {member.tasksLeft} left
+                                        {member.tasksLeft} {t('stats.left_count')}
                                     </span>
                                 ) : member.tasksToday > 0 ? (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Done
+                                        {t('stats.done')}
                                     </span>
                                 ) : (
                                     <span className="text-[#9B9A97] text-sm">—</span>

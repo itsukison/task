@@ -19,6 +19,7 @@ interface UpdateProfileData {
     display_name?: string;
     default_task_visibility?: TaskVisibility;
     default_schedule_visibility?: ScheduleVisibility;
+    language?: string;
 }
 
 interface UpdatePreferencesData {

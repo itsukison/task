@@ -269,7 +269,7 @@ export interface TaskListProps {
     tasks: Task[];
     selectedDate: Date;
     searchQuery: string;
-    filterStatus: TaskStatus | 'ALL';
+    filterRules: import('@/lib/utils/filterRules').FilterRule[];
     onTaskClick: (task: Task) => void;
     onUpdateTask: (task: Task) => void;
     onAddTask: () => void;
@@ -278,11 +278,12 @@ export interface TaskListProps {
     onDragStart: (taskId: string | null) => void;
     // Toolbar controls
     onSearchChange?: (query: string) => void;
-    onFilterChange?: (status: TaskStatus | 'ALL') => void;
+    onFilterChange?: (rules: import('@/lib/utils/filterRules').FilterRule[]) => void;
     sortConfig?: SortConfig | null;
     onSortChange?: (sort: SortConfig | null) => void;
     hiddenColumns?: string[];
     onHideColumn?: (columnId: string) => void;
+    onShowColumn?: (columnId: string) => void;
     // Date filtering props
     calendarBlocks?: CalendarBlock[];
     viewMode?: 'week' | 'day';

@@ -16,6 +16,7 @@ import {
 import { SettingsSkeleton } from './SettingsSkeleton';
 import { InviteCodeSection } from './InviteCodeSection';
 import { MembersListModal } from './MembersListModal';
+import { useLanguage, Language } from '@/lib/i18n';
 
 type Theme = 'light' | 'dark' | 'system';
 type TaskVisibility = 'private' | 'team' | 'leaders_only';
@@ -32,6 +33,8 @@ export function SettingsForm() {
         updatePreferences
     } = useUserPreferences();
 
+    const { language, setLanguage, t } = useLanguage();
+
     // Local state for settings
     const [theme, setTheme] = useState<Theme>('light');
     const [displayName, setDisplayName] = useState('');
@@ -47,15 +50,20 @@ export function SettingsForm() {
 
     // Theme options
     const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
-        { value: 'light', label: 'Light', icon: <Sun size={14} /> },
-        { value: 'dark', label: 'Dark', icon: <Moon size={14} /> },
-        { value: 'system', label: 'System', icon: <Monitor size={14} /> },
+        { value: 'light', label: t('settings.theme_light'), icon: <Sun size={14} /> },
+        { value: 'dark', label: t('settings.theme_dark'), icon: <Moon size={14} /> },
+        { value: 'system', label: t('settings.theme_system'), icon: <Monitor size={14} /> },
     ];
 
     const visibilityOptions: { value: TaskVisibility; label: string }[] = [
-        { value: 'private', label: 'Private' },
-        { value: 'team', label: 'Team' },
-        { value: 'leaders_only', label: 'Leaders only' },
+        { value: 'private', label: t('settings.visibility_private') },
+        { value: 'team', label: t('settings.visibility_team') },
+        { value: 'leaders_only', label: t('settings.visibility_leaders') },
+    ];
+
+    const languageOptions: { value: Language; label: string }[] = [
+        { value: 'en', label: 'English' },
+        { value: 'ja', label: '日本語' },
     ];
 
     // Initialize local state from fetched data
@@ -117,10 +125,20 @@ export function SettingsForm() {
     return (
         <>
             {/* Appearance Section */}
-            <SettingSection title="Appearance">
+            <SettingSection title={t('settings.appearance')}>
                 <SettingRow
-                    title="Theme"
-                    description="Customize how Chrono looks on your device."
+                    title={t('settings.language')}
+                    description={t('settings.language_description')}
+                >
+                    <SelectDropdown
+                        value={language}
+                        options={languageOptions}
+                        onChange={(val) => setLanguage(val as Language)}
+                    />
+                </SettingRow>
+                <SettingRow
+                    title={t('settings.theme')}
+                    description={t('settings.theme_description')}
                 >
                     <SelectDropdown
                         value={theme}
@@ -131,10 +149,10 @@ export function SettingsForm() {
             </SettingSection>
 
             {/* Work Hours Section */}
-            <SettingSection title="Work Hours">
+            <SettingSection title={t('settings.work_hours')}>
                 <SettingRow
-                    title="Work start time"
-                    description="Calendar will highlight work hours differently."
+                    title={t('settings.work_start_time')}
+                    description={t('settings.work_start_description')}
                 >
                     <TimeInput
                         value={workStartTime}
@@ -143,8 +161,8 @@ export function SettingsForm() {
                     />
                 </SettingRow>
                 <SettingRow
-                    title="Work end time"
-                    description="Tasks scheduled after this time will show as after-hours."
+                    title={t('settings.work_end_time')}
+                    description={t('settings.work_end_description')}
                 >
                     <TimeInput
                         value={workEndTime}
@@ -153,8 +171,8 @@ export function SettingsForm() {
                     />
                 </SettingRow>
                 <SettingRow
-                    title="Show weekends"
-                    description="Display Saturday and Sunday in the calendar week view."
+                    title={t('settings.show_weekends')}
+                    description={t('settings.show_weekends_description')}
                 >
                     <ToggleSwitch
                         checked={showWeekends}
@@ -168,10 +186,10 @@ export function SettingsForm() {
             </SettingSection>
 
             {/* Privacy & Visibility Section */}
-            <SettingSection title="Privacy & Visibility">
+            <SettingSection title={t('settings.privacy_visibility')}>
                 <SettingRow
-                    title="Task visibility"
-                    description="Who can see new tasks you create."
+                    title={t('settings.task_visibility')}
+                    description={t('settings.task_visibility_description')}
                 >
                     <SelectDropdown
                         value={taskVisibility}
@@ -181,8 +199,8 @@ export function SettingsForm() {
                     />
                 </SettingRow>
                 <SettingRow
-                    title="Schedule visibility"
-                    description="Who can see your calendar blocks."
+                    title={t('settings.schedule_visibility')}
+                    description={t('settings.schedule_visibility_description')}
                 >
                     <SelectDropdown
                         value={scheduleVisibility}
@@ -194,10 +212,10 @@ export function SettingsForm() {
             </SettingSection>
 
             {/* Account Section */}
-            <SettingSection title="Account">
+            <SettingSection title={t('settings.account')}>
                 <SettingRow
-                    title="Display name"
-                    description="Your name as shown to team members."
+                    title={t('settings.display_name')}
+                    description={t('settings.display_name_description')}
                 >
                     <input
                         type="text"
@@ -213,8 +231,8 @@ export function SettingsForm() {
                     />
                 </SettingRow>
                 <SettingRow
-                    title="Email"
-                    description="Your account email address."
+                    title={t('settings.email')}
+                    description={t('settings.email_description')}
                 >
                     <span className="text-sm text-[#787774]">
                         {profile?.email || authProfile?.email || '—'}
@@ -224,16 +242,16 @@ export function SettingsForm() {
 
             {/* Organization Info & Members Button */}
             {currentOrg && (
-                <SettingSection title="Organization">
+                <SettingSection title={t('settings.organization')}>
                     <SettingRow
-                        title="Current organization"
-                        description="The workspace you're currently working in."
+                        title={t('settings.current_org')}
+                        description={t('settings.current_org_description')}
                     >
                         <span className="text-sm text-[#5F5E5B]">{currentOrg.name}</span>
                     </SettingRow>
                     <SettingRow
-                        title="Your role"
-                        description="Your permission level in this organization."
+                        title={t('settings.your_role')}
+                        description={t('settings.your_role_description')}
                     >
                         <span className={cn(
                             "px-2 py-0.5 text-xs font-medium rounded",
@@ -241,7 +259,7 @@ export function SettingsForm() {
                                 ? "bg-accent/10 text-accent"
                                 : "bg-[#EFEFED] text-[#5F5E5B]"
                         )}>
-                            {currentOrg.role === 'leader' ? 'Leader' : 'Employee'}
+                            {currentOrg.role === 'leader' ? t('settings.role_leader') : t('settings.role_employee')}
                         </span>
                     </SettingRow>
                     <div className="pt-2">
@@ -250,7 +268,7 @@ export function SettingsForm() {
                             onClick={() => setIsMembersModalOpen(true)}
                             className="w-full flex items-center justify-between px-4 py-2 bg-white border border-[#E9E9E7] rounded-lg text-sm font-medium text-[#37352F] hover:bg-[#F7F7F5] transition-colors"
                         >
-                            <span>Manage Members</span>
+                            <span>{t('settings.manage_members')}</span>
                             {currentOrg?.role === 'leader' && pendingCount > 0 && (
                                 <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#EB5757] text-[10px] font-bold text-white">
                                     {pendingCount}

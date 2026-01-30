@@ -212,7 +212,19 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
             throw new Error('Must be authenticated with an organization');
         }
 
-        // Note: Multiple blocks per task are allowed for scheduling the same task at different times
+        // Delete existing blocks for this task owned by current user
+        // This ensures only one block per task per user (prevents duplicates when dragging to multiple locations)
+        const { error: deleteError } = await supabase
+            .from('calendar_blocks')
+            .delete()
+            .eq('organization_id', currentOrg.id)
+            .eq('owner_id', user.id)
+            .eq('task_id', input.taskId);
+
+        if (deleteError) {
+            console.error('Error deleting existing blocks:', deleteError);
+            // Don't throw - we can still try to create the new block
+        }
 
         const insertData: CalendarBlockInsert = {
             organization_id: currentOrg.id,
@@ -238,13 +250,18 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
 
         const newBlock = dbToCalendarBlock(data);
 
-        // Optimistically add to state
-        setCalendarBlocks(prev => [...prev, newBlock].sort((a, b) =>
-            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-        ));
+        // Optimistically update state: remove old blocks for this task and add the new one
+        setCalendarBlocks(prev => {
+            const filteredBlocks = prev.filter(
+                block => !(block.taskId === input.taskId && block.ownerId === user.id)
+            );
+            return [...filteredBlocks, newBlock].sort((a, b) =>
+                new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+            );
+        });
 
         return newBlock;
-    }, [user, currentOrg, calendarBlocks]);
+    }, [user, currentOrg]);
 
     // Update a calendar block
     const updateCalendarBlock = useCallback(async (id: string, input: UpdateCalendarBlockInput): Promise<void> => {

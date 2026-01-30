@@ -440,6 +440,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          language: string
           updated_at: string
         }
         Insert: {
@@ -449,6 +450,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          language?: string
           updated_at?: string
         }
         Update: {
@@ -458,6 +460,7 @@ export type Database = {
           display_name?: string
           email?: string
           id?: string
+          language?: string
           updated_at?: string
         }
         Relationships: []
@@ -600,6 +603,23 @@ export type Enums<
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
   ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
   : never
 
 export const Constants = {

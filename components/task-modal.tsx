@@ -4,8 +4,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, User, CheckCircle2, Sparkles, Play, Pause, MoreHorizontal, Calendar, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Task, TaskStatus, TaskModalProps } from '@/lib/types';
+import { useLanguage } from '@/lib/i18n';
 
 export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
+    const { t } = useLanguage();
     const [editedTask, setEditedTask] = useState<Task | null>(task);
     const [isEnhancing, setIsEnhancing] = useState(false);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -108,9 +110,9 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
 
                 {/* Breadcrumb */}
                 <div className="px-12 pt-10 pb-2 text-xs text-[#9B9A97] flex items-center gap-1.5">
-                    <span>Chrono Workspace</span>
+                    <span>{t('navigation.workspace')}</span>
                     <span className="text-gray-300">/</span>
-                    <span>Task Tracker</span>
+                    <span>{t('navigation.dashboard')}</span>
                     <span className="text-gray-300">/</span>
                     <span>{editedTask.id.substring(0, 4)}...</span>
                 </div>
@@ -124,7 +126,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                             value={editedTask.title}
                             onChange={(e) => handleChange('title', e.target.value)}
                             className="text-4xl font-bold text-[#37352F] w-full outline-none placeholder-gray-300 bg-transparent"
-                            placeholder="Task Title"
+                            placeholder={t('tasks.title')}
                         />
                     </div>
 
@@ -134,7 +136,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                         {/* Status */}
                         <div className="flex items-center h-8">
                             <div className="w-36 flex items-center gap-2 text-[#787774] text-sm">
-                                <CheckCircle2 size={16} /> Status
+                                <CheckCircle2 size={16} /> {t('tasks.status_label')}
                             </div>
                             <div className="flex-1">
                                 <select
@@ -143,7 +145,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                                     className={`appearance-none px-2 py-1 rounded text-sm cursor-pointer outline-none border-none hover:bg-opacity-80 transition-colors ${getStatusColor(editedTask.status)}`}
                                 >
                                     {statusOptions.map(s => (
-                                        <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                                        <option key={s} value={s}>{t('tasks.status.' + s)}</option>
                                     ))}
                                 </select>
                             </div>
@@ -152,7 +154,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                         {/* Owner */}
                         <div className="flex items-center h-8">
                             <div className="w-36 flex items-center gap-2 text-[#787774] text-sm">
-                                <User size={16} /> Owner
+                                <User size={16} /> {t('tasks.owner_label')}
                             </div>
                             <div className="flex-1 flex items-center gap-2 flex-wrap">
                                 {editedTask.owners && editedTask.owners.length > 0 ? (
@@ -163,12 +165,12 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                                             </div>
                                             <span className="text-sm text-[#37352F]">{owner.display_name}</span>
                                             {owner.status === 'pending' && (
-                                                <span className="text-[10px] text-orange-600 bg-orange-50 px-1 rounded ml-1">Pending</span>
+                                                <span className="text-[10px] text-orange-600 bg-orange-50 px-1 rounded ml-1">{t('common.pending')}</span>
                                             )}
                                         </div>
                                     ))
                                 ) : (
-                                    <span className="text-sm text-gray-400 italic">Unassigned</span>
+                                    <span className="text-sm text-gray-400 italic">{t('common.unassigned')}</span>
                                 )}
                             </div>
                         </div>
@@ -176,23 +178,23 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                         {/* Due Date */}
                         <div className="flex items-center h-8">
                             <div className="w-36 flex items-center gap-2 text-[#787774] text-sm">
-                                <Calendar size={16} /> Due Date
+                                <Calendar size={16} /> {t('tasks.scheduled_date')}
                             </div>
                             <div className="flex-1 text-sm text-[#37352F]">
-                                <span className="text-gray-300">Empty</span>
+                                <span className="text-gray-300">{t('common.empty')}</span>
                             </div>
                         </div>
 
                         {/* Timer / Est */}
                         <div className="flex items-center h-8">
                             <div className="w-36 flex items-center gap-2 text-[#787774] text-sm">
-                                <Clock size={16} /> Track Time
+                                <Clock size={16} /> {t('tasks.duration')}
                             </div>
                             <div className="flex-1 flex items-center gap-4 text-sm">
                                 <div className="flex items-center gap-2">
                                     <span className="text-[#37352F] font-medium">{editedTask.actualTime}m</span>
                                     <span className="text-[#9B9A97]">/</span>
-                                    <span className="text-[#787774]">{editedTask.expectedTime}m estimated</span>
+                                    <span className="text-[#787774]">{editedTask.expectedTime}m {t('tasks.estimated')}</span>
                                 </div>
                                 <button
                                     onClick={toggleTimer}
@@ -201,7 +203,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                                         : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                                         }`}
                                 >
-                                    {isTimerRunning ? <><Pause size={12} /> Pause</> : <><Play size={12} /> Start Timer</>}
+                                    {isTimerRunning ? <><Pause size={12} /> {t('common.pause')}</> : <><Play size={12} /> {t('common.start_timer')}</>}
                                 </button>
                             </div>
                         </div>
@@ -213,14 +215,14 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                     {/* Content Area */}
                     <div className="relative group min-h-[200px]">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-semibold text-[#37352F]">Description</h3>
+                            <h3 className="text-xl font-semibold text-[#37352F]">{t('tasks.description')}</h3>
                             <button
                                 onClick={() => { }}
                                 disabled={isEnhancing}
                                 className="flex items-center gap-1 text-xs text-purple-600 hover:bg-purple-50 px-2 py-1 rounded transition-colors disabled:opacity-50"
                             >
                                 <Sparkles size={14} />
-                                {isEnhancing ? 'Enhancing...' : 'AI Enhance'}
+                                {isEnhancing ? t('common.enhancing') : t('common.ai_enhance')}
                             </button>
                         </div>
                         <textarea
@@ -236,9 +238,9 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                             <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-xs mt-1">JS</div>
                             <div className="flex-1">
                                 <div className="border border-[#E9E9E7] rounded-md p-3 shadow-sm bg-white">
-                                    <input type="text" placeholder="Add a comment..." className="w-full outline-none text-sm placeholder-gray-400" />
+                                    <input type="text" placeholder={t('common.add_comment')} className="w-full outline-none text-sm placeholder-gray-400" />
                                     <div className="flex justify-between items-center mt-2">
-                                        <div className="text-xs text-gray-400">Pro tip: type @ to notify someone</div>
+                                        <div className="text-xs text-gray-400">{t('common.comment_tip')}</div>
                                         <button className="p-1 rounded hover:bg-orange-50 text-accent"><ArrowUpRight size={14} /></button>
                                     </div>
                                 </div>

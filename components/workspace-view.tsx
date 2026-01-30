@@ -6,6 +6,7 @@ import ResizableSplitView from './resizable-split-view';
 import TaskList from './task-list';
 import Calendar from './calendar';
 import { TaskStatus, WorkspaceViewProps } from '@/lib/types';
+import { FilterRule } from '@/lib/utils/filterRules';
 import { SortConfig } from './editable-table';
 import { WorkspaceHeader } from './workspace/WorkspaceHeader';
 
@@ -34,7 +35,7 @@ export default function WorkspaceView({
     onRejectAssignment,
 }: WorkspaceViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterStatus, setFilterStatus] = useState<TaskStatus | 'ALL'>('ALL');
+    const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
     const [calendarView, setCalendarView] = useState<'week' | 'day'>('week');
 
     // Sort state
@@ -159,18 +160,19 @@ export default function WorkspaceView({
                             tasks={tasks}
                             selectedDate={selectedDate}
                             searchQuery={searchQuery}
-                            filterStatus={filterStatus}
+                            filterRules={filterRules}
                             onTaskClick={onTaskClick}
                             onUpdateTask={onUpdateTask}
                             onAddTask={onAddTask}
                             onDeleteTask={onDeleteTask}
                             onDragStart={onDragStart}
                             onSearchChange={setSearchQuery}
-                            onFilterChange={setFilterStatus}
+                            onFilterChange={setFilterRules}
                             sortConfig={sortConfig}
                             onSortChange={handleSortChange}
                             hiddenColumns={hiddenColumns}
                             onHideColumn={handleHideColumn}
+                            onShowColumn={handleShowColumn}
                             calendarBlocks={calendarBlocks}
                             viewMode={calendarView}
                             viewDate={viewDate}
