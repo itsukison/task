@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { NavItem } from './types';
 
 const navItems: NavItem[] = [
@@ -34,10 +35,8 @@ export const Navbar: React.FC = () => {
             >
                 {/* Logo */}
                 <div className="flex items-center gap-3">
-                    <div className="bg-foreground text-background w-8 h-8 rounded-lg flex items-center justify-center">
-                        <svg width="16" height="16" viewBox="0 0 40 40" fill="currentColor">
-                            <path d="M20 5L35 30H5L20 5Z" />
-                        </svg>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                        <Image src="/logo.png" alt="Chrono Logo" width={32} height={32} className="object-cover" />
                     </div>
                     <span className="text-2xl font-bold tracking-tight text-foreground">Chrono</span>
                 </div>

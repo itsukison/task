@@ -12,14 +12,16 @@ export const TestimonialSection: React.FC = () => {
                 {/* Header Section */}
                 <div className="text-center max-w-3xl mx-auto mb-10">
                     <Reveal delay={0.1}>
-                        <span className="font-serif italic text-orange-500 text-xl mb-4 block">Community</span>
-                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-medium tracking-tighter text-foreground mb-6 leading-[1.05]">
+                        <h4 className="text-xs font-bold tracking-wider text-orange-600 uppercase mb-4">
+                            Community
+                        </h4>
+                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight text-foreground mb-6 leading-[1.1]">
                             Built for <br />
                             Deep Work
                         </h2>
                     </Reveal>
                     <Reveal delay={0.2}>
-                        <p className="text-lg text-foreground/70 leading-relaxed max-w-2xl mx-auto">
+                        <p className="text-lg text-gray-500 font-normal leading-relaxed max-w-2xl mx-auto">
                             Join thousands who have traded busywork for execution.
                         </p>
                     </Reveal>
@@ -47,7 +49,7 @@ export const TestimonialSection: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <h3 className="text-6xl font-medium text-white tracking-tighter mb-2">15+</h3>
+                                        <h3 className="text-6xl font-medium text-white tracking-tight mb-2">15+</h3>
                                         <p className="text-white/80 font-medium text-xl leading-snug">Hours saved per week<br />on average.</p>
                                     </div>
                                 </div>

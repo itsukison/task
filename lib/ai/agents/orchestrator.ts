@@ -5,6 +5,7 @@ import {
     ChatMessage,
     PendingAction,
     handleAIError,
+    DocumentContentCache,
 } from '../types';
 import {
     documentTools,
@@ -30,8 +31,9 @@ import {
 export async function runOrchestrator(
     message: string,
     context: AgentContext,
-    history: ChatMessage[]
-): Promise<{ response: string; pendingAction?: PendingAction }> {
+    history: ChatMessage[],
+    documentCache?: DocumentContentCache
+): Promise<{ response: string; pendingAction?: PendingAction; updatedCache?: DocumentContentCache }> {
     try {
         // Determine which tools are available based on context
         const availableTools = getAvailableTools(context);
@@ -62,7 +64,7 @@ export async function runOrchestrator(
         // Handle tool calls
         if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
             const toolCall = assistantMessage.tool_calls[0];
-            const result = await executeToolCall(toolCall, context, messages);
+            const result = await executeToolCall(toolCall, context, messages, documentCache);
 
             return result;
         }
@@ -85,8 +87,9 @@ export async function runOrchestrator(
 async function executeToolCall(
     toolCall: any,  // OpenAI.Chat.ChatCompletionMessageToolCall is a union type; using any for simplicity
     context: AgentContext,
-    originalMessages?: OpenAI.Chat.ChatCompletionMessageParam[]
-): Promise<{ response: string; pendingAction?: PendingAction }> {
+    originalMessages?: OpenAI.Chat.ChatCompletionMessageParam[],
+    documentCache?: DocumentContentCache
+): Promise<{ response: string; pendingAction?: PendingAction; updatedCache?: DocumentContentCache }> {
     const functionName = toolCall.function.name;
 
     let args: any;
@@ -102,7 +105,7 @@ async function executeToolCall(
     try {
         // Document tools
         if (functionName === 'get_document_content') {
-            const content = await getDocumentContent(args.document_id);
+            const { content, updatedCache } = await getDocumentContent(args.document_id, documentCache);
             // After getting content, send it back to Kimi for processing
             const followUpResponse = await kimiClient.chat.completions.create({
                 model: KIMI_MODEL,
@@ -121,6 +124,7 @@ async function executeToolCall(
 
             return {
                 response: followUpResponse.choices[0].message.content || 'Could not process document.',
+                updatedCache,
             };
         }
 
@@ -188,7 +192,7 @@ async function executeToolCall(
             if (followUpMessage.tool_calls && followUpMessage.tool_calls.length > 0) {
                 const nextToolCall = followUpMessage.tool_calls[0];
                 // Recursively execute the next tool call
-                return await executeToolCall(nextToolCall, context, updatedMessages);
+                return await executeToolCall(nextToolCall, context, updatedMessages, documentCache);
             }
 
             // Otherwise, return the response to user
@@ -236,7 +240,7 @@ async function executeToolCall(
 
             if (followUpMessage.tool_calls && followUpMessage.tool_calls.length > 0) {
                 const nextToolCall = followUpMessage.tool_calls[0];
-                return await executeToolCall(nextToolCall, context, updatedMessages);
+                return await executeToolCall(nextToolCall, context, updatedMessages, documentCache);
             }
 
             return {

@@ -113,17 +113,17 @@ export const AutomationSection: React.FC = () => {
                 {/* Side Label */}
                 <div className="absolute left-6 md:left-12 top-1/3 hidden 2xl:flex items-center gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
-                    <span className="text-white/60 font-mono text-xs tracking-widest uppercase">State of 2026</span>
+                    <span className="text-white/60 font-mono text-xs tracking-widest uppercase">AI-Native Workspace</span>
                 </div>
 
                 {/* Main Content */}
                 <div className="max-w-6xl mx-auto w-full lg:pl-16 mt-10 md:mt-0">
                     {/* Scroll Text Animation */}
                     <h2 className="text-3xl md:text-3xl lg:text-[3.5rem] leading-[1.0] tracking-tighter mb-12">
-                        <span style={getLineStyle(0)}>Tasks. Meetings. Execution.</span>
-                        <span style={getLineStyle(1)}>Most tools handle the first two.</span>
-                        <span style={getLineStyle(2)}>Almost no one synchronizes the third.</span>
-                        <span style={getLineStyle(3)} className="mt-2">Until Chrono.</span>
+                        <span style={getLineStyle(0)}>AI agents are here. Operator. Claude. Gemini.</span>
+                        <span style={getLineStyle(1)}>But they're still using tools built for humans clicking buttons.</span>
+                        <span style={getLineStyle(2)}>Burning tokens. Fighting APIs. Losing context.</span>
+                        <span style={getLineStyle(3)} className="mt-2">Chrono changes that.</span>
                     </h2>
 
                     {/* Actions */}
@@ -136,7 +136,7 @@ export const AutomationSection: React.FC = () => {
                                 See it in action
                             </Link>
                             <p className="text-zinc-500 text-base md:text-lg max-w-md leading-relaxed">
-                                <span className="text-white font-semibold">It&apos;s time.</span> Start building your daily rhythm with Chrono.
+                                <span className="text-white font-semibold">The age of AI agents is here.</span> Your workspace should be ready.
                             </p>
                         </div>
                     </Reveal>

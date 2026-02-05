@@ -1,6 +1,17 @@
 import { Task, CalendarBlock } from '@/lib/types';
 
 // ============================================================================
+// Document Content Cache
+// ============================================================================
+
+export interface DocumentContentCache {
+    [documentId: string]: {
+        content: string;
+        fetchedAt: number;
+    };
+}
+
+// ============================================================================
 // Chat Message Types
 // ============================================================================
 
@@ -96,11 +107,13 @@ export interface ChatRequest {
     message: string;
     context: AgentContext;
     history: ChatMessage[];
+    documentCache?: DocumentContentCache;
 }
 
 export interface ChatResponse {
     message: string;
     pendingAction?: PendingAction;
+    updatedCache?: DocumentContentCache;
     error?: string;
 }
 

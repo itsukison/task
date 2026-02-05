@@ -55,7 +55,20 @@ export const documentTools = [
 // Tool Implementations
 // ============================================================================
 
-export async function getDocumentContent(documentId: string): Promise<string> {
+export async function getDocumentContent(
+    documentId: string,
+    cache?: { [documentId: string]: { content: string; fetchedAt: number } }
+): Promise<{ content: string; updatedCache: { [documentId: string]: { content: string; fetchedAt: number } } }> {
+    // Check cache first
+    if (cache && cache[documentId]) {
+        console.log(`✅ Using cached content for document ${documentId}`);
+        return {
+            content: cache[documentId].content,
+            updatedCache: cache,
+        };
+    }
+
+    console.log(`📄 Fetching fresh content for document ${documentId}`);
     const supabase = await createClient();
 
     // Try to fetch with RLS (will filter by permissions)
@@ -104,7 +117,18 @@ export async function getDocumentContent(documentId: string): Promise<string> {
         throw new Error(validation.error);
     }
 
-    return `# ${data.title}\n\n${textContent}`;
+    const fullContent = `# ${data.title}\n\n${textContent}`;
+
+    // Update cache
+    const updatedCache = {
+        ...(cache || {}),
+        [documentId]: {
+            content: fullContent,
+            fetchedAt: Date.now(),
+        },
+    };
+
+    return { content: fullContent, updatedCache };
 }
 
 export async function searchInDocuments(

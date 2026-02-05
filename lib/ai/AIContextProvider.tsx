@@ -9,6 +9,7 @@ import {
     PendingAction,
     ChatRequest,
     ChatResponse,
+    DocumentContentCache,
 } from './types';
 import { Document } from '@/lib/types';
 
@@ -66,6 +67,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
     const [selectedDocuments, setSelectedDocuments] = useState<Document[]>([]);
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+    const [documentContentCache, setDocumentContentCache] = useState<DocumentContentCache>({});
 
     // Use ref to avoid messages dependency in useCallback
     const messagesRef = useRef<ChatMessage[]>([]);
@@ -136,6 +138,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                     message: text,
                     context,
                     history: messagesRef.current,
+                    documentCache: documentContentCache,
                 };
 
                 const response = await fetch('/api/ai/chat', {
@@ -162,6 +165,10 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                 if (data.pendingAction) {
                     setPendingAction(data.pendingAction);
                 }
+
+                if (data.updatedCache) {
+                    setDocumentContentCache(data.updatedCache);
+                }
             } catch (error) {
                 console.error('Chat error:', error);
                 const errorMessage: ChatMessage = {
@@ -174,7 +181,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                 setIsLoading(false);
             }
         },
-        [user, currentOrganization, currentPage, selectedDocuments]
+        [user, currentOrganization, currentPage, selectedDocuments, documentContentCache]
     );
 
     const confirmAction = useCallback(async () => {
@@ -411,6 +418,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
     const clearHistory = useCallback(() => {
         setMessages([]);
         setPendingAction(null);
+        setDocumentContentCache({});
         if (user && currentOrganization) {
             const key = `ai_chat_${currentOrganization.id}_${user.id}`;
             localStorage.removeItem(key);

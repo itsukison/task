@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body: ChatRequest = await request.json();
-        const { message, context, history } = body;
+        const { message, context, history, documentCache } = body;
 
         // Verify auth
         const supabase = await createClient();
@@ -45,11 +45,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Run AI orchestrator
-        const result = await runOrchestrator(message, context, history);
+        const result = await runOrchestrator(message, context, history, documentCache);
 
         const response: ChatResponse = {
             message: result.response,
             pendingAction: result.pendingAction,
+            updatedCache: result.updatedCache,
         };
 
         return NextResponse.json(response);
