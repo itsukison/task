@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { Sparkles } from 'lucide-react';
 import { useAI } from '@/lib/ai/AIContextProvider';
 import { Button } from '@/components/ui/button';
@@ -30,7 +32,14 @@ export function AIFloatingButton() {
                             }
                         `}
                     >
-                        <Sparkles className="h-5 w-5" />
+                        <div className="relative h-6 w-6">
+                            <Image
+                                src="/logo.png"
+                                alt="AI"
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="left">

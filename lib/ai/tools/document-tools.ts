@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { MAX_DOCUMENT_CHARS, validateDocumentSize } from '../types';
 import * as cheerio from 'cheerio';
+import { getDocumentProxy, extractText } from 'unpdf';
 
 
 
@@ -221,9 +222,6 @@ async function extractFileContent(
     }
 
     try {
-        // Use require for pdf-parse (CommonJS module)
-        const pdfParse = require('pdf-parse');
-
         // Fetch PDF from storage
         const response = await fetch(fileUrl);
 
@@ -232,18 +230,18 @@ async function extractFileContent(
         }
 
         const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
 
-        // Extract text from PDF
-        const pdfData = await pdfParse(buffer);
+        // Load PDF with unpdf
+        const pdf = await getDocumentProxy(arrayBuffer);
 
+        // Extract all text from all pages
+        const { text } = await extractText(pdf, { mergePages: true });
 
-
-        if (!pdfData.text || pdfData.text.trim().length === 0) {
+        if (!text || text.trim().length === 0) {
             return `[PDF: ${fileName}]\nNote: PDF appears to be empty or contains only images/scans. Text extraction requires OCR which is not yet supported.`;
         }
 
-        return pdfData.text;
+        return text;
     } catch (error) {
         console.error('PDF extraction error:', error);
         return `[PDF: ${fileName}]\nNote: Failed to extract text from PDF. Error: ${error instanceof Error ? error.message : 'Unknown error'}`;

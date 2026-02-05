@@ -70,6 +70,8 @@ export function DocumentsCanvas({
         currentY: number;
     } | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
+    const [dragSelectedItems, setDragSelectedItems] = useState<{ documentIds: string[]; folderIds: string[] }>({ documentIds: [], folderIds: [] });
+    const isDragSelectingRef = useRef(false);
 
     // Configure sensors to distinguish clicks from drags
     const sensors = useSensors(
@@ -240,10 +242,18 @@ export function DocumentsCanvas({
 
     // Lasso selection handlers
     const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-        // Only start lasso if clicking canvas background, not a card
-        if (e.target === e.currentTarget) {
+        // Only start lasso if clicking canvas background (not on an item wrapper)
+        const target = e.target as HTMLElement;
+        const isItemWrapper = !!target.closest('[data-item="true"]');
+
+        if (!isItemWrapper) {
             e.preventDefault(); // Prevent text selection during drag
+            const container = containerRef.current;
+            if (!container) return;
+
             const rect = e.currentTarget.getBoundingClientRect();
+            const scrollLeft = container.scrollLeft;
+            const scrollTop = container.scrollTop;
 
             setSelectionBox({
                 startX: e.clientX - rect.left,
@@ -251,19 +261,30 @@ export function DocumentsCanvas({
                 currentX: e.clientX - rect.left,
                 currentY: e.clientY - rect.top,
             });
+            setDragSelectedItems({ documentIds: [], folderIds: [] });
             setIsSelecting(true);
+            isDragSelectingRef.current = true;
         }
     };
 
     const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         if (selectionBox && isSelecting) {
+            const container = containerRef.current;
+            if (!container) return;
+
             const rect = e.currentTarget.getBoundingClientRect();
 
-            setSelectionBox({
+            const newBox = {
                 ...selectionBox,
                 currentX: e.clientX - rect.left,
                 currentY: e.clientY - rect.top,
-            });
+            };
+
+            setSelectionBox(newBox);
+
+            // Calculate live selection
+            const selected = calculateSelectedItems(newBox, documents, folders);
+            setDragSelectedItems(selected);
         }
     };
 
@@ -277,10 +298,25 @@ export function DocumentsCanvas({
 
             setSelectionBox(null);
             setIsSelecting(false);
+            setDragSelectedItems({ documentIds: [], folderIds: [] });
+
+            // Keep ref true briefly to verify it blocks the click event 
+            // (The click event fires immediately after mouseup in the same event loop tick usually, 
+            // or slightly after. We reset it in the click handler or with a timeout if needed, 
+            // but the click handler checks it.)
+            setTimeout(() => {
+                isDragSelectingRef.current = false;
+            }, 0);
         }
     };
 
     const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        // If we just finished a drag selection, don't deselect
+        if (isDragSelectingRef.current) {
+            isDragSelectingRef.current = false;
+            return;
+        }
+
         // Deselect all when clicking canvas background (not during lasso)
         if (e.target === e.currentTarget && !isSelecting && !selectionBox) {
             onDeselectAll?.();
@@ -339,6 +375,7 @@ export function DocumentsCanvas({
                             <div
                                 key={folder.id}
                                 data-draggable-id={folder.id}
+                                data-item="true"
                                 className="absolute transition-shadow"
                                 style={{
                                     left: pos.x,
@@ -351,7 +388,7 @@ export function DocumentsCanvas({
                                 <FolderCard
                                     folder={folder}
                                     itemCount={getFolderItemCount(folder.id)}
-                                    isSelected={selectedFolderIds.has(folder.id)}
+                                    isSelected={selectedFolderIds.has(folder.id) || dragSelectedItems.folderIds.includes(folder.id)}
                                     onSelect={(e) => {
                                         const multiSelect = e.altKey;
                                         onFolderSelect(folder, multiSelect);
@@ -377,6 +414,7 @@ export function DocumentsCanvas({
                             <div
                                 key={document.id}
                                 data-draggable-id={document.id}
+                                data-item="true"
                                 className="absolute"
                                 style={{
                                     left: pos.x,
@@ -388,7 +426,7 @@ export function DocumentsCanvas({
                             >
                                 <DocumentCard
                                     document={document}
-                                    isSelected={selectedDocIds.has(document.id)}
+                                    isSelected={selectedDocIds.has(document.id) || dragSelectedItems.documentIds.includes(document.id)}
                                     onSelect={(e) => {
                                         const multiSelect = e.altKey;
                                         onDocumentSelect(document, multiSelect);

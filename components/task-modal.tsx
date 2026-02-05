@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { X, Clock, User, CheckCircle2, Sparkles, Play, Pause, MoreHorizontal, Calendar, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Task, TaskStatus, TaskModalProps } from '@/lib/types';
@@ -221,7 +222,14 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                                 disabled={isEnhancing}
                                 className="flex items-center gap-1 text-xs text-purple-600 hover:bg-purple-50 px-2 py-1 rounded transition-colors disabled:opacity-50"
                             >
-                                <Sparkles size={14} />
+                                <div className="relative h-3.5 w-3.5 mr-1">
+                                    <Image
+                                        src="/logo.png"
+                                        alt="AI"
+                                        fill
+                                        className="object-contain"
+                                    />
+                                </div>
                                 {isEnhancing ? t('common.enhancing') : t('common.ai_enhance')}
                             </button>
                         </div>

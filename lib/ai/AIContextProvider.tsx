@@ -142,6 +142,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(request),
+                    credentials: 'include',
                 });
 
                 const data: ChatResponse = await response.json();

@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import {
     X, Send, RotateCcw, Sparkles,
     ChevronDown, SquarePen, Sidebar, Minus,
@@ -84,7 +86,15 @@ export function AIChatPanel() {
                         {/* Welcome State */}
                         <div className="flex flex-col gap-6 mb-8">
                             <div className="h-16 w-16 rounded-full bg-white shadow-sm border border-[#E9E9E7] flex items-center justify-center">
-                                <Sparkles className="h-8 w-8 text-[#FF5500]" />
+                                <div className="relative h-8 w-8">
+                                    <Image
+                                        src="/logo.png"
+                                        alt="AI Logo"
+                                        fill
+                                        className="object-contain"
+                                        priority
+                                    />
+                                </div>
                             </div>
                             <h3 className="text-xl font-bold text-[#37352F]">
                                 What's our quest today?

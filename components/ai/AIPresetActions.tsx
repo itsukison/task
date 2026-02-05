@@ -1,6 +1,7 @@
 'use client';
 
 import { useAI } from '@/lib/ai/AIContextProvider';
+import Image from 'next/image';
 import {
     Languages,
     Search,
@@ -11,6 +12,17 @@ import {
     Bot,
     PenTool
 } from 'lucide-react';
+
+const AILogoIcon = ({ className }: { className?: string }) => (
+    <div className={`relative ${className}`}>
+        <Image
+            src="/logo.png"
+            alt="AI"
+            fill
+            className="object-contain"
+        />
+    </div>
+);
 
 export function AIPresetActions({ onAction }: { onAction: (action: string) => void }) {
     const { currentPage } = useAI();
@@ -25,7 +37,7 @@ export function AIPresetActions({ onAction }: { onAction: (action: string) => vo
     const workspacePresets = [
         { icon: ClipboardList, label: 'Show my tasks', action: 'Show me all my tasks' },
         { icon: Calendar, label: 'What\'s on my calendar?', action: 'What events do I have on my calendar today?' },
-        { icon: Sparkles, label: 'Create a task', action: 'Help me create a new task' },
+        { icon: AILogoIcon, label: 'Create a task', action: 'Help me create a new task' },
     ];
 
     const presets = currentPage === 'documents' ? documentPresets : workspacePresets;
