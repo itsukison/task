@@ -101,6 +101,7 @@ export default function TaskList({
     currentUserId,
     onAcceptAssignment,
     onRejectAssignment,
+    previewTask,
 }: TaskListProps) {
     const { t } = useLanguage();
     const [showSortMenu, setShowSortMenu] = useState(false);
@@ -148,11 +149,29 @@ export default function TaskList({
         }
 
         // Add virtual ownerIds field for PeopleCell
-        return result.map(t => ({
+        const tasksWithOwnerIds = result.map(t => ({
             ...t,
             ownerIds: t.owners.map(o => o.id),
         }));
-    }, [tasks, filterRules, searchQuery, selectedDate]);
+
+        // Add preview task if it exists and matches filter criteria
+        if (previewTask) {
+            // Check if preview task matches current filters
+            const matchesDateFilter = !selectedDate ||
+                previewTask.scheduledDate === formatDateToLocalISO(selectedDate);
+
+            if (matchesDateFilter) {
+                // Add preview at the top
+                const previewWithOwnerIds: TaskWithOwnerIds = {
+                    ...previewTask,
+                    ownerIds: previewTask.owners.map(o => o.id),
+                };
+                return [previewWithOwnerIds, ...tasksWithOwnerIds];
+            }
+        }
+
+        return tasksWithOwnerIds;
+    }, [tasks, filterRules, searchQuery, selectedDate, previewTask]);
 
     // Handle cell value changes
     // Stabilized with useCallback and refs to prevent table re-renders that close dropdowns
@@ -185,6 +204,8 @@ export default function TaskList({
 
     // Handle row click
     const handleRowClick = (row: Task) => {
+        // Disable clicking on preview task
+        if (row.id === 'preview-task-temp') return;
         onTaskClick(row);
     };
 
@@ -210,8 +231,12 @@ export default function TaskList({
         return labels;
     }, [columns]);
 
-    // Check if a task is pending for the current user
+    // Check if a task is pending for the current user OR is a preview task
     const isPendingTask = useCallback((task: Task) => {
+        // Check if it's the AI preview task
+        if (task.id === 'preview-task-temp') return true;
+
+        // Check if it's a pending assignment
         if (!currentUserId) return false;
         return task.owners.some(
             owner => owner.id === currentUserId && owner.status === 'pending'

@@ -53,6 +53,7 @@ const Calendar = React.memo(function Calendar({
   selectedMemberIds = [],
   onSelectedMembersChange,
   multiMemberBlocks = [],
+  previewBlock,
 }: CalendarProps) {
   const { membersWithVisibility } = useOrganizationMembers();
   const { user } = useAuth();
@@ -138,12 +139,22 @@ const Calendar = React.memo(function Calendar({
     // Use multi-member view unless ONLY the current user is selected
     const isOnlySelfSelected =
       selectedMemberIds.length === 1 && selectedMemberIds[0] === user?.id;
+
+    let blocks: (CalendarBlock | MultiMemberBlock)[];
     if (!isOnlySelfSelected && selectedMemberIds.length > 0) {
-      return multiMemberBlocks;
+      blocks = multiMemberBlocks;
+    } else {
+      // Use regular calendar blocks when only viewing own schedule
+      blocks = calendarBlocks;
     }
-    // Use regular calendar blocks when only viewing own schedule
-    return calendarBlocks;
-  }, [calendarBlocks, multiMemberBlocks, selectedMemberIds, user?.id]);
+
+    // Add preview block if it exists
+    if (previewBlock) {
+      return [...blocks, previewBlock];
+    }
+
+    return blocks;
+  }, [calendarBlocks, multiMemberBlocks, selectedMemberIds, user?.id, previewBlock]);
 
   return (
     <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans relative pl-3">

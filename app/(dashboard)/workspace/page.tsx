@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import WorkspaceView from '@/components/workspace-view';
 import TaskModal from '@/components/task-modal';
 import { Task } from '@/lib/types';
@@ -10,6 +10,8 @@ import { useMultiMemberBlocks } from '@/lib/hooks/use-multi-member-blocks';
 import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
 import { useAuth } from '@/lib/auth/hooks';
 import { useLanguage } from '@/lib/i18n';
+import { useAI } from '@/lib/ai/AIContextProvider';
+import { createPreviewTask, createPreviewCalendarBlock } from '@/lib/ai/preview-task-generator';
 
 // Convert Date to YYYY-MM-DD in local timezone (avoid UTC conversion)
 const formatDateToLocalISO = (date: Date): string => {
@@ -21,9 +23,10 @@ const formatDateToLocalISO = (date: Date): string => {
 
 export default function WorkspacePage() {
     const { t } = useLanguage();
-    const { user } = useAuth();
+    const { user, currentOrg } = useAuth();
     const { preferences } = useUserPreferences();
-    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment } = useTasks();
+    const { setSelectedDate: setAISelectedDate, pendingAction } = useAI();
+    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment, refetch: refetchTasks } = useTasks();
     const {
         calendarBlocks,
         loading: blocksLoading,
@@ -52,6 +55,32 @@ export default function WorkspacePage() {
         }
     }, [user, selectedMemberIds.length]);
 
+    // Sync selectedDate to AI context
+    useEffect(() => {
+        if (setAISelectedDate) {
+            setAISelectedDate(selectedDate);
+        }
+    }, [selectedDate, setAISelectedDate]);
+
+    // Listen for AI-triggered data changes
+    useEffect(() => {
+        const handleTasksChanged = () => {
+            refetchTasks();
+        };
+
+        const handleCalendarChanged = () => {
+            refetchCalendarBlocks();
+        };
+
+        window.addEventListener('ai-tasks-changed', handleTasksChanged);
+        window.addEventListener('ai-calendar-changed', handleCalendarChanged);
+
+        return () => {
+            window.removeEventListener('ai-tasks-changed', handleTasksChanged);
+            window.removeEventListener('ai-calendar-changed', handleCalendarChanged);
+        };
+    }, [refetchTasks, refetchCalendarBlocks]);
+
     // Fetch multi-member blocks for the current week view
     const {
         multiMemberBlocks,
@@ -63,6 +92,27 @@ export default function WorkspacePage() {
         viewDate,
         showWeekends,
     });
+
+    // Generate preview objects from pending AI action
+    const previewTask = useMemo(() => {
+        if (!pendingAction || !user || !currentOrg) return null;
+        // Only create preview for task actions, not calendar reschedules
+        if (pendingAction.type === 'reschedule_calendar') return null;
+
+        // Use selected date as fallback (same logic as confirmAction)
+        const fallbackDate = selectedDate ? formatDateToLocalISO(selectedDate) : null;
+        return createPreviewTask(pendingAction, user.id, currentOrg.id, fallbackDate);
+    }, [pendingAction, user, currentOrg, selectedDate]);
+
+    const previewBlock = useMemo(() => {
+        if (!pendingAction || !user || !currentOrg) return null;
+        // Only create preview for task actions, not calendar reschedules
+        if (pendingAction.type === 'reschedule_calendar') return null;
+
+        // Use selected date as fallback
+        const fallbackDate = selectedDate ? formatDateToLocalISO(selectedDate) : null;
+        return createPreviewCalendarBlock(pendingAction, user.id, currentOrg.id, fallbackDate);
+    }, [pendingAction, user, currentOrg, selectedDate]);
 
     const draggingTask = tasks.find(t => t.id === draggingTaskId) || null;
 
@@ -238,6 +288,8 @@ export default function WorkspacePage() {
                 currentUserId={user?.id}
                 onAcceptAssignment={handleAcceptAssignment}
                 onRejectAssignment={handleRejectAssignment}
+                previewTask={previewTask}
+                previewBlock={previewBlock}
             />
 
             {selectedTask && (

@@ -106,6 +106,162 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          content: Json | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
+          folder_id: string | null
+          height: number | null
+          id: string
+          link_url: string | null
+          organization_id: string
+          position_x: number | null
+          position_y: number | null
+          preview_image_url: string | null
+          preview_metadata: Json | null
+          title: string
+          type: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["task_visibility"]
+          width: number | null
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          folder_id?: string | null
+          height?: number | null
+          id?: string
+          link_url?: string | null
+          organization_id: string
+          position_x?: number | null
+          position_y?: number | null
+          preview_image_url?: string | null
+          preview_metadata?: Json | null
+          title?: string
+          type?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["task_visibility"]
+          width?: number | null
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          folder_id?: string | null
+          height?: number | null
+          id?: string
+          link_url?: string | null
+          organization_id?: string
+          position_x?: number | null
+          position_y?: number | null
+          preview_image_url?: string | null
+          preview_metadata?: Json | null
+          title?: string
+          type?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["task_visibility"]
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folders: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          height: number | null
+          id: string
+          is_open: boolean | null
+          name: string
+          organization_id: string
+          parent_folder_id: string | null
+          position_x: number | null
+          position_y: number | null
+          updated_at: string
+          visibility: Database["public"]["Enums"]["task_visibility"]
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          height?: number | null
+          id?: string
+          is_open?: boolean | null
+          name?: string
+          organization_id: string
+          parent_folder_id?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["task_visibility"]
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          height?: number | null
+          id?: string
+          is_open?: boolean | null
+          name?: string
+          organization_id?: string
+          parent_folder_id?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["task_visibility"]
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           created_at: string
@@ -219,6 +375,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organization_members_user_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organizations: {
@@ -272,6 +435,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "task_owners_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "task_owners_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -285,13 +455,20 @@ export type Database = {
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "task_owners_user_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tasks: {
         Row: {
           actual_time_minutes: number
           created_at: string
-          created_by: string
+          created_by: string | null
           deleted_at: string | null
           description: string | null
           expected_time_minutes: number
@@ -307,7 +484,7 @@ export type Database = {
         Insert: {
           actual_time_minutes?: number
           created_at?: string
-          created_by: string
+          created_by?: string | null
           deleted_at?: string | null
           description?: string | null
           expected_time_minutes: number
@@ -323,7 +500,7 @@ export type Database = {
         Update: {
           actual_time_minutes?: number
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           deleted_at?: string | null
           description?: string | null
           expected_time_minutes?: number
@@ -338,10 +515,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -349,33 +540,33 @@ export type Database = {
       time_logs: {
         Row: {
           created_at: string
-          duration_minutes: number
-          end_time: string
+          duration_minutes: number | null
+          ended_at: string | null
           id: string
           organization_id: string
-          start_time: string
+          started_at: string
           task_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          duration_minutes: number
-          end_time: string
+          duration_minutes?: number | null
+          ended_at?: string | null
           id?: string
           organization_id: string
-          start_time: string
+          started_at: string
           task_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          duration_minutes?: number
-          end_time?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
           id?: string
           organization_id?: string
-          start_time?: string
+          started_at?: string
           task_id?: string
           updated_at?: string
           user_id?: string
@@ -399,28 +590,46 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          calendar_collapsed: boolean | null
+          calendar_tasks_split_ratio: number | null
           created_at: string
           id: string
           organization_id: string
+          show_weekends: boolean | null
+          tasks_collapsed: boolean | null
           theme: string | null
           updated_at: string
           user_id: string
+          work_end_time: string | null
+          work_start_time: string | null
         }
         Insert: {
+          calendar_collapsed?: boolean | null
+          calendar_tasks_split_ratio?: number | null
           created_at?: string
           id?: string
           organization_id: string
+          show_weekends?: boolean | null
+          tasks_collapsed?: boolean | null
           theme?: string | null
           updated_at?: string
           user_id: string
+          work_end_time?: string | null
+          work_start_time?: string | null
         }
         Update: {
+          calendar_collapsed?: boolean | null
+          calendar_tasks_split_ratio?: number | null
           created_at?: string
           id?: string
           organization_id?: string
+          show_weekends?: boolean | null
+          tasks_collapsed?: boolean | null
           theme?: string | null
           updated_at?: string
           user_id?: string
+          work_end_time?: string | null
+          work_start_time?: string | null
         }
         Relationships: [
           {
@@ -470,34 +679,90 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_organization: {
+      create_organization: { Args: { org_name: string }; Returns: string }
+      create_task_with_owner: {
         Args: {
-          org_name: string
-        }
-        Returns: string
-      }
-      join_organization_with_invite: {
-        Args: {
-          code: string
+          p_description: string
+          p_expected_time_minutes: number
+          p_org_id: string
+          p_scheduled_date: string
+          p_status: string
+          p_title: string
+          p_user_id: string
+          p_visibility: string
         }
         Returns: {
+          actual_time_minutes: number
+          created_at: string
+          created_by: string
+          deleted_at: string
+          description: string
+          expected_time_minutes: number
           id: string
           organization_id: string
-          user_id: string
-          role: Database["public"]["Enums"]["member_role"]
-          created_at: string
+          owner_id: string
+          scheduled_date: string
+          status: string
+          title: string
           updated_at: string
-        }
+          visibility: string
+        }[]
       }
-      soft_delete_task: {
+      get_multi_member_blocks: {
         Args: {
-          task_id: string
+          p_end_time: string
+          p_member_ids: string[]
+          p_org_id: string
+          p_start_time: string
+          p_user_id: string
+          p_user_role: string
         }
         Returns: {
-          success: boolean
-          error: string
-        }
+          created_at: string
+          end_time: string
+          id: string
+          organization_id: string
+          owner_display_name: string
+          owner_email: string
+          owner_id: string
+          owner_schedule_visibility: string
+          start_time: string
+          task_expected_time_minutes: number
+          task_id: string
+          task_owners: Json
+          task_status: string
+          task_title: string
+          task_visibility: string
+          updated_at: string
+        }[]
       }
+      get_user_role: {
+        Args: { org_id: string; uid: string }
+        Returns: Database["public"]["Enums"]["member_role"]
+      }
+      get_user_tasks: {
+        Args: { p_org_id: string; p_user_id: string }
+        Returns: {
+          actual_time_minutes: number
+          created_at: string
+          created_by: string
+          deleted_at: string
+          description: string
+          expected_time_minutes: number
+          id: string
+          organization_id: string
+          owner_id: string
+          scheduled_date: string
+          status: string
+          task_owners: Json
+          title: string
+          updated_at: string
+          visibility: string
+        }[]
+      }
+      is_leader: { Args: { org_id: string; uid: string }; Returns: boolean }
+      is_org_member: { Args: { org_id: string; uid: string }; Returns: boolean }
+      soft_delete_task: { Args: { task_id: string }; Returns: Json }
     }
     Enums: {
       assignment_status: "pending" | "confirmed"
@@ -512,115 +777,122 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {

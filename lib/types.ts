@@ -30,6 +30,11 @@ export type MemberRole = Database['public']['Enums']['member_role'];
 export type AssignmentStatus = Database['public']['Enums']['assignment_status'];
 
 /**
+ * Document type enum
+ */
+export type DocumentType = 'document' | 'uploaded_file' | 'link';
+
+/**
  * Owner profile from JOIN with assignment status
  */
 export interface OwnerProfile {
@@ -55,6 +60,66 @@ export interface JoinRequest {
     status: JoinRequestStatus;
     createdAt: string;
     user?: OwnerProfile;  // Joined user profile
+}
+
+/**
+ * Folder entity for organizing documents
+ */
+export interface Folder {
+    id: string;
+    organizationId: string;
+    createdBy: string;
+    name: string;
+    parentFolderId: string | null;
+    positionX: number | null;
+    positionY: number | null;
+    width: number;
+    height: number;
+    isOpen: boolean;
+    visibility: TaskVisibility;
+    deletedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/**
+ * Document entity for canvas documents
+ */
+export interface Document {
+    id: string;
+    organizationId: string;
+    createdBy: string;
+    folderId: string | null;
+    title: string;
+    content: any; // Tiptap JSON content
+    type: DocumentType;
+    
+    // For uploaded files
+    fileUrl: string | null;
+    fileName: string | null;
+    fileSize: number | null;
+    fileType: string | null;
+    
+    // For external links
+    linkUrl: string | null;
+    previewImageUrl: string | null;
+    previewMetadata: {
+        title?: string;
+        description?: string;
+        favicon?: string;
+        siteName?: string;
+    } | null;
+    
+    // Canvas positioning
+    positionX: number | null;
+    positionY: number | null;
+    width: number;
+    height: number;
+    
+    visibility: TaskVisibility;
+    deletedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**
@@ -235,6 +300,9 @@ export interface WorkspaceViewProps {
     currentUserId?: string;
     onAcceptAssignment?: (taskId: string) => void;
     onRejectAssignment?: (taskId: string) => void;
+    // AI preview objects
+    previewTask?: Task | null;
+    previewBlock?: CalendarBlock | null;
 }
 
 export interface CalendarProps {
@@ -263,6 +331,8 @@ export interface CalendarProps {
     selectedMemberIds?: string[];
     onSelectedMembersChange?: (memberIds: string[]) => void;
     multiMemberBlocks?: MultiMemberBlock[];
+    // AI preview
+    previewBlock?: CalendarBlock | null;
 }
 
 export interface TaskListProps {
@@ -292,6 +362,8 @@ export interface TaskListProps {
     currentUserId?: string;
     onAcceptAssignment?: (taskId: string) => void;
     onRejectAssignment?: (taskId: string) => void;
+    // AI preview
+    previewTask?: Task | null;
 }
 
 export interface TaskModalProps {

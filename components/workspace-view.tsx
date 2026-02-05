@@ -33,6 +33,8 @@ export default function WorkspaceView({
     currentUserId,
     onAcceptAssignment,
     onRejectAssignment,
+    previewTask,
+    previewBlock,
 }: WorkspaceViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
@@ -153,6 +155,7 @@ export default function WorkspaceView({
                             selectedMemberIds={selectedMemberIds}
                             onSelectedMembersChange={onSelectedMembersChange}
                             multiMemberBlocks={multiMemberBlocks}
+                            previewBlock={previewBlock}
                         />
                     }
                     right={
@@ -179,6 +182,7 @@ export default function WorkspaceView({
                             currentUserId={currentUserId}
                             onAcceptAssignment={onAcceptAssignment}
                             onRejectAssignment={onRejectAssignment}
+                            previewTask={previewTask}
                         />
                     }
                 />

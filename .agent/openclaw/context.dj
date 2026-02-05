@@ -1,0 +1,64 @@
+Project Context: AI-Native Task & Knowledge Platform
+
+1. Core Objective
+We are building a High-Signal, Low-Noise architecture for AI agents. The goal is to eliminate "token waste" and "context amnesia" by providing AI agents (both internal Kimi and external OpenClaw) with pre-processed, semantically rich data instead of raw database rows.
+
+2. The "Smart Context" Architecture
+We are moving away from raw SELECT * queries toward a 3-step pipeline:
+
+A. Semantic Enrichment (The "Input" Layer)
+Trigger: When a user creates a Document or Task.
+
+Action: Background process generates metadata:
+
+Summary: 2-3 sentence gist.
+
+Embeddings: Vector representation for similarity search.
+
+Urgency/Intent: Auto-classified tags (e.g., "High Priority", "Blocking").
+
+Storage: document_metadata and task_metadata tables in Supabase.
+
+B. Context Bundling (The "Throughput" Layer)
+Concept: "The Daily Briefing."
+
+Logic: Instead of fetching data at runtime, we pre-calculate or efficiently aggregate:
+
+Today's Calendar Events.
+
+High-priority Tasks.
+
+Only the relevant Document summaries (not full text).
+
+Output: A single, clean JSON object or Markdown summary passed to the LLM.
+
+C. Universal Tooling (The "Action" Layer)
+Pattern: "Service-First."
+
+Implementation:
+
+Logic: Write core logic in lib/tools/actions.ts (e.g., executeCreateTask).
+
+Internal: UI components call this logic directly.
+
+External: A unified API endpoint (/api/agent/tools) exposes this logic to external agents.
+
+Contract: Use Zod schemas to ensure both consumers send the exact same data structure.
+
+3. API Design Philosophy ("AI-Native")
+Our API endpoints for agents must differ from standard REST APIs:
+
+Macro over Micro: Tools should be high-level (append_to_daily_log) rather than granular (update_block_id_123).
+
+Markdown over JSON: Return content in Markdown where possible to save tokens and preserve semantic structure for the LLM.
+
+No "Raw Dumps": Never return a full list of database rows. Always return the results of a semantic search or a summary.
+
+4. Immediate Implementation Tasks
+Database: Enable pgvector and create metadata tables.
+
+Ingest: Build the enrichDocument function (OpenAI wrap) for new uploads.
+
+Retrieval: Build the getDailyContext service function.
+
+Gateway: Create the /api/agent/tools route to route external requests to internal logic.

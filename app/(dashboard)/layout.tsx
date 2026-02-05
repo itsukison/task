@@ -4,6 +4,9 @@ import React, { useState } from 'react';
 import Sidebar from '@/components/sidebar';
 import { AuthProvider } from '@/lib/auth/auth-context';
 import { useRequireOrg } from '@/lib/auth/hooks';
+import { AIContextProvider } from '@/lib/ai/AIContextProvider';
+import { AIFloatingButton } from '@/components/ai/AIFloatingButton';
+import { AIChatPanel } from '@/components/ai/AIChatPanel';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -24,6 +27,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             <main className="flex-1 h-full overflow-hidden relative z-0">
                 {children}
             </main>
+            {/* AI Components */}
+            <AIFloatingButton />
+            <AIChatPanel />
         </div>
     );
 }
@@ -40,7 +46,9 @@ export default function DashboardLayout({
     return (
         <AuthProvider>
             <LanguageProvider>
-                <DashboardContent>{children}</DashboardContent>
+                <AIContextProvider>
+                    <DashboardContent>{children}</DashboardContent>
+                </AIContextProvider>
             </LanguageProvider>
         </AuthProvider>
     );

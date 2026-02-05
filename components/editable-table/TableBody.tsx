@@ -52,10 +52,13 @@ export function TableBody<T extends { id: string }>({
                         onDragEnd={handleDragEnd}
                         className={cn(
                             'flex group border-b border-[#e0e0e0]',
-                            'hover:bg-[#f7f7f5] transition-colors cursor-pointer',
-                            isPending && 'bg-orange-50/30'  // Subtle highlight for pending rows
+                            'transition-colors',
+                            isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#f7f7f5] cursor-pointer'
                         )}
-                        onClick={() => onRowClick?.(row.original)}
+                        onClick={() => {
+                            if (isPending) return;  // Disable clicking on pending rows
+                            onRowClick?.(row.original);
+                        }}
                     >
                         {row.getVisibleCells().map((cell, cellIndex) => (
                             <div

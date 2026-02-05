@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, BarChart2, Settings, Menu, ChevronsLeft, Search, PlusCircle, Home, LogOut, ChevronDown, Users, Plus } from 'lucide-react';
+import { Calendar, BarChart2, Settings, Menu, ChevronsLeft, Search, PlusCircle, FileText, LogOut, ChevronDown, Users, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SidebarProps, ViewMode } from '@/lib/types';
 import { useAuth } from '@/lib/auth/hooks';
@@ -11,7 +11,8 @@ import { useJoinRequests } from '@/lib/hooks/use-join-requests';
 import { OrgSwitcherModal } from '@/components/organization/OrgSwitcherModal';
 import { useLanguage } from '@/lib/i18n';
 
-const navItems: { id: ViewMode; href: string; icon: typeof Calendar; label: string }[] = [
+const navItems: { id: ViewMode | 'documents'; href: string; icon: typeof Calendar; label: string }[] = [
+    { id: 'documents', href: '/documents', icon: FileText, label: 'Documents' },
     { id: 'workspace', href: '/workspace', icon: Calendar, label: 'Task Tracker' },
     { id: 'progress', href: '/progress', icon: BarChart2, label: 'Goals & Progress' },
     { id: 'settings', href: '/settings', icon: Settings, label: 'Settings' },
@@ -296,11 +297,6 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
                         <Search size={16} />
                         <span className="flex-1">{t('navigation.search')}</span>
-                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">{t('navigation.soon')}</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
-                        <Home size={16} />
-                        <span className="flex-1">{t('navigation.home')}</span>
                         <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">{t('navigation.soon')}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">

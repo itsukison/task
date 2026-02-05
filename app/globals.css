@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -14,8 +15,12 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #E9E9E7;
+  background: transparent;
   border-radius: 4px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #E9E9E7;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {

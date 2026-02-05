@@ -366,8 +366,9 @@ export function useTasks(): UseTasksReturn {
         }
 
         // Check the result from the function
-        if (deleteResult && !deleteResult.success) {
-            throw new Error(`Failed to delete task: ${deleteResult.error}`);
+        const result = deleteResult as { success: boolean; error?: string } | null;
+        if (result && !result.success) {
+            throw new Error(`Failed to delete task: ${result.error}`);
         }
 
         // Optimistically remove from state

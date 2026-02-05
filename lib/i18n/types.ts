@@ -70,6 +70,7 @@ export interface TranslationDictionary {
     };
     navigation: {
         dashboard: string;
+        documents: string;
         workspace: string;
         progress: string;
         settings: string;
@@ -79,6 +80,46 @@ export interface TranslationDictionary {
         home: string;
         new_page: string;
         soon: string;
+    };
+    documents: {
+        title: string;
+        new_document: string;
+        new_folder: string;
+        upload_file: string;
+        add_link: string;
+        untitled: string;
+        untitled_document: string;
+        new_folder_name: string;
+        empty_title: string;
+        empty_description: string;
+        items: string;
+        item: string;
+        rename: string;
+        delete: string;
+        move_to_folder: string;
+        visibility: string;
+        private: string;
+        team: string;
+        leaders_only: string;
+        uploading: string;
+        upload_progress: string;
+        upload_title: string;
+        add_link_title: string;
+        drop_file: string;
+        max_file_size: string;
+        link_url: string;
+        link_placeholder: string;
+        add: string;
+        upload: string;
+        file_type_not_supported: string;
+        file_size_exceeds: string;
+        saving: string;
+        saved_just_now: string;
+        saved_seconds_ago: string;
+        saved_minutes_ago: string;
+        saved_at: string;
+        confirm_delete_document: string;
+        confirm_delete_folder: string;
     };
     settings: {
         title: string;

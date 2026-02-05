@@ -237,6 +237,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           const isBeingDragged = draggingTask?.id === task.id;
           const isMultiMember = 'ownerName' in block;
           const isPendingBlock = 'isPendingAssignment' in block && block.isPendingAssignment;
+          const isPreviewBlock = block.id === 'preview-block-temp';
 
           // Check if current user is a confirmed owner of the task
           const isConfirmedOwner = task.owners?.some(
@@ -253,8 +254,8 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             style.zIndex = 50; // Bring to front while resizing
           }
 
-          // Allow dragging if user is confirmed owner and assignment is not pending
-          const canDrag = isConfirmedOwner && !isPendingBlock;
+          // Allow dragging if user is confirmed owner and assignment is not pending and not preview
+          const canDrag = isConfirmedOwner && !isPendingBlock && !isPreviewBlock;
 
           // Generate initials for multi-member blocks
           const getInitials = (name: string) => {
@@ -265,9 +266,11 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             <div
               key={`${block.id}-${task.expectedTime}`}
               style={style}
-              className={`${style.className} pointer-events-auto ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''} group/block`}
+              className={`${style.className} ${isPreviewBlock ? 'pointer-events-none' : 'pointer-events-auto'} ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''} ${isPreviewBlock ? 'opacity-50 cursor-not-allowed' : ''} group/block`}
               onClick={(e) => {
                 e.stopPropagation();
+                // Disable clicking on preview blocks
+                if (isPreviewBlock) return;
                 // Prevent modal from opening if we just finished resizing
                 if (justResized) return;
                 onTaskClick(task);
