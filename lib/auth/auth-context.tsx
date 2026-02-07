@@ -206,7 +206,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     localStorage.removeItem(STORAGE_KEY);
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+
+    // Supabase may return "Auth session missing" if already logged out
+    // This is not actually an error, so we can safely ignore it
+    if (error && error.message !== 'Auth session missing!') {
+      throw error;
+    }
+
     // Auth state will be updated via onAuthStateChange listener
   }, []);
 

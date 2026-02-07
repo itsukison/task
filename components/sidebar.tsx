@@ -110,7 +110,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            // Only cleanup if user still exists (not during logout)
+            if (user) {
+                supabase.removeChannel(channel);
+            }
         };
     }, [user, refreshOrganizations]);
 
