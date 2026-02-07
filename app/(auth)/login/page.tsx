@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth, useRequireNoAuth } from '@/lib/auth/hooks';
 import { useRouter } from 'next/navigation';
+import { Navbar } from '@/components/landing/Navbar';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -38,6 +39,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white">
+      <Navbar />
       <div className="w-full max-w-md px-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-semibold text-[#37352F] mb-2">Welcome back</h1>

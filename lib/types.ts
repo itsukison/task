@@ -93,13 +93,13 @@ export interface Document {
     title: string;
     content: any; // Tiptap JSON content
     type: DocumentType;
-    
+
     // For uploaded files
     fileUrl: string | null;
     fileName: string | null;
     fileSize: number | null;
     fileType: string | null;
-    
+
     // For external links
     linkUrl: string | null;
     previewImageUrl: string | null;
@@ -109,13 +109,13 @@ export interface Document {
         favicon?: string;
         siteName?: string;
     } | null;
-    
+
     // Canvas positioning
     positionX: number | null;
     positionY: number | null;
     width: number;
     height: number;
-    
+
     visibility: TaskVisibility;
     deletedAt: string | null;
     createdAt: string;
@@ -182,7 +182,7 @@ export interface BlockLayoutInfo {
 /**
  * Data types supported by editable table cells
  */
-export type DataType = 'text' | 'number' | 'select' | 'people' | 'timerNumber';
+export type DataType = 'text' | 'number' | 'select' | 'people' | 'timerNumber' | 'combinedTime' | 'subtask' | 'document';
 
 /**
  * Option for select-type columns
@@ -210,6 +210,16 @@ export interface PeopleOptionWithVisibility extends PeopleOption {
 }
 
 /**
+ * User-defined custom column configuration (subtask or document type)
+ */
+export interface CustomColumn {
+    id: string;
+    type: 'subtask' | 'document';
+    label: string;
+    order: number;
+}
+
+/**
  * Configuration for a table column
  */
 export interface TableColumn<T> {
@@ -218,7 +228,7 @@ export interface TableColumn<T> {
     dataType: DataType;
     width?: number;
     minWidth?: number;
-    options?: ColumnOption[];
+    options?: ColumnOption[]
     peopleOptions?: PeopleOption[];
 }
 
@@ -257,6 +267,12 @@ export interface EditableTableProps<T extends { id: string }> {
     onRejectRow?: (rowId: string) => void;
     // Owner statuses for display
     getOwnerStatuses?: (row: T) => Record<string, AssignmentStatus>;
+    // Custom column management
+    customColumns?: any[];
+    onAddCustomColumn?: (type: 'subtask' | 'document') => void;
+    onRemoveCustomColumn?: (columnId: string) => void;
+    // Subtask creation callback
+    onCreateSubtask?: (parentTaskId: string, title: string) => void;
 }
 
 /**
@@ -286,6 +302,8 @@ export interface WorkspaceViewProps {
     onUpdateTask: (task: Task) => void;
     onAddTask: () => void;
     onDeleteTask: (taskId: string) => void;
+    // Subtask creation callback
+    onCreateSubtask?: (parentTaskId: string, title: string) => void;
     draggingTask: Task | null;
     onDragStart: (taskId: string | null) => void;
     // Calendar block CRUD callbacks
@@ -353,6 +371,8 @@ export interface TaskListProps {
     onSortChange?: (sort: SortConfig | null) => void;
     hiddenColumns?: string[];
     onHideColumn?: (columnId: string) => void;
+    // Subtask creation callback
+    onCreateSubtask?: (parentTaskId: string, title: string) => void;
     onShowColumn?: (columnId: string) => void;
     // Date filtering props
     calendarBlocks?: CalendarBlock[];

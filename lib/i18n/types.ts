@@ -207,6 +207,7 @@ export interface TranslationDictionary {
         owners: string;
         est_time: string;
         act_time: string;
+        time: string;
         members: string;
         working_on: string;
         tasks_today: string;

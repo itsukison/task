@@ -1,6 +1,6 @@
 'use client';
 
-import { AlignLeft, Hash, CircleDot, Users } from 'lucide-react';
+import { AlignLeft, Hash, CircleDot, Users, Clock, ListTodo, FileText } from 'lucide-react';
 import { DataType } from '@/lib/types';
 
 // ============================================================================
@@ -22,6 +22,12 @@ export function DataTypeIcon({ dataType }: { dataType: DataType }) {
             return <Users size={14} className="text-[#9e9e9e]" />;
         case 'timerNumber':
             return <Hash size={14} className="text-[#9e9e9e]" />;
+        case 'combinedTime':
+            return <Clock size={14} className="text-[#9e9e9e]" />;
+        case 'subtask':
+            return <ListTodo size={14} className="text-[#9e9e9e]" />;
+        case 'document':
+            return <FileText size={14} className="text-[#9e9e9e]" />;
         default:
             return <AlignLeft size={14} className="text-[#9e9e9e]" />;
     }

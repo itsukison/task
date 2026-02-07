@@ -11,6 +11,7 @@ import { useAI } from '@/lib/ai/AIContextProvider';
 import { useState, useRef, useEffect } from 'react';
 import { AIPresetActions } from './AIPresetActions';
 import { PendingActionPreview } from './PendingActionPreview';
+import { NewConversationPrompt } from './NewConversationPrompt';
 
 export function AIChatPanel() {
     const {
@@ -223,6 +224,9 @@ export function AIChatPanel() {
                     </div>
                 </div>
             </div>
+
+            {/* New Conversation Prompt */}
+            <NewConversationPrompt />
         </div >
     );
 }

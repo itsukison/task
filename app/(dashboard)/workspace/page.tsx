@@ -96,8 +96,10 @@ export default function WorkspacePage() {
     // Generate preview objects from pending AI action
     const previewTask = useMemo(() => {
         if (!pendingAction || !user || !currentOrg) return null;
-        // Only create preview for task actions, not calendar reschedules
-        if (pendingAction.type === 'reschedule_calendar') return null;
+        // Only create preview for task actions
+        if (pendingAction.type !== 'create_task' && pendingAction.type !== 'update_task' && pendingAction.type !== 'delete_task') {
+            return null;
+        }
 
         // Use selected date as fallback (same logic as confirmAction)
         const fallbackDate = selectedDate ? formatDateToLocalISO(selectedDate) : null;
@@ -106,8 +108,10 @@ export default function WorkspacePage() {
 
     const previewBlock = useMemo(() => {
         if (!pendingAction || !user || !currentOrg) return null;
-        // Only create preview for task actions, not calendar reschedules
-        if (pendingAction.type === 'reschedule_calendar') return null;
+        // Only create preview for task actions with scheduling
+        if (pendingAction.type !== 'create_task' && pendingAction.type !== 'update_task' && pendingAction.type !== 'delete_task') {
+            return null;
+        }
 
         // Use selected date as fallback
         const fallbackDate = selectedDate ? formatDateToLocalISO(selectedDate) : null;
@@ -165,6 +169,22 @@ export default function WorkspacePage() {
             });
         } catch (err) {
             console.error('Failed to create task:', err);
+        }
+    };
+
+    // Create a subtask with title and link to parent task
+    const handleCreateSubtask = async (parentTaskId: string, title: string) => {
+        try {
+            await createTask({
+                title,
+                description: '',
+                status: 'planned',
+                expectedTime: 30,
+                scheduledDate: formatDateToLocalISO(selectedDate),
+                parentTaskId, // Link to parent task
+            } as any);
+        } catch (err) {
+            console.error('Failed to create subtask:', err);
         }
     };
 
@@ -290,6 +310,7 @@ export default function WorkspacePage() {
                 onRejectAssignment={handleRejectAssignment}
                 previewTask={previewTask}
                 previewBlock={previewBlock}
+                onCreateSubtask={handleCreateSubtask}
             />
 
             {selectedTask && (

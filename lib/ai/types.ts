@@ -67,7 +67,7 @@ export interface ToolResult {
 // Pending Actions (for confirmations)
 // ============================================================================
 
-export type PendingActionType = 'create_task' | 'update_task' | 'delete_task' | 'reschedule_calendar';
+export type PendingActionType = 'create_task' | 'update_task' | 'delete_task' | 'reschedule_calendar' | 'edit_document' | 'organize_documents' | 'schedule_task' | 'batch_schedule';
 
 export interface PendingTaskAction {
     type: 'create_task' | 'update_task' | 'delete_task';
@@ -97,7 +97,65 @@ export interface PendingCalendarAction {
     };
 }
 
-export type PendingAction = PendingTaskAction | PendingCalendarAction;
+export interface PendingScheduleAction {
+    type: 'schedule_task';
+    taskId: string;
+    taskTitle: string;
+    startTime: string; // ISO string
+    endTime: string;   // ISO string
+    duration: number;  // minutes
+    preview: {
+        dateFormatted: string; // "Monday, Feb 10"
+        timeFormatted: string; // "2:00 PM - 3:30 PM"
+        durationFormatted: string; // "1h 30m"
+    };
+}
+
+export interface PendingBatchScheduleAction {
+    type: 'batch_schedule';
+    data: {
+        date: string;
+        schedules: Array<{
+            taskId: string;
+            taskTitle: string;
+            startTime: string;
+            endTime: string;
+        }>;
+    };
+    preview: string; // Summary text
+}
+
+export interface PendingDocumentEditAction {
+    type: 'edit_document';
+    documentId: string;
+    editType: 'rewrite' | 'append' | 'prepend' | 'replace_section';
+    newContent: string;
+    targetText?: string;
+    preview: {
+        documentTitle: string;
+        beforeContent: string;
+        afterContent: string;
+        editType: string;
+    };
+}
+
+export interface PendingOrganizeAction {
+    type: 'organize_documents';
+    currentFolderId: string | null;
+    operations: Array<{
+        folderName: string;
+        folderId: string | null; // null means create new
+        documentIds: string[];
+        documentTitles: string[];
+    }>;
+    preview: {
+        foldersToCreate: string[];
+        totalMoves: number;
+        movesSummary: string; // "5 documents → 3 folders"
+    };
+}
+
+export type PendingAction = PendingTaskAction | PendingCalendarAction | PendingDocumentEditAction | PendingOrganizeAction | PendingScheduleAction | PendingBatchScheduleAction;
 
 // ============================================================================
 // API Request/Response Types

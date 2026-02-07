@@ -174,14 +174,77 @@ export function useUserPreferences() {
         }
     }, [user, currentOrg]);
 
+    // Get custom columns from preferences
+    const customColumns = (settings.preferences?.custom_columns as any[]) || [];
+
+    // Add a custom column (max 2)
+    const addCustomColumn = useCallback(async (type: 'subtask' | 'document', label: string): Promise<boolean> => {
+        if (!user || !currentOrg) {
+            setError('Must be authenticated with an organization');
+            return false;
+        }
+
+        const currentColumns = (settings.preferences?.custom_columns as any[]) || [];
+
+        if (currentColumns.length >= 2) {
+            setError('Maximum 2 custom columns allowed');
+            return false;
+        }
+
+        const newColumn = {
+            id: `custom_${type}_${Date.now()}`,
+            type,
+            label,
+            order: currentColumns.length,
+        };
+
+        const updatedColumns = [...currentColumns, newColumn];
+
+        return await updatePreferences({ custom_columns: updatedColumns } as any);
+    }, [user, currentOrg, settings.preferences, updatePreferences]);
+
+    // Remove a custom column
+    const removeCustomColumn = useCallback(async (columnId: string): Promise<boolean> => {
+        if (!user || !currentOrg) {
+            setError('Must be authenticated with an organization');
+            return false;
+        }
+
+        const currentColumns = (settings.preferences?.custom_columns as any[]) || [];
+        const updatedColumns = currentColumns
+            .filter((col: any) => col.id !== columnId)
+            .map((col: any, index: number) => ({ ...col, order: index }));
+
+        return await updatePreferences({ custom_columns: updatedColumns } as any);
+    }, [user, currentOrg, settings.preferences, updatePreferences]);
+
+    // Update custom column label
+    const updateCustomColumnLabel = useCallback(async (columnId: string, label: string): Promise<boolean> => {
+        if (!user || !currentOrg) {
+            setError('Must be authenticated with an organization');
+            return false;
+        }
+
+        const currentColumns = (settings.preferences?.custom_columns as any[]) || [];
+        const updatedColumns = currentColumns.map((col: any) =>
+            col.id === columnId ? { ...col, label } : col
+        );
+
+        return await updatePreferences({ custom_columns: updatedColumns } as any);
+    }, [user, currentOrg, settings.preferences, updatePreferences]);
+
     return {
         profile: settings.profile,
         preferences: settings.preferences,
+        customColumns,
         loading,
         error,
         saving,
         updateProfile,
         updatePreferences,
+        addCustomColumn,
+        removeCustomColumn,
+        updateCustomColumnLabel,
         refresh: fetchSettings,
     };
 }

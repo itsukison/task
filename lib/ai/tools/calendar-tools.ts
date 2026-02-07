@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { PendingCalendarAction } from '../types';
+import { PendingCalendarAction, PendingScheduleAction, PendingBatchScheduleAction, AgentContext } from '../types';
 
 // ============================================================================
 // Tool Definitions
@@ -10,7 +10,7 @@ export const calendarTools = [
         type: 'function',
         function: {
             name: 'get_calendar_blocks',
-            description: 'Retrieves calendar blocks (scheduled tasks) for a specific date range. Use this to: (1) view what is scheduled, or (2) find a calendar block ID before rescheduling it with suggest_reschedule.',
+            description: 'Retrieves calendar blocks (scheduled tasks) for a specific date range. RETURNS: Calendar blocks with [Block refs: 1→uuid1 2→uuid2...] mapping numbers to block IDs. USE WITH: suggest_reschedule - call get_calendar_blocks first to get block_id, then use suggest_reschedule to move the block to a new time.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -31,7 +31,7 @@ export const calendarTools = [
         type: 'function',
         function: {
             name: 'suggest_reschedule',
-            description: 'Reschedules a calendar block to a new time (use when user wants to move/reschedule a scheduled task). First call get_calendar_blocks to find the block_id of the task to reschedule. Returns a preview for user confirmation. Example: User says "move my meeting to 3pm" → get_calendar_blocks → extract block_id from [Block refs] → suggest_reschedule.',
+            description: 'Moves a calendar block to a new time (use when user wants to reschedule). REQUIRES: block_id from get_calendar_blocks result. USE WITH: get_calendar_blocks to find block_id first, then call this with new times. RETURNS: Preview for user confirmation. Maintains same duration, just moves start/end time.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -49,6 +49,64 @@ export const calendarTools = [
                     },
                 },
                 required: ['block_id', 'new_start_time', 'new_end_time'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'schedule_task',
+            description: 'Finds available time slots and creates calendar block for a task. REQUIRES: task_id from list_tasks OR create_task result. Task must have expected_time > 0 or will error. USE WITH: list_tasks (for existing tasks) OR create_task (for new tasks). RETURNS: Proposed calendar block at first available slot, or message if no slots found. Respects work hours (9am-5pm) and avoids conflicts.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    task_id: {
+                        type: 'string',
+                        description: 'The ID of the task to schedule (UUID). Get this from list_tasks result OR create_task return value. Task must exist and have expected_time > 0.',
+                    },
+                    preferred_date: {
+                        type: 'string',
+                        description: 'Preferred date to schedule on in ISO format (YYYY-MM-DD). If not provided, searches starting from today.',
+                    },
+                    preferred_start_time: {
+                        type: 'string',
+                        description: 'Optional preferred start time in 24-hour format (HH:mm). If provided, tries to find a slot at or after this time. Examples: "09:00", "14:30"',
+                    },
+                    search_days: {
+                        type: 'number',
+                        description: 'Number of days to search forward for available slots. Default: 7 days.',
+                        default: 7,
+                    },
+                },
+                required: ['task_id'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'auto_schedule_tasks',
+            description: 'Automatically schedules multiple tasks at once. REQUIRES: list of task_ids. USE WHEN: User says "Schedule all my tasks", "Plan my day", or gives a list of tasks to schedule. RETURNS: A single batch action with proposed times for all tasks. Smartly finds non-overlapping slots for each task.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    task_ids: {
+                        type: 'array',
+                        items: {
+                            type: 'string',
+                        },
+                        description: 'List of task IDs to schedule',
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Date to schedule on (ISO YYYY-MM-DD). Defaults to today if not specified.',
+                    },
+                    start_time: {
+                        type: 'string',
+                        description: 'Optional start time to begin scheduling from (HH:mm). Defaults to 09:00.',
+                    },
+                },
+                required: ['task_ids'],
             },
         },
     },
@@ -161,4 +219,318 @@ function formatTime(date: Date): string {
         minute: '2-digit',
         hour12: true,
     });
+}
+
+// ============================================================================
+// New Tool Implementation: Smart Schedule Task
+// ============================================================================
+
+export async function scheduleTask(
+    taskId: string,
+    preferredDate: string | undefined,
+    preferredStartTime: string | undefined,
+    searchDays: number = 7,
+    context: AgentContext
+): Promise<PendingScheduleAction> {
+    const supabase = await createClient();
+
+    // Find task from context
+    // Find task from context or DB
+    let task = context.tasks?.find(t => t.id === taskId);
+
+    if (!task) {
+        console.log(`Task ${taskId} not found in context, fetching from DB...`);
+        const { data: dbTask, error } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('id', taskId)
+            .single();
+
+        if (error || !dbTask) {
+            console.error('Failed to fetch task from DB:', error);
+            throw new Error('Task not found. Please ensure the task exists.');
+        }
+
+        // Map DB task to Task interface (minimal fields needed for scheduling)
+        task = {
+            id: dbTask.id,
+            title: dbTask.title,
+            description: dbTask.description,
+            status: dbTask.status,
+            expectedTime: dbTask.expected_time_minutes,
+            actualTime: dbTask.actual_time_minutes,
+            visibility: dbTask.visibility,
+            owners: [], // Not needed for scheduling
+            ownerId: dbTask.owner_id || dbTask.created_by,
+            organizationId: dbTask.organization_id,
+            scheduledDate: dbTask.scheduled_date,
+            createdAt: dbTask.created_at,
+            updatedAt: dbTask.updated_at,
+        } as any; // Cast to any/Task since we're missing some joined fields like owners profiles
+    }
+
+    if (!task) {
+        throw new Error('Task not found.');
+    }
+
+    if (!task.expectedTime || task.expectedTime === 0) {
+        throw new Error('Task has no expected time set. Please add an estimated time to the task before scheduling.');
+    }
+
+    const taskDuration = task.expectedTime; // in minutes
+
+    // Determine search window
+    const startDate = preferredDate ? new Date(preferredDate) : new Date();
+    startDate.setHours(0, 0, 0, 0); // Reset to midnight
+
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + searchDays);
+
+    // Fetch all existing blocks for the user in the search window
+    const { data: existingBlocks, error } = await supabase
+        .from('calendar_blocks')
+        .select('id, start_time, end_time')
+        .eq('organization_id', context.organizationId)
+        .eq('owner_id', context.userId)
+        .gte('start_time', startDate.toISOString())
+        .lte('end_time', endDate.toISOString())
+        .order('start_time', { ascending: true });
+
+    if (error) {
+        throw new Error(`Failed to fetch calendar blocks: ${error.message}`);
+    }
+
+    // Try each day in the search window
+    for (let dayOffset = 0; dayOffset < searchDays; dayOffset++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(currentDate.getDate() + dayOffset);
+
+        // Get blocks for this day
+        const dayBlocks = (existingBlocks || []).filter(block => {
+            const blockStart = new Date(block.start_time);
+            return blockStart.toDateString() === currentDate.toDateString();
+        });
+
+        // Find available slots for this day
+        const slots = findAvailableSlots(
+            currentDate,
+            dayBlocks.map(b => ({
+                startTime: b.start_time,
+                endTime: b.end_time,
+            })),
+            taskDuration,
+            dayOffset === 0 ? preferredStartTime : undefined // Only use preferred time on first day
+        );
+
+        if (slots.length > 0) {
+            // Found a slot! Use the first one
+            const slot = slots[0];
+
+            // Format preview
+            const dateFormatted = slot.start.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+            });
+
+            const timeFormatted = `${formatTime(slot.start)} - ${formatTime(slot.end)}`;
+
+            const hours = Math.floor(taskDuration / 60);
+            const minutes = taskDuration % 60;
+            let durationFormatted = '';
+            if (hours > 0) durationFormatted += `${hours}h `;
+            if (minutes > 0) durationFormatted += `${minutes}m`;
+
+            return {
+                type: 'schedule_task',
+                taskId: task.id,
+                taskTitle: task.title,
+                startTime: slot.start.toISOString(),
+                endTime: slot.end.toISOString(),
+                duration: taskDuration,
+                preview: {
+                    dateFormatted,
+                    timeFormatted: timeFormatted.trim(),
+                    durationFormatted: durationFormatted.trim(),
+                },
+            };
+        }
+    }
+
+    // No slots found
+    throw new Error(`No available time slots found in the next ${searchDays} day(s). Try increasing search_days or choosing a different date.`);
+}
+
+function findAvailableSlots(
+    date: Date,
+    existingBlocks: Array<{ startTime: string; endTime: string }>,
+    taskDuration: number,
+    preferredStartTime?: string
+): Array<{ start: Date; end: Date }> {
+    const WORK_START = 9 * 60; // 9am in minutes from midnight
+    const WORK_END = 17 * 60;  // 5pm in minutes from midnight
+
+    // Convert blocks to minute intervals
+    const intervals = existingBlocks
+        .map(b => ({
+            start: getMinutesFromMidnight(new Date(b.startTime)),
+            end: getMinutesFromMidnight(new Date(b.endTime)),
+        }))
+        .sort((a, b) => a.start - b.start);
+
+    const slots: Array<{ start: number; end: number }> = [];
+    let currentTime = WORK_START;
+
+    // If preferred time provided, start from there
+    if (preferredStartTime) {
+        try {
+            const [hours, mins] = preferredStartTime.split(':').map(Number);
+            if (!isNaN(hours) && !isNaN(mins)) {
+                currentTime = Math.max(WORK_START, hours * 60 + mins);
+            }
+        } catch (e) {
+            // Invalid format, ignore and use default
+        }
+    }
+
+    // Find gaps between blocks
+    for (const interval of intervals) {
+        // Gap before this block?
+        if (interval.start - currentTime >= taskDuration) {
+            slots.push({ start: currentTime, end: interval.start });
+        }
+        currentTime = Math.max(currentTime, interval.end);
+    }
+
+    // Gap after last block until end of work day?
+    if (WORK_END - currentTime >= taskDuration) {
+        slots.push({ start: currentTime, end: WORK_END });
+    }
+
+    // Convert minute intervals back to Date objects
+    return slots.map(slot => ({
+        start: createDateWithMinutes(date, slot.start),
+        end: createDateWithMinutes(date, slot.start + taskDuration),
+    }));
+}
+
+function getMinutesFromMidnight(date: Date): number {
+    return date.getHours() * 60 + date.getMinutes();
+}
+
+export async function autoScheduleTasks(
+    taskIds: string[],
+    date: string | undefined,
+    startTime: string | undefined,
+    context: AgentContext
+): Promise<PendingBatchScheduleAction> {
+    const supabase = await createClient();
+    const scheduleDate = date ? new Date(date) : new Date();
+    scheduleDate.setHours(0, 0, 0, 0);
+
+    // 1. Fetch all tasks
+    const tasks: any[] = [];
+    for (const taskId of taskIds) {
+        let task = context.tasks?.find(t => t.id === taskId);
+        if (!task) {
+            const { data: dbTask } = await supabase
+                .from('tasks')
+                .select('*')
+                .eq('id', taskId)
+                .single();
+
+            if (dbTask) {
+                task = {
+                    id: dbTask.id,
+                    title: dbTask.title,
+                    expectedTime: dbTask.expected_time_minutes,
+                    // map other fields if needed
+                } as any;
+            }
+        }
+        if (task) tasks.push(task);
+    }
+
+    if (tasks.length === 0) {
+        throw new Error('No valid tasks found to schedule.');
+    }
+
+    // 2. Fetch existing blocks for the day
+    const { data: existingBlocks } = await supabase
+        .from('calendar_blocks')
+        .select('start_time, end_time')
+        .eq('organization_id', context.organizationId)
+        .gte('start_time', scheduleDate.toISOString())
+        .lte('end_time', new Date(scheduleDate.getTime() + 86400000).toISOString());
+
+    // 3. Simulation state
+    let busySlots = (existingBlocks || []).map(b => ({
+        startTime: b.start_time,
+        endTime: b.end_time
+    }));
+
+    const proposedSchedules = [];
+    let currentSearchTime = startTime || '09:00';
+
+    // 4. Schedule each task
+    for (const task of tasks) {
+        if (!task.expectedTime) continue;
+
+        // Find slot for this task
+        const slots = findAvailableSlots(
+            scheduleDate,
+            busySlots,
+            task.expectedTime,
+            currentSearchTime
+        );
+
+        if (slots.length > 0) {
+            const slot = slots[0];
+
+            // Add to proposed
+            proposedSchedules.push({
+                taskId: task.id,
+                taskTitle: task.title,
+                startTime: slot.start.toISOString(),
+                endTime: slot.end.toISOString()
+            });
+
+            // Add to busy slots so next task doesn't overlap
+            busySlots.push({
+                startTime: slot.start.toISOString(),
+                endTime: slot.end.toISOString()
+            });
+
+            // Update search time to be after this task (optional optimization)
+            // currentSearchTime = formatTime24(slot.end); 
+        }
+    }
+
+    if (proposedSchedules.length === 0) {
+        throw new Error('Could not find available slots for any of the tasks.');
+    }
+
+    // 5. Generate summary
+    const summary = `Proposed schedule for ${tasks.length} tasks:\n` +
+        proposedSchedules.map(s => {
+            const start = new Date(s.startTime);
+            const end = new Date(s.endTime);
+            return `- ${s.taskTitle}: ${formatTime(start)} - ${formatTime(end)}`;
+        }).join('\n');
+
+    return {
+        type: 'batch_schedule',
+        data: {
+            date: scheduleDate.toISOString().split('T')[0],
+            schedules: proposedSchedules
+        },
+        preview: summary
+    };
+}
+
+function createDateWithMinutes(date: Date, minutes: number): Date {
+    const result = new Date(date);
+    result.setHours(0, 0, 0, 0); // Reset to midnight
+    result.setMinutes(minutes);
+    return result;
 }

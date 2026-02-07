@@ -129,23 +129,23 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center backdrop-blur-[2px]">
-            <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/20 z-[100] flex items-center justify-center backdrop-blur-[2px]">
+            <div className="bg-white w-full max-w-[480px] rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-[#E9E9E7]">
-                    <h2 className="text-lg font-semibold text-[#37352F]">
-                        {mode === 'file' ? 'Upload File' : 'Add Link'}
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-[#37352F]">
+                        {mode === 'file' ? 'Upload file' : 'Add link'}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="p-1.5 hover:bg-gray-100 rounded text-gray-500 transition-colors"
+                        className="text-[#9B9A97] hover:text-[#37352F] transition-colors"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="px-6 py-6">
+                <div className="mb-6">
                     {mode === 'file' ? (
                         <>
                             {/* File upload area */}
@@ -155,11 +155,13 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
                                 onDragOver={handleDrag}
                                 onDrop={handleDrop}
                                 onClick={() => fileInputRef.current?.click()}
-                                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                                    dragActive
-                                        ? 'border-[#FF5500] bg-orange-50'
-                                        : 'border-[#E9E9E7] hover:border-[#C8C7C5] hover:bg-[#FAFAFA]'
-                                }`}
+                                className={`
+                                    relative rounded-lg p-8 text-center cursor-pointer transition-all duration-200
+                                    ${dragActive
+                                        ? 'bg-[#EFEFED] ring-2 ring-[#37352F] ring-offset-2'
+                                        : 'bg-[#F7F7F5] hover:bg-[#EFEFED]'
+                                    }
+                                `}
                             >
                                 <input
                                     ref={fileInputRef}
@@ -173,21 +175,25 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
                                 />
 
                                 {file ? (
-                                    <div className="flex items-center gap-3">
-                                        <File size={24} className="text-[#FF5500]" />
-                                        <div className="flex-1 text-left">
-                                            <p className="text-sm font-medium text-[#37352F]">{file.name}</p>
-                                            <p className="text-xs text-[#9B9A97]">{formatFileSize(file.size)}</p>
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="p-2 bg-white rounded-md shadow-sm">
+                                            <File size={20} className="text-[#37352F]" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-sm font-medium text-[#37352F] truncate max-w-[200px]">{file.name}</p>
+                                            <p className="text-xs text-[#787774]">{formatFileSize(file.size)}</p>
                                         </div>
                                     </div>
                                 ) : (
                                     <>
-                                        <Upload size={32} className="mx-auto mb-3 text-[#9B9A97]" />
+                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                                            <Upload size={18} className="text-[#787774]" />
+                                        </div>
                                         <p className="text-sm font-medium text-[#37352F] mb-1">
-                                            Drop file here or click to browse
+                                            Click to upload
                                         </p>
                                         <p className="text-xs text-[#9B9A97]">
-                                            Max file size: {formatFileSize(MAX_FILE_SIZE)}
+                                            or drag and drop
                                         </p>
                                     </>
                                 )}
@@ -196,15 +202,12 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
                             {/* Upload progress */}
                             {uploading && (
                                 <div className="mt-4">
-                                    <div className="w-full h-2 bg-[#F7F7F5] rounded-full overflow-hidden">
+                                    <div className="w-full h-1 bg-[#E9E9E7] rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-[#FF5500] transition-all duration-300"
+                                            className="h-full bg-[#37352F] transition-all duration-300"
                                             style={{ width: `${uploadProgress}%` }}
                                         />
                                     </div>
-                                    <p className="text-xs text-[#9B9A97] mt-2 text-center">
-                                        Uploading... {uploadProgress}%
-                                    </p>
                                 </div>
                             )}
                         </>
@@ -212,48 +215,42 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
                         <>
                             {/* Link input */}
                             <div>
-                                <label className="block text-sm font-medium text-[#37352F] mb-2">
-                                    Link URL
-                                </label>
-                                <div className="flex items-center gap-2 px-3 py-2 border border-[#E9E9E7] rounded-lg focus-within:border-[#2383E2]">
-                                    <LinkIcon size={16} className="text-[#9B9A97]" />
-                                    <input
-                                        type="url"
-                                        value={linkUrl}
-                                        onChange={(e) => setLinkUrl(e.target.value)}
-                                        placeholder="https://example.com"
-                                        className="flex-1 text-sm text-[#37352F] bg-transparent outline-none"
-                                    />
-                                </div>
+                                <input
+                                    type="url"
+                                    value={linkUrl}
+                                    onChange={(e) => setLinkUrl(e.target.value)}
+                                    placeholder="Paste any link..."
+                                    className="w-full px-4 py-3 text-sm text-[#37352F] bg-[#F7F7F5] rounded-lg border-none focus:ring-2 focus:ring-[#37352F]/10 focus:bg-[#EFEFED] placeholder:text-[#9B9A97] transition-all"
+                                    autoFocus
+                                />
                             </div>
                         </>
                     )}
 
                     {/* Error message */}
                     {error && (
-                        <div className="mt-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-600">{error}</p>
+                        <div className="mt-4 text-sm text-[#EB5757] flex items-center gap-2">
+                            <span className="w-1 h-1 rounded-full bg-[#EB5757]" />
+                            {error}
                         </div>
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[#E9E9E7]">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-[#37352F] border border-[#E9E9E7] rounded-lg hover:bg-[#F7F7F5] transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={mode === 'file' ? handleUploadFile : handleAddLink}
-                        disabled={uploading || (mode === 'file' ? !file : !linkUrl)}
-                        className="px-4 py-2 text-sm font-medium text-white bg-[#FF5500] rounded-lg hover:bg-[#FF7F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                        {uploading && <Loader size={14} className="animate-spin" />}
-                        {mode === 'file' ? 'Upload' : 'Add Link'}
-                    </button>
-                </div>
+                {/* Footer Actions */}
+                <button
+                    onClick={mode === 'file' ? handleUploadFile : handleAddLink}
+                    disabled={uploading || (mode === 'file' ? !file : !linkUrl)}
+                    className={`
+                        w-full py-2.5 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2
+                        ${uploading || (mode === 'file' ? !file : !linkUrl)
+                            ? 'bg-[#F7F7F5] text-[#9B9A97] cursor-not-allowed'
+                            : 'bg-[#37352F] text-white hover:bg-[#2F2D29] active:scale-[0.99]'
+                        }
+                    `}
+                >
+                    {uploading && <Loader size={14} className="animate-spin" />}
+                    {mode === 'file' ? (uploading ? 'Uploading...' : 'Upload file') : 'Add link'}
+                </button>
             </div>
         </div>
     );

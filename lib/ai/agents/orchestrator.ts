@@ -11,6 +11,8 @@ import {
     documentTools,
     getDocumentContent,
     searchInDocuments,
+    editDocumentContent,
+    organizeDocuments,
 } from '../tools/document-tools';
 import {
     taskTools,
@@ -22,6 +24,8 @@ import {
     calendarTools,
     getCalendarBlocks,
     suggestReschedule,
+    scheduleTask,
+    autoScheduleTasks,
 } from '../tools/calendar-tools';
 
 // ============================================================================
@@ -63,6 +67,7 @@ export async function runOrchestrator(
 
         // Handle tool calls
         if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+            console.log('🤖 AI Orchestrator: Tool calls received', JSON.stringify(assistantMessage.tool_calls, null, 2));
             const toolCall = assistantMessage.tool_calls[0];
             const result = await executeToolCall(toolCall, context, messages, documentCache);
 
@@ -95,6 +100,7 @@ async function executeToolCall(
     let args: any;
     try {
         args = JSON.parse(toolCall.function.arguments);
+        console.log(`🔧 Executing tool: ${functionName}`, args);
     } catch (parseError) {
         console.error('Failed to parse tool arguments:', parseError);
         return {
@@ -106,24 +112,47 @@ async function executeToolCall(
         // Document tools
         if (functionName === 'get_document_content') {
             const { content, updatedCache } = await getDocumentContent(args.document_id, documentCache);
-            // After getting content, send it back to Kimi for processing
+
+            // Multi-turn support: allow AI to call follow-up tools (e.g., edit_document_content)
+            if (!originalMessages || originalMessages.length === 0) {
+                return { response: content, updatedCache };
+            }
+
+            // Build conversation with tool result using OpenAI function calling pattern
+            const updatedMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+                ...originalMessages,
+                {
+                    role: 'assistant' as const,
+                    content: '',
+                    tool_calls: [toolCall],
+                },
+                {
+                    role: 'tool' as const,
+                    tool_call_id: toolCall.id || 'get_document_content_call',
+                    content: content,
+                },
+            ];
+
+            // Send result back to Kimi to let it decide next action
             const followUpResponse = await kimiClient.chat.completions.create({
                 model: KIMI_MODEL,
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a helpful assistant. Answer the user\'s question based on the following document content.',
-                    },
-                    {
-                        role: 'user',
-                        content: `Document content:\n\n${content}\n\nPlease summarize or answer questions about this document.`,
-                    },
-                ],
+                messages: updatedMessages,
+                tools: getAvailableTools(context),
                 temperature: 0.7,
             });
 
+            const followUpMessage = followUpResponse.choices[0].message;
+
+            // If Kimi wants to call another tool (e.g., edit_document_content)
+            if (followUpMessage.tool_calls && followUpMessage.tool_calls.length > 0) {
+                const nextToolCall = followUpMessage.tool_calls[0];
+                // Recursively execute the next tool call
+                return await executeToolCall(nextToolCall, context, updatedMessages, updatedCache);
+            }
+
+            // Otherwise, return the response to user (e.g., Q&A answer)
             return {
-                response: followUpResponse.choices[0].message.content || 'Could not process document.',
+                response: followUpMessage.content || content,
                 updatedCache,
             };
         }
@@ -131,6 +160,32 @@ async function executeToolCall(
         if (functionName === 'search_in_documents') {
             const result = await searchInDocuments(args.query, args.document_ids);
             return { response: result };
+        }
+
+        if (functionName === 'edit_document_content') {
+            const preview = await editDocumentContent(
+                args.document_id,
+                args.edit_type,
+                args.new_content,
+                args.target_text,
+                context
+            );
+            return {
+                response: 'I can make these edits to the document:',
+                pendingAction: preview,
+            };
+        }
+
+        if (functionName === 'organize_documents') {
+            const preview = await organizeDocuments(
+                args.document_ids,
+                args.folder_structure,
+                context
+            );
+            return {
+                response: 'I can organize these documents into folders:',
+                pendingAction: preview,
+            };
         }
 
         // Task tools (return pending actions)
@@ -256,6 +311,33 @@ async function executeToolCall(
             };
         }
 
+        if (functionName === 'schedule_task') {
+            const preview = await scheduleTask(
+                args.task_id,
+                args.preferred_date,
+                args.preferred_start_time,
+                args.search_days || 7,
+                context
+            );
+            return {
+                response: 'I found an available time slot for this task:',
+                pendingAction: preview,
+            };
+        }
+
+        if (functionName === 'auto_schedule_tasks') {
+            const preview = await autoScheduleTasks(
+                args.task_ids,
+                args.date,
+                args.start_time,
+                context
+            );
+            return {
+                response: `I've prepared a schedule for these ${args.task_ids.length} tasks:`,
+                pendingAction: preview,
+            };
+        }
+
         return { response: 'Tool not implemented yet.' };
     } catch (error) {
         return { response: handleAIError(error) };
@@ -302,7 +384,18 @@ Current context:
         context.selectedDocuments.forEach((doc, index) => {
             prompt += `\n${index + 1}. "${doc.title}" (ID: ${doc.id})`;
         });
-        prompt += `\n\nUse the get_document_content tool with the document ID to retrieve content and answer questions about these documents.`;
+        prompt += `\n\nYou can:
+- Use get_document_content to retrieve document content (for reading or before editing)
+- Use edit_document_content to modify documents (rewrite, append, prepend, or replace sections)
+- Use organize_documents to categorize files into folders based on their titles and content
+
+When editing documents:
+- If the user wants to refine/tweak existing content, FIRST use get_document_content to see what's there, then use edit_document_content with the appropriate edit_type:
+  - For targeted changes: use edit_type="replace_section" and copy the exact text to replace as target_text
+  - For major rewrites: use edit_type="rewrite" to replace all content
+  - For additions: use edit_type="append" or "prepend"
+- If the document is likely empty (new document) and the user is writing from scratch, you can call edit_document_content directly with edit_type="rewrite" (no need to read empty content first)
+- When answering questions about documents, use get_document_content to retrieve the content and then provide your answer based on what you see`;
     }
 
     if (context.currentPage === 'workspace') {
@@ -310,43 +403,66 @@ Current context:
         if (context.tasks) {
             prompt += `\nThere are ${context.tasks.length} tasks in the current workspace.`;
         }
-        prompt += `\n\nWhen creating tasks:
-- ALWAYS provide expected_time_minutes (required field, must be > 0)
-- If user mentions duration (e.g., "for one hour", "30 minutes"), use that for expected_time_minutes
-- If no duration mentioned, estimate a reasonable time (e.g., 30 minutes)
-- For scheduled tasks with specific times:
-  - Use ISO 8601 datetime format (e.g., "${currentYear}-02-02T16:00:00")
-  - Set scheduled_start_time to the full datetime
-  - Set duration_minutes to match expected_time_minutes
-  - ALWAYS use ${currentYear} as the year unless the user explicitly specifies a different year
-  - Parse relative dates (like "today", "tomorrow", "Monday") relative to ${currentDate}
-${context.selectedDate ? `- For unscheduled tasks (no specific time), use ${context.selectedDate} as the scheduled_date` : ''}
+        prompt += `\n\nTool Planning and Reasoning:
+Before calling any tools, think through your approach:
 
-When listing tasks:
-- If user asks for tasks "today", "tomorrow", or a specific date, use the scheduled_date parameter with the appropriate ISO date (YYYY-MM-DD)
-- Parse relative dates relative to ${currentDate}
-- For sorting by time length, the results are already ordered by expected_time_minutes
+1. **What data do I need?**
+   - User wants to modify a task → I need task_id
+   - User wants to reschedule a block → I need block_id
+   - User wants to create something new → I can call directly
 
-When updating tasks:
-- ALWAYS first call list_tasks to search for the task by title/name
-- Find the task number (e.g., "1.", "2.") that matches the title
-- Extract the task ID from the [Task refs: 1→uuid1 2→uuid2...] section at the bottom
-- Then call update_task with that ID
-- Example: User says "mark eating dinner as completed" → list_tasks → find "2. eating dinner" → check refs "2→abc123" → update_task with task_id="abc123"
+2. **Which tool provides that data?**
+   - task_id comes from: list_tasks (search existing) OR create_task (new task)
+   - block_id comes from: get_calendar_blocks (search calendar)
+   - document content comes from: get_document_content
 
-When rescheduling calendar blocks (moving tasks to different times):
-- If user says "move [task] to [time]" or "reschedule [task] to [time]", this is a RESCHEDULE operation, NOT an update_task operation
-- FIRST call get_calendar_blocks to find the task's current calendar block
-- Look for the task by title in the calendar blocks results
-- Extract the block_id from the [Block refs: 1→uuid1 2→uuid2...] section at the bottom
-- Then call suggest_reschedule with:
-  - block_id (from get_calendar_blocks result)
-  - new_start_time (ISO 8601 datetime in LOCAL TIME without timezone offset, e.g., "YYYY-MM-DDTHH:mm:ss")
-  - new_end_time (calculated from new start + duration, maintaining the same duration as original)
-- When the user says a time like "3pm", interpret it as 3pm in their LOCAL timezone
-- Format times as: YYYY-MM-DDTHH:mm:ss (no Z or timezone offset - this will be interpreted as local time)
-- Example: "move eat lunch from 12 to 3pm" on ${currentDate} → get_calendar_blocks → find "1. Eat lunch: 12:00 PM - 12:30 PM" → check refs "1→block-uuid" → if duration was 30min, calculate new times as 3pm-3:30pm → suggest_reschedule(block_id="block-uuid", new_start_time="${currentDate}T15:00:00", new_end_time="${currentDate}T15:30:00")
-- IMPORTANT: Do NOT use update_task for time changes. update_task only changes metadata (title, status, description, expected_time). Use suggest_reschedule for moving scheduled blocks to different times.`;
+3. **What order should I call them?**
+   - If I need data from one tool for another → Call in sequence (multi-turn)
+   - If tools are independent → Can reason about them separately
+   - Example: "Move task X" → list_tasks first to get task_id, then use result
+
+4. **Check tool descriptions for dependencies:**
+   - Each tool documents what inputs it REQUIRES
+   - Each tool documents what data it RETURNS
+   - Read carefully before calling
+
+Example reasoning:
+- User: "Move watch kill bill to when I'm free tonight"
+- Think: Need to schedule existing task → Call list_tasks to get task_id → Call schedule_task with task_id
+- schedule_task will automatically find first available slot tonight and return preview for confirmation
+- Never ask user to choose - automatically suggest the first available slot
+
+- User: "Schedule all my tasks for today"
+- Think: Need to schedule multiple tasks → Call list_tasks to get all task IDs → Call auto_schedule_tasks with list of IDs
+- auto_schedule_tasks returns a single batch confirmation for all tasks
+
+- User: "Add task read chipwar for 30 min from 9"
+- Think: specific time "from 9" → calculate today at 9am with timezone → create_task(title="read chipwar", scheduled_start_time="2026-02-07T09:00:00+09:00", expected_time_minutes=30)`;
+
+        prompt += `\n\nGeneral Tool Usage:
+- All tools document their dependencies and return values in descriptions
+- Use multi-turn workflows when one tool's output feeds into another
+- Mutation tools (create, update, delete, reschedule) return previews requiring user confirmation
+- Read operations (list, get, search) return data you can use immediately
+
+Response Guidelines:
+- Be proactive: When tools return data, use it immediately to complete the user's request
+- Never expose UUIDs in conversational responses - only use human-readable names (task titles, etc.)
+- For scheduling: Automatically suggest the first available slot, don't ask user to choose
+- Example: "I've scheduled 'watch Kill Bill' for tonight at 7:00 PM" (with preview), not "When would you like to schedule it?"
+
+Data Format Guidelines:
+- expected_time_minutes: Always provide for tasks (required, must be > 0). Estimate if user doesn't specify.
+- ISO 8601 datetime: MUST include timezone offset, format: "${currentYear}-02-07T09:00:00+09:00" for scheduled_start_time (REQUIRED for "from [time]" requests). User timezone is UTC+9 (Japan).
+- ISO date: "YYYY-MM-DD" format for dates (e.g., scheduled_date parameter)
+- Current year: ${currentYear} - use unless user explicitly specifies different year
+- Parse relative dates ("today", "tomorrow") relative to ${currentDate}
+${context.selectedDate ? `- Selected date: ${context.selectedDate}` : ''}
+
+Tool Result References (INTERNAL USE ONLY - never show UUIDs to user):
+- list_tasks returns: [Task refs: 1→uuid1 2→uuid2...] - extract uuid and use internally
+- get_calendar_blocks returns: [Block refs: 1→uuid1 2→uuid2...] - extract uuid and use internally
+- In your conversational responses, refer to tasks/blocks by their human-readable names only`;
     }
 
     prompt += `\n\nIMPORTANT: For any mutation operations (creating, updating, deleting, rescheduling), you must use the appropriate tool which will return a preview for the user to confirm. Never directly mention that you're waiting for confirmation - just present the action naturally.`;

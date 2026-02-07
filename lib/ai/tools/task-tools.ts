@@ -10,7 +10,7 @@ export const taskTools = [
         type: 'function',
         function: {
             name: 'create_task',
-            description: 'Creates a new task and optionally schedules it on the calendar. Returns a preview that requires user confirmation before applying.',
+            description: 'Creates a new task. RETURNS: task_id that can be used with schedule_task or update_task. USE WITH: schedule_task to find available time slots. Calendar block creation: (1) No scheduled fields = no block (2) scheduled_start_time set = block created at exact time (3) Use schedule_task after creation to find available slots.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -33,11 +33,11 @@ export const taskTools = [
                     },
                     scheduled_date: {
                         type: 'string',
-                        description: 'ISO date (YYYY-MM-DD) for task without specific time',
+                        description: 'ISO date (YYYY-MM-DD) for task without specific time. Sets a date flag but does NOT create calendar block. Rarely used - prefer leaving blank or using schedule_task to find available slots.',
                     },
                     scheduled_start_time: {
                         type: 'string',
-                        description: 'ISO 8601 datetime for tasks with specific time. Only use when user specifies a time.',
+                        description: 'ISO 8601 datetime when user specifies exact time (e.g., "at 3pm", "tomorrow at 10am", "from 9"). Automatically creates calendar block even if overlapping with existing blocks. REQUIRED for "from [time]" requests.',
                     },
                     duration_minutes: {
                         type: 'number',
@@ -52,7 +52,7 @@ export const taskTools = [
         type: 'function',
         function: {
             name: 'update_task',
-            description: 'Updates an existing task. Returns a preview that requires user confirmation. IMPORTANT: You must first use list_tasks to find the task ID by searching for the task title/name, then use that ID here.',
+            description: 'Updates an existing task (title, description, status, expected_time). REQUIRES: task_id from list_tasks result. USE WITH: list_tasks to find task_id first. RETURNS: Preview for user confirmation. Note: This only updates metadata, not schedule times. To move scheduled blocks, use get_calendar_blocks and suggest_reschedule instead.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -84,7 +84,7 @@ export const taskTools = [
         type: 'function',
         function: {
             name: 'list_tasks',
-            description: 'Lists all tasks in the current workspace, optionally filtered by status and/or date.',
+            description: 'Lists all tasks in the current workspace, optionally filtered by status and/or date. RETURNS: Task list with [Task refs: 1→uuid1 2→uuid2...] mapping numbers to task IDs. USE WITH: update_task or schedule_task - call list_tasks first to get task_id.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -116,6 +116,7 @@ export async function createTaskPreview(params: {
     scheduled_start_time?: string;
     duration_minutes?: number;
 }): Promise<PendingTaskAction> {
+    console.log('🏗️ createTaskPreview params:', params);
     let preview = `Create task: "${params.title}"`;
     if (params.description) preview += `\n${params.description}`;
     if (params.expected_time_minutes) preview += `\nExpected time: ${params.expected_time_minutes} min`;
@@ -131,7 +132,7 @@ export async function createTaskPreview(params: {
         }
     }
 
-    return {
+    const result: PendingTaskAction = {
         type: 'create_task',
         data: {
             title: params.title,
@@ -144,6 +145,8 @@ export async function createTaskPreview(params: {
         },
         preview,
     };
+    console.log('📤 createTaskPreview result:', result);
+    return result;
 }
 
 export async function updateTaskPreview(params: {

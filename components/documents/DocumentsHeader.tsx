@@ -28,8 +28,9 @@ export function DocumentsHeader({
     onOrganize,
     onSort,
 }: DocumentsHeaderProps) {
-    const [showMenu, setShowMenu] = useState(false);
     const [showSortMenu, setShowSortMenu] = useState(false);
+    const [showNewMenu, setShowNewMenu] = useState(false);
+    const [showUploadMenu, setShowUploadMenu] = useState(false);
 
     return (
         <div className="pt-12 px-8 pb-4 flex-shrink-0 ml-2">
@@ -40,17 +41,7 @@ export function DocumentsHeader({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Organize button */}
-                    <button
-                        onClick={onOrganize}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#787774] bg-white border border-[#E9E9E7] rounded-lg hover:bg-[#F7F7F5] hover:text-[#37352F] transition-colors"
-                        title="Organize items in a grid"
-                    >
-                        <LayoutGrid size={16} />
-                        <span>Organize</span>
-                    </button>
-
-                    {/* Sort dropdown */}
+                    {/* Sort dropdown (merged Organize) */}
                     <div className="relative">
                         <button
                             onClick={() => setShowSortMenu(!showSortMenu)}
@@ -67,7 +58,18 @@ export function DocumentsHeader({
                                     className="fixed inset-0 z-10"
                                     onClick={() => setShowSortMenu(false)}
                                 />
-                                <div className="absolute top-full right-0 mt-2 w-44 bg-white border border-[#E9E9E7] rounded-lg shadow-lg py-1 z-20">
+                                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-[#E9E9E7] rounded-lg shadow-lg py-1 z-20">
+                                    <button
+                                        onClick={() => {
+                                            onOrganize();
+                                            setShowSortMenu(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
+                                    >
+                                        <LayoutGrid size={16} className="text-[#9B9A97]" />
+                                        <span>As it is</span>
+                                    </button>
+                                    <div className="h-px bg-[#E9E9E7] my-1 mx-2" />
                                     <button
                                         onClick={() => {
                                             onSort('name');
@@ -103,59 +105,86 @@ export function DocumentsHeader({
                         )}
                     </div>
 
-                    {/* Quick actions */}
-                    <button
-                        onClick={onNewDocument}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#37352F] bg-white border border-[#E9E9E7] rounded-lg hover:bg-[#F7F7F5] transition-colors"
-                    >
-                        <FilePlus size={16} />
-                        <span>New Document</span>
-                    </button>
-
-                    <button
-                        onClick={onNewFolder}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#37352F] bg-white border border-[#E9E9E7] rounded-lg hover:bg-[#F7F7F5] transition-colors"
-                    >
-                        <FolderPlus size={16} />
-                        <span>New Folder</span>
-                    </button>
-
-                    {/* More actions dropdown */}
+                    {/* New dropdown (merged Folder/Document) */}
                     <div className="relative">
                         <button
-                            onClick={() => setShowMenu(!showMenu)}
-                            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-[#FF5500] rounded-lg hover:bg-[#FF7F3D] transition-colors"
+                            onClick={() => setShowNewMenu(!showNewMenu)}
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#37352F] bg-white border border-[#E9E9E7] rounded-lg hover:bg-[#F7F7F5] transition-colors"
                         >
                             <Plus size={16} />
-                            <span>Add</span>
+                            <span>New</span>
+                            <ChevronDown size={14} className="text-[#9B9A97]" />
                         </button>
 
-                        {showMenu && (
+                        {showNewMenu && (
                             <>
                                 <div
                                     className="fixed inset-0 z-10"
-                                    onClick={() => setShowMenu(false)}
+                                    onClick={() => setShowNewMenu(false)}
+                                />
+                                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-[#E9E9E7] rounded-lg shadow-lg py-1 z-20">
+                                    <button
+                                        onClick={() => {
+                                            onNewFolder();
+                                            setShowNewMenu(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
+                                    >
+                                        <FolderPlus size={16} className="text-[#9B9A97]" />
+                                        <span>Folder</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            onNewDocument();
+                                            setShowNewMenu(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
+                                    >
+                                        <FilePlus size={16} className="text-[#9B9A97]" />
+                                        <span>Document</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Upload dropdown (renamed from Add) */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowUploadMenu(!showUploadMenu)}
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-[#FF5500] rounded-lg hover:bg-[#FF7F3D] transition-colors"
+                        >
+                            <Upload size={16} />
+                            <span>Upload</span>
+                            <ChevronDown size={14} className="text-white/80" />
+                        </button>
+
+                        {showUploadMenu && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setShowUploadMenu(false)}
                                 />
                                 <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-[#E9E9E7] rounded-lg shadow-lg py-1 z-20">
                                     <button
                                         onClick={() => {
                                             onUploadFile();
-                                            setShowMenu(false);
+                                            setShowUploadMenu(false);
                                         }}
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <Upload size={16} className="text-[#9B9A97]" />
-                                        <span>Upload File</span>
+                                        <span>File</span>
                                     </button>
                                     <button
                                         onClick={() => {
                                             onAddLink();
-                                            setShowMenu(false);
+                                            setShowUploadMenu(false);
                                         }}
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <LinkIcon size={16} className="text-[#9B9A97]" />
-                                        <span>Add Link</span>
+                                        <span>Link</span>
                                     </button>
                                 </div>
                             </>

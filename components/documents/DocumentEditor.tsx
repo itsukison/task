@@ -114,6 +114,50 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
         return () => clearTimeout(timeoutId);
     }, [title, document.title, document.id, onUpdate]);
 
+    // Real-time subscription for external document updates (e.g., from AI)
+    useEffect(() => {
+        if (!isEditable || !editor || !document.id) return;
+
+        const { createClient } = require('@/lib/supabase/client');
+        const supabase = createClient();
+
+        const channel = supabase
+            .channel(`document-${document.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'documents',
+                    filter: `id=eq.${document.id}`,
+                },
+                (payload: any) => {
+                    // Update editor content if it changed externally
+                    if (payload.new && payload.new.content) {
+                        // Only update if content is different to avoid overwriting user's current edits
+                        const currentContent = editor.getJSON();
+                        const newContent = payload.new.content;
+
+                        // Simple check: compare stringified versions
+                        if (JSON.stringify(currentContent) !== JSON.stringify(newContent)) {
+                            editor.commands.setContent(newContent);
+                            setLastSaved(new Date());
+                        }
+                    }
+
+                    // Update title if it changed
+                    if (payload.new && payload.new.title && payload.new.title !== title) {
+                        setTitle(payload.new.title);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [isEditable, editor, document.id, title]);
+
     const formatLastSaved = () => {
         if (!lastSaved) return '';
         const now = new Date();

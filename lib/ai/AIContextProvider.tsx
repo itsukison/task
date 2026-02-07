@@ -36,6 +36,11 @@ interface AIContextValue {
     sendMessage: (text: string) => Promise<void>;
     clearHistory: () => void;
 
+    // New conversation management
+    shouldShowNewConvoPrompt: boolean;
+    startNewConversation: () => void;
+    dismissNewConvoPrompt: () => void;
+
     // Refetch callbacks (optional, for UI updates)
     onTasksChange?: () => void | Promise<void>;
     onCalendarChange?: () => void | Promise<void>;
@@ -48,6 +53,21 @@ interface AIContextProviderProps {
 }
 
 const AIContext = createContext<AIContextValue | null>(null);
+
+/**
+ * Truncate conversation history to most recent N messages for token optimization
+ * @param history - Full conversation history
+ * @param maxMessages - Maximum number of recent messages to keep (default: 20)
+ * @returns Truncated history with most recent messages
+ */
+function slidingWindowHistory(history: ChatMessage[], maxMessages: number = 20): ChatMessage[] {
+    if (history.length <= maxMessages) {
+        return history;
+    }
+
+    // Keep only the most recent N messages
+    return history.slice(-maxMessages);
+}
 
 export function useAI() {
     const context = useContext(AIContext);
@@ -68,6 +88,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [documentContentCache, setDocumentContentCache] = useState<DocumentContentCache>({});
+    const [lastNotificationAt, setLastNotificationAt] = useState<number>(0); // Track when to show "start new conversation" notification
 
     // Use ref to avoid messages dependency in useCallback
     const messagesRef = useRef<ChatMessage[]>([]);
@@ -134,10 +155,12 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                     selectedDate: selectedDate ? formatDateToLocalISO(selectedDate) : undefined,
                 };
 
+                // Truncate conversation history to last 20 messages for token optimization
+                // Full history remains in localStorage and UI state for display
                 const request: ChatRequest = {
                     message: text,
                     context,
-                    history: messagesRef.current,
+                    history: slidingWindowHistory(messagesRef.current),
                     documentCache: documentContentCache,
                 };
 
@@ -162,7 +185,15 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
 
                 setMessages((prev) => [...prev, assistantMessage]);
 
+                // Check if we should show "start new conversation" notification
+                const totalMessages = messagesRef.current.length + 2; // +2 for user + assistant just added
+                if (totalMessages >= 20 && (totalMessages - lastNotificationAt >= 20)) {
+                    // Show notification at 20, 40, 60, 80, etc.
+                    setLastNotificationAt(totalMessages);
+                }
+
                 if (data.pendingAction) {
+                    console.log('📥 AI Context: Received pending action', data.pendingAction);
                     setPendingAction(data.pendingAction);
                 }
 
@@ -186,6 +217,8 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
 
     const confirmAction = useCallback(async () => {
         if (!pendingAction) return;
+
+        console.log('✅ AI Context: Confirming action', pendingAction);
 
         // Execute the action based on type
         if (pendingAction.type === 'create_task') {
@@ -277,12 +310,14 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
 
             // If scheduled, create a calendar block
             if (pendingAction.data.scheduledStartTime && newTask) {
+                console.log('📅 Creating calendar block for task', newTask.id, pendingAction.data.scheduledStartTime);
                 const startTime = new Date(pendingAction.data.scheduledStartTime);
                 const durationMs = (pendingAction.data.durationMinutes || pendingAction.data.expectedTime || 60) * 60000;
                 const endTime = new Date(startTime.getTime() + durationMs);
 
                 await supabase.from('calendar_blocks').insert({
                     organization_id: currentOrganization.id,
+                    owner_id: user.id,
                     task_id: newTask.id,
                     start_time: startTime.toISOString(),
                     end_time: endTime.toISOString(),
@@ -398,6 +433,286 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                 // Fallback: dispatch custom event
                 window.dispatchEvent(new CustomEvent('ai-calendar-changed'));
             }
+        } else if (pendingAction.type === 'edit_document') {
+            const supabaseImport = await import('@/lib/supabase/client');
+            const supabase = supabaseImport.createClient();
+
+            // Fetch current document to get content
+            const { data: doc, error: fetchError } = await supabase
+                .from('documents')
+                .select('content, type')
+                .eq('id', pendingAction.documentId)
+                .single();
+
+            if (fetchError || !doc) {
+                console.error('Failed to fetch document:', fetchError);
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        role: 'assistant',
+                        content: `❌ Failed to fetch document: ${fetchError?.message || 'Not found'}`,
+                        timestamp: Date.now(),
+                    },
+                ]);
+                setPendingAction(null);
+                return;
+            }
+
+            // Helper to extract text from Tiptap content
+            const extractText = (content: any): string => {
+                if (!content || !content.type) return '';
+                let text = '';
+                if (content.type === 'text') text += content.text || '';
+                if (content.type === 'paragraph' || content.type === 'heading' || content.type === 'doc') {
+                    if (content.content) {
+                        content.content.forEach((child: any) => {
+                            text += extractText(child);
+                        });
+                    }
+                    if (content.type !== 'doc') text += '\n';
+                }
+                return text;
+            };
+
+            // Helper to convert plain text to Tiptap JSON
+            const textToTiptap = (text: string): any => {
+                const paragraphs = text.split('\n').filter(p => p.trim());
+                return {
+                    type: 'doc',
+                    content: paragraphs.map(p => ({
+                        type: 'paragraph',
+                        content: [{ type: 'text', text: p }]
+                    }))
+                };
+            };
+
+            // Compute new content based on edit type
+            const currentText = extractText(doc.content);
+            let newText = '';
+
+            switch (pendingAction.editType) {
+                case 'rewrite':
+                    newText = pendingAction.newContent;
+                    break;
+                case 'append':
+                    newText = currentText + '\n\n' + pendingAction.newContent;
+                    break;
+                case 'prepend':
+                    newText = pendingAction.newContent + '\n\n' + currentText;
+                    break;
+                case 'replace_section':
+                    if (pendingAction.targetText) {
+                        newText = currentText.replace(pendingAction.targetText, pendingAction.newContent);
+                    }
+                    break;
+            }
+
+            const newContent = textToTiptap(newText);
+
+            // Update document
+            const { error: updateError } = await supabase
+                .from('documents')
+                .update({ content: newContent })
+                .eq('id', pendingAction.documentId);
+
+            if (updateError) {
+                console.error('Failed to update document:', updateError);
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        role: 'assistant',
+                        content: `❌ Failed to update document: ${updateError.message}`,
+                        timestamp: Date.now(),
+                    },
+                ]);
+                setPendingAction(null);
+                return;
+            }
+
+            setMessages((prev) => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content: 'Document edited successfully',
+                    timestamp: Date.now(),
+                    action: { ...pendingAction, type: 'edit_document' }
+                },
+            ]);
+
+            // Dispatch event for document updates
+            window.dispatchEvent(new CustomEvent('ai-documents-changed'));
+        } else if (pendingAction.type === 'organize_documents') {
+            const supabaseImport = await import('@/lib/supabase/client');
+            const supabase = supabaseImport.createClient();
+
+            if (!currentOrganization || !user) return;
+
+            // Execute each operation in the plan
+            for (const op of pendingAction.operations) {
+                let folderId = op.folderId;
+
+                // Create folder if it doesn't exist
+                if (!folderId) {
+                    const { data: newFolder, error: folderError } = await supabase
+                        .from('folders')
+                        .insert({
+                            organization_id: currentOrganization.id,
+                            created_by: user.id,
+                            name: op.folderName,
+                            parent_folder_id: pendingAction.currentFolderId,
+                            visibility: 'team',
+                        } as any)
+                        .select()
+                        .single();
+
+                    if (folderError || !newFolder) {
+                        console.error('Failed to create folder:', folderError);
+                        setMessages((prev) => [
+                            ...prev,
+                            {
+                                role: 'assistant',
+                                content: `❌ Failed to create folder "${op.folderName}": ${folderError?.message}`,
+                                timestamp: Date.now(),
+                            },
+                        ]);
+                        setPendingAction(null);
+                        return;
+                    }
+
+                    folderId = newFolder.id;
+                }
+
+                // Move documents into folder
+                for (const docId of op.documentIds) {
+                    const { error: moveError } = await supabase
+                        .from('documents')
+                        .update({ folder_id: folderId })
+                        .eq('id', docId);
+
+                    if (moveError) {
+                        console.error('Failed to move document:', moveError);
+                        // Continue with other documents even if one fails
+                    }
+                }
+            }
+
+            setMessages((prev) => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content: `✅ Organized ${pendingAction.preview.totalMoves} documents into ${pendingAction.operations.length} folder(s)`,
+                    timestamp: Date.now(),
+                    action: { ...pendingAction, type: 'organize_documents' }
+                },
+            ]);
+
+            // Dispatch event for document updates
+            window.dispatchEvent(new CustomEvent('ai-documents-changed'));
+        } else if (pendingAction.type === 'schedule_task') {
+            const supabaseImport = await import('@/lib/supabase/client');
+            const supabase = supabaseImport.createClient();
+
+            if (!currentOrganization || !user) return;
+
+            // Create calendar block
+            const { error: blockError } = await supabase
+                .from('calendar_blocks')
+                .insert({
+                    organization_id: currentOrganization.id,
+                    owner_id: user.id,
+                    task_id: pendingAction.taskId,
+                    start_time: pendingAction.startTime,
+                    end_time: pendingAction.endTime,
+                } as any);
+
+            if (blockError) {
+                console.error('Failed to create calendar block:', blockError);
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        role: 'assistant',
+                        content: `❌ Failed to schedule task: ${blockError.message}`,
+                        timestamp: Date.now(),
+                    },
+                ]);
+                setPendingAction(null);
+                return;
+            }
+
+            setMessages((prev) => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content: `Scheduled "${pendingAction.taskTitle}" for ${pendingAction.preview.dateFormatted} at ${pendingAction.preview.timeFormatted}`,
+                    timestamp: Date.now(),
+                    action: { ...pendingAction, type: 'schedule_task' }
+                },
+            ]);
+
+            // Trigger UI refresh via callbacks or custom event
+            if (onCalendarChange) {
+                await onCalendarChange();
+            } else {
+                window.dispatchEvent(new CustomEvent('ai-calendar-changed'));
+            }
+        } else if (pendingAction.type === 'batch_schedule') {
+            const supabaseImport = await import('@/lib/supabase/client');
+            const supabase = supabaseImport.createClient();
+
+            if (!currentOrganization || !user) return;
+
+            // Execute all schedule operations
+            const schedules = pendingAction.data.schedules;
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const schedule of schedules) {
+                const { error: blockError } = await supabase
+                    .from('calendar_blocks')
+                    .insert({
+                        organization_id: currentOrganization.id,
+                        owner_id: user.id,
+                        task_id: schedule.taskId,
+                        start_time: schedule.startTime,
+                        end_time: schedule.endTime,
+                    } as any);
+
+                if (blockError) {
+                    console.error(`Failed to schedule task ${schedule.taskId}:`, blockError);
+                    failCount++;
+                } else {
+                    successCount++;
+                }
+            }
+
+            if (failCount > 0) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        role: 'assistant',
+                        content: `Scheduled ${successCount} tasks, but failed to schedule ${failCount} tasks.`,
+                        timestamp: Date.now(),
+                        action: { ...pendingAction, type: 'batch_schedule' }
+                    },
+                ]);
+            } else {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        role: 'assistant',
+                        content: `✅ Successfully scheduled ${successCount} tasks for ${pendingAction.data.date}`,
+                        timestamp: Date.now(),
+                        action: { ...pendingAction, type: 'batch_schedule' }
+                    },
+                ]);
+            }
+
+            // Trigger UI refresh via callbacks or custom event
+            if (onCalendarChange) {
+                await onCalendarChange();
+            } else {
+                window.dispatchEvent(new CustomEvent('ai-calendar-changed'));
+            }
         }
 
         setPendingAction(null);
@@ -419,6 +734,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
         setMessages([]);
         setPendingAction(null);
         setDocumentContentCache({});
+        setLastNotificationAt(0); // Reset notification tracking
         if (user && currentOrganization) {
             const key = `ai_chat_${currentOrganization.id}_${user.id}`;
             localStorage.removeItem(key);
@@ -440,6 +756,9 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
         cancelAction,
         sendMessage,
         clearHistory,
+        shouldShowNewConvoPrompt: messages.length >= lastNotificationAt && lastNotificationAt > 0,
+        startNewConversation: clearHistory,
+        dismissNewConvoPrompt: () => setLastNotificationAt(0),
         onTasksChange,
         onCalendarChange,
     };

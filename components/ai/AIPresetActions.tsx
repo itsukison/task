@@ -37,7 +37,7 @@ export function AIPresetActions({ onAction }: { onAction: (action: string) => vo
     const workspacePresets = [
         { icon: ClipboardList, label: 'Show my tasks', action: 'Show me all my tasks' },
         { icon: Calendar, label: 'What\'s on my calendar?', action: 'What events do I have on my calendar today?' },
-        { icon: AILogoIcon, label: 'Create a task', action: 'Help me create a new task' },
+        { icon: Sparkles, label: 'Create a task', action: 'Help me create a new task' },
     ];
 
     const presets = currentPage === 'documents' ? documentPresets : workspacePresets;

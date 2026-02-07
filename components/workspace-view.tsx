@@ -35,6 +35,7 @@ export default function WorkspaceView({
     onRejectAssignment,
     previewTask,
     previewBlock,
+    onCreateSubtask,
 }: WorkspaceViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
@@ -183,6 +184,7 @@ export default function WorkspaceView({
                             onAcceptAssignment={onAcceptAssignment}
                             onRejectAssignment={onRejectAssignment}
                             previewTask={previewTask}
+                            onCreateSubtask={onCreateSubtask}
                         />
                     }
                 />

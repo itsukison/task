@@ -18,6 +18,8 @@ export interface CellProps {
     peopleOptions?: PeopleOption[];
     ownerStatuses?: Record<string, AssignmentStatus>;  // Map of owner ID to assignment status
     onChange: (rowId: string, columnId: string, value: unknown) => void;
+    // Callback to create a subtask that appears in the main table
+    onCreateSubtask?: (parentTaskId: string, title: string) => void;
 }
 
 /**
@@ -31,6 +33,7 @@ export interface HeaderMenuProps {
     onSortAsc: () => void;
     onSortDesc: () => void;
     onHide: () => void;
+    onDelete?: () => void;
     onClose: () => void;
 }
 

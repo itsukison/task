@@ -138,7 +138,7 @@ export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps)
                 />
             ) : (
                 <div
-                    className="w-full h-full px-2 py-1.5 text-sm cursor-text flex items-center justify-between gap-2"
+                    className="w-full h-full px-2 py-1.5 text-sm cursor-text flex items-center justify-start gap-2"
                     onClick={() => !isRunning && setIsEditing(true)}
                 >
                     {/* Timer button - visible on hover or when running, aligned to left */}

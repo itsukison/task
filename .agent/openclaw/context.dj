@@ -19,19 +19,6 @@ Urgency/Intent: Auto-classified tags (e.g., "High Priority", "Blocking").
 
 Storage: document_metadata and task_metadata tables in Supabase.
 
-B. Context Bundling (The "Throughput" Layer)
-Concept: "The Daily Briefing."
-
-Logic: Instead of fetching data at runtime, we pre-calculate or efficiently aggregate:
-
-Today's Calendar Events.
-
-High-priority Tasks.
-
-Only the relevant Document summaries (not full text).
-
-Output: A single, clean JSON object or Markdown summary passed to the LLM.
-
 C. Universal Tooling (The "Action" Layer)
 Pattern: "Service-First."
 

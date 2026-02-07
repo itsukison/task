@@ -12,7 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { Plus } from 'lucide-react';
 import { EditableTableProps } from '@/lib/types';
-import { RowActionsMenu } from './menus';
+import { RowActionsMenu, HeaderMenu } from './menus';
 import { TableHeader } from './TableHeader';
 import { TableBody } from './TableBody';
 import { useTableColumns } from './useTableColumns';
@@ -41,10 +41,23 @@ export default function EditableTable<T extends { id: string }>({
     onAcceptRow,
     onRejectRow,
     getOwnerStatuses,
+    customColumns = [],
+    onAddCustomColumn,
+    onRemoveCustomColumn,
+    onCreateSubtask,
 }: EditableTableProps<T>) {
     const [internalSorting, setInternalSorting] = useState<SortingState>([]);
     const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
-    const [activeHeaderMenu, setActiveHeaderMenu] = useState<{ columnId: string; position: { top: number; left: number } } | null>(null);
+    const [activeHeaderMenu, setActiveHeaderMenu] = useState<{
+        columnId: string;
+        position: { top: number; left: number };
+        label: string;
+        dataType: any;
+        onSortAsc: () => void;
+        onSortDesc: () => void;
+        onHide: () => void;
+        onDelete?: () => void;
+    } | null>(null);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [activeRowMenu, setActiveRowMenu] = useState<{ rowId: string; position: { top: number; left: number } } | null>(null);
 
@@ -93,6 +106,10 @@ export default function EditableTable<T extends { id: string }>({
         onOpenRow,
         handleRowActionClick,
         getOwnerStatuses,
+        customColumns,
+        onAddCustomColumn,
+        onRemoveCustomColumn,
+        onCreateSubtask,
     });
 
     const table = useReactTable({
@@ -151,6 +168,14 @@ export default function EditableTable<T extends { id: string }>({
                             navigator.clipboard.writeText(`${window.location.href}?task=${activeRowMenu.rowId}`);
                         }}
                         onClose={() => setActiveRowMenu(null)}
+                    />
+                )}
+
+                {/* Header Menu */}
+                {activeHeaderMenu && (
+                    <HeaderMenu
+                        {...activeHeaderMenu}
+                        onClose={() => setActiveHeaderMenu(null)}
                     />
                 )}
             </div>

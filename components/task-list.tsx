@@ -10,6 +10,7 @@ import { HiddenColumnsMenu } from './task-list/HiddenColumnsMenu';
 import { AdvancedFilterMenu } from './task-list/AdvancedFilterMenu';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { evaluateFilterRules } from '@/lib/utils/filterRules';
+import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
 
 const getSortFields = (t: any) => [
     { id: 'title', label: t('headers.task_name') },
@@ -34,9 +35,9 @@ const STATUS_OPTIONS: ColumnOption[] = [
     { label: 'completed', backgroundColor: 'hsl(120, 60%, 90%)' },
 ];
 
-// Define column configuration for Task data
-function getTaskColumns(orgMembers: PeopleOption[], t: any): TableColumn<Task>[] {
-    return [
+// Define column configuration for Task data with optional custom columns
+function getTaskColumns(orgMembers: PeopleOption[], customColumns: any[], t: any): TableColumn<Task>[] {
+    const baseColumns = [
         {
             id: 'title',
             label: t('headers.task_name'),
@@ -53,18 +54,11 @@ function getTaskColumns(orgMembers: PeopleOption[], t: any): TableColumn<Task>[]
             options: STATUS_OPTIONS,
         },
         {
-            id: 'expectedTime',
-            label: t('headers.est_time'),
-            dataType: 'number',
-            width: 120,
-            minWidth: 100,
-        },
-        {
-            id: 'actualTime',
-            label: t('headers.act_time'),
-            dataType: 'timerNumber',
-            width: 120,
-            minWidth: 100,
+            id: 'time',
+            label: t('headers.time'),
+            dataType: 'combinedTime',
+            width: 150,
+            minWidth: 120,
         },
         {
             id: 'ownerIds',  // Array of user IDs
@@ -75,6 +69,8 @@ function getTaskColumns(orgMembers: PeopleOption[], t: any): TableColumn<Task>[]
             peopleOptions: orgMembers,
         },
     ];
+
+    return baseColumns as TableColumn<Task>[];
 }
 
 export default function TaskList({
@@ -102,6 +98,7 @@ export default function TaskList({
     onAcceptAssignment,
     onRejectAssignment,
     previewTask,
+    onCreateSubtask,
 }: TaskListProps) {
     const { t } = useLanguage();
     const [showSortMenu, setShowSortMenu] = useState(false);
@@ -110,6 +107,8 @@ export default function TaskList({
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     // Fetch organization members for people picker
     const { members: orgMembers } = useOrganizationMembers();
+    // Get custom columns from user preferences
+    const { customColumns, addCustomColumn, removeCustomColumn } = useUserPreferences();
 
     // Use refs to stabilize handleCellChange and prevent column regeneration/cell remounting
     const tasksRef = useRef(tasks);
@@ -219,7 +218,7 @@ export default function TaskList({
         onDragStart(null);
     };
 
-    const columns = useMemo(() => getTaskColumns(orgMembers, t), [orgMembers, t]);
+    const columns = useMemo(() => getTaskColumns(orgMembers, customColumns || [], t), [orgMembers, customColumns, t]);
     const SORT_FIELDS = useMemo(() => getSortFields(t), [t]);
 
     // Create column label map for hidden columns menu
@@ -253,6 +252,19 @@ export default function TaskList({
         });
         return statuses;
     }, []);
+
+    // Handler for adding custom columns
+    const handleAddCustomColumn = useCallback(async (type: 'subtask' | 'document') => {
+        // Prevent duplicates
+        const existingColumn = customColumns?.find(col => col.type === type);
+        if (existingColumn) {
+            console.warn(`Column of type ${type} already exists`);
+            return;
+        }
+
+        const label = type === 'subtask' ? 'Subtasks' : 'Documents';
+        await addCustomColumn(type, label);
+    }, [customColumns, addCustomColumn]);
 
     const handleSortChange = (sort: SortConfig | null) => {
         onSortChange?.(sort);
@@ -439,6 +451,10 @@ export default function TaskList({
                     onAcceptRow={onAcceptAssignment}
                     onRejectRow={onRejectAssignment}
                     getOwnerStatuses={getOwnerStatuses}
+                    customColumns={customColumns}
+                    onAddCustomColumn={handleAddCustomColumn}
+                    onRemoveCustomColumn={removeCustomColumn}
+                    onCreateSubtask={onCreateSubtask}
                 />
             </div>
         </div>
