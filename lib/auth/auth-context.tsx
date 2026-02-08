@@ -27,7 +27,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName?: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
   switchOrganization: (orgId: string) => Promise<void>;
   refreshOrganizations: () => Promise<void>;
@@ -167,40 +167,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Sign up
-  const signUp = useCallback(async (email: string, password: string, displayName: string) => {
+  const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: undefined, // Disable email verification redirect
+        data: {
+          display_name: displayName || ''
+        }
       },
     });
 
-    if (error) throw error;
-    if (!data.user) throw new Error('Sign up failed');
-
-    // Create user profile
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .insert({
-        id: data.user.id,
-        email: data.user.email!,
-        display_name: displayName,
-        default_task_visibility: 'team',
-        default_schedule_visibility: 'team',
-      });
-
-    if (profileError) {
-      console.error('Error creating profile:', profileError);
-      throw profileError;
-    }
-
-    // Manually initialize auth state now that profile exists
-    // This prevents race condition where onAuthStateChange fires before profile is created
-    if (data.session) {
-      await initializeAuth(data.session);
-    }
-  }, [initializeAuth]);
+    // Return full response to allow caller to detect email verification state
+    return { data, error };
+  }, []);
 
   // Sign out
   const signOut = useCallback(async () => {

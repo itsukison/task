@@ -1,4 +1,6 @@
 import { Task, CalendarBlock } from '@/lib/types';
+import { translateAI } from './translation-helper';
+import { Language } from '@/lib/i18n/types';
 
 // ============================================================================
 // Document Content Cache
@@ -43,6 +45,7 @@ export interface AgentContext {
     tasks?: Task[];
     calendarBlocks?: CalendarBlock[];
     selectedDate?: string; // ISO date string (YYYY-MM-DD)
+    language: 'en' | 'ja';
 }
 
 // ============================================================================
@@ -206,7 +209,7 @@ export class AIError extends Error {
     }
 }
 
-export function handleAIError(error: unknown): string {
+export function handleAIError(error: unknown, language: Language = 'en'): string {
     if (error instanceof AIError) {
         return error.userMessage;
     }
@@ -214,17 +217,17 @@ export function handleAIError(error: unknown): string {
     if (error instanceof Error) {
         // Check for specific error patterns
         if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
-            return 'AI unavailable, please try again';
+            return translateAI(language, 'ai.error_timeout');
         }
         if (error.message.includes('rate limit')) {
-            return 'Too many requests, please wait a moment';
+            return translateAI(language, 'ai.error_rate_limit');
         }
         if (error.message.includes('401') || error.message.includes('invalid api key')) {
             console.error('Invalid Moonshot API key:', error);
-            return 'AI service unavailable';
+            return translateAI(language, 'ai.error_auth');
         }
     }
 
     console.error('Unexpected AI error:', error);
-    return 'AI unavailable, please try again';
+    return translateAI(language, 'ai.error_generic');
 }

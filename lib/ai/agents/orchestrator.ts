@@ -27,6 +27,7 @@ import {
     scheduleTask,
     autoScheduleTasks,
 } from '../tools/calendar-tools';
+import { translateAI } from '../translation-helper';
 
 // ============================================================================
 // Orchestrator Agent
@@ -76,7 +77,7 @@ export async function runOrchestrator(
 
         // Direct response (no tools needed)
         return {
-            response: assistantMessage.content || 'I apologize, I could not process that request.',
+            response: assistantMessage.content || translateAI(context.language, 'ai.error_generic'),
         };
     } catch (error) {
         return {
@@ -104,7 +105,7 @@ async function executeToolCall(
     } catch (parseError) {
         console.error('Failed to parse tool arguments:', parseError);
         return {
-            response: 'I encountered an error processing that request. Please try rephrasing.',
+            response: translateAI(context.language, 'ai.error_parse'),
         };
     }
 
@@ -171,7 +172,7 @@ async function executeToolCall(
                 context
             );
             return {
-                response: 'I can make these edits to the document:',
+                response: translateAI(context.language, 'ai.preview_edit_document'),
                 pendingAction: preview,
             };
         }
@@ -183,7 +184,7 @@ async function executeToolCall(
                 context
             );
             return {
-                response: 'I can organize these documents into folders:',
+                response: translateAI(context.language, 'ai.preview_organize'),
                 pendingAction: preview,
             };
         }
@@ -192,7 +193,7 @@ async function executeToolCall(
         if (functionName === 'create_task') {
             const preview = await createTaskPreview(args);
             return {
-                response: 'I can create this task for you:',
+                response: translateAI(context.language, 'ai.preview_create_task'),
                 pendingAction: preview,
             };
         }
@@ -200,7 +201,7 @@ async function executeToolCall(
         if (functionName === 'update_task') {
             const preview = await updateTaskPreview(args);
             return {
-                response: 'I can make this change:',
+                response: translateAI(context.language, 'ai.preview_update_task'),
                 pendingAction: preview,
             };
         }
@@ -306,7 +307,7 @@ async function executeToolCall(
         if (functionName === 'suggest_reschedule') {
             const preview = await suggestReschedule(args);
             return {
-                response: 'I can reschedule this for you:',
+                response: translateAI(context.language, 'ai.preview_reschedule'),
                 pendingAction: preview,
             };
         }
@@ -320,7 +321,7 @@ async function executeToolCall(
                 context
             );
             return {
-                response: 'I found an available time slot for this task:',
+                response: translateAI(context.language, 'ai.preview_schedule'),
                 pendingAction: preview,
             };
         }
@@ -333,12 +334,12 @@ async function executeToolCall(
                 context
             );
             return {
-                response: `I've prepared a schedule for these ${args.task_ids.length} tasks:`,
+                response: translateAI(context.language, 'ai.preview_batch_schedule', { count: args.task_ids.length }),
                 pendingAction: preview,
             };
         }
 
-        return { response: 'Tool not implemented yet.' };
+        return { response: translateAI(context.language, 'ai.error_tool_not_implemented') };
     } catch (error) {
         return { response: handleAIError(error) };
     }
@@ -366,6 +367,13 @@ function getAvailableTools(context: AgentContext): any[] {
 }
 
 function buildSystemPrompt(context: AgentContext): string {
+    if (context.language === 'ja') {
+        return buildJapaneseSystemPrompt(context);
+    }
+    return buildEnglishSystemPrompt(context);
+}
+
+function buildEnglishSystemPrompt(context: AgentContext): string {
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const currentYear = new Date().getFullYear();
 
@@ -466,6 +474,111 @@ Tool Result References (INTERNAL USE ONLY - never show UUIDs to user):
     }
 
     prompt += `\n\nIMPORTANT: For any mutation operations (creating, updating, deleting, rescheduling), you must use the appropriate tool which will return a preview for the user to confirm. Never directly mention that you're waiting for confirmation - just present the action naturally.`;
+
+    return prompt;
+}
+
+function buildJapaneseSystemPrompt(context: AgentContext): string {
+    const currentDate = new Date().toISOString().split('T')[0];
+    const currentYear = new Date().getFullYear();
+
+    let prompt = `あなたは「Chrono」（タスク管理ワークスペースアプリ）の親切なAIアシスタントです。
+ユーザーの使用言語は日本語です。日本語で自然に応対してください。
+
+現在の日時: ${currentDate} (${currentYear}年)
+${context.selectedDate ? `ユーザーが選択中のカレンダー日付: ${context.selectedDate}` : ''}
+
+現在のコンテキスト:
+- ページ: ${context.currentPage}
+- 組織ID: ${context.organizationId}
+`;
+
+    if (context.currentPage === 'documents' && context.selectedDocuments && context.selectedDocuments.length > 0) {
+        prompt += `\n\n選択されたドキュメント:`;
+        context.selectedDocuments.forEach((doc, index) => {
+            prompt += `\n${index + 1}. "${doc.title}" (ID: ${doc.id})`;
+        });
+        prompt += `\n\n以下の操作が可能です:
+- get_document_content: ドキュメントの内容を取得します（読み取り用、または編集前に内容を確認するため）
+- edit_document_content: ドキュメントを修正します（書き換え、追記、冒頭への追加、指定セクションの置換）
+- organize_documents: タイトルや内容に基づいてファイルをフォルダに整理します
+
+ドキュメント編集時の注意:
+- 既存の内容を微修正・推敲する場合は、まず get_document_content で内容を確認し、適切な edit_type を使用してください:
+  - 部分的な変更: edit_type="replace_section" を使用し、置換対象のテキストを正確に target_text にコピーしてください
+  - 大幅な書き換え: edit_type="rewrite" で全体を置き換えます
+  - 追加: edit_type="append" または "prepend" を使用します
+- ドキュメントが空（新規作成）で、ゼロから書き始める場合は、直接 edit_type="rewrite" で edit_document_content を呼び出せます
+- ドキュメントに関する質問に答える際は、まず get_document_content で内容を取得し、それに基づいて回答してください`;
+    }
+
+    if (context.currentPage === 'workspace') {
+        prompt += `\nタスクの作成、カレンダーへのスケジュール、タスクの更新、カレンダーブロックの管理ができます。`;
+        if (context.tasks) {
+            prompt += `\n現在のワークスペースには ${context.tasks.length} 個のタスクがあります。`;
+        }
+        prompt += `\n\nツール計画と推論プロセス:
+ツールを呼び出す前に、以下のように手順を考えてください:
+
+1. **どんなデータが必要か？**
+   - タスクを変更したい → task_id が必要
+   - ブロックを再スケジュールしたい → block_id が必要
+   - 何か新規作成したい → 直接作成ツールを呼べる
+
+2. **どのツールがそのデータを提供するか？**
+   - task_id の入手元: list_tasks (既存タスク検索) または create_task (新規タスク作成)
+   - block_id の入手元: get_calendar_blocks (カレンダー検索)
+   - ドキュメント内容の入手元: get_document_content
+
+3. **どの順序で呼び出すか？**
+   - あるツールのデータが別のツールで必要な場合 → 順番に呼び出す（マルチターン）
+   - ツールが独立している場合 → 個別に推論可能
+   - 例: "タスクXを動かして" → まず list_tasks で task_id を取得し、その結果を使う
+
+4. **ツールの依存関係をチェック:**
+   - 各ツールの説明にある必須入力（REQUIRES）を確認
+   - 各ツールの戻り値を確認
+   - 呼び出す前によく読むこと
+
+推論の例:
+- ユーザー: "あしたの夜、暇なときに映画を見るタスクを入れて"
+- 思考: 新規タスク作成とスケジューリングが必要 → create_task でタスク作成 → schedule_task で空き時間を探す
+- schedule_task は自動的に空きスロットを見つけ、確認用のプレビューを返します
+- ユーザーに時間を尋ねるのではなく、空いている時間を提案してください
+
+- ユーザー: "今日のタスクを全部スケジュールして"
+- 思考: 複数のタスクをスケジュールする必要がある → list_tasks で今日のタスクIDを全て取得 → auto_schedule_tasks にIDリストを渡す
+
+- ユーザー: "9時から30分間、読書のタスクを追加して"
+- 思考: 時間指定あり "9時から" → 本日の9時を計算 (${currentYear}-02-07T09:00:00+09:00) → create_task(title="読書", scheduled_start_time="...", expected_time_minutes=30)`;
+
+        prompt += `\n\n一般的なツールの使用法:
+- 全ツールの依存関係と戻り値は説明文に記載されています
+- あるツールの出力が別のツールに入力される場合は、マルチターンワークフローを使用します
+- 変更操作（作成、更新、削除、再スケジュール）は、ユーザー確認が必要なプレビューを返します
+- 参照操作（一覧、取得、検索）は、すぐに使用可能なデータを返します
+
+応答のガイドライン:
+- プロアクティブに: ツールからデータが返ってきたら、即座にそれを使ってリクエストを完了させてください
+- UUIDを会話に出さないでください - 人間が読める名前（タスク名など）だけを使用してください
+- スケジューリング時: 自動的に最初の空きスロットを提案し、ユーザーにいちいち尋ねないでください
+- 例: "今夜7時に予定を入れました"（プレビュー表示）、×"いつにしますか？"
+
+データフォーマットのガイドライン:
+- expected_time_minutes: タスクには必須（> 0）。指定がなければ推定してください。
+- ISO 8601 日時: タイムゾーンオフセットを必ず含めてください。フォーマット: "${currentYear}-02-07T09:00:00+09:00" (例)。ユーザーのタイムゾーンは UTC+9 (日本) です。
+- ISO 日付: 日付のみの場合は "YYYY-MM-DD" フォーマット
+- 現在の年: ${currentYear} - 明示的な指定がない限りこの年を使用
+- 相対日付 ("今日", "明日") は ${currentDate} を基準に計算
+${context.selectedDate ? `- 選択された日付: ${context.selectedDate}` : ''}
+
+ツール結果の参照（内部使用のみ - UUIDはユーザーに見せない）:
+- list_tasks の戻り値: [Task refs: 1→uuid1 2→uuid2...] - uuidを抽出して内部で使用
+- get_calendar_blocks の戻り値: [Block refs: 1→uuid1 2→uuid2...] - uuidを抽出して内部で使用
+- 会話での応答では、タスクやブロックの名称のみを使用してください`;
+    }
+
+    prompt += `\n\n重要: 変更操作（作成、更新、削除、再スケジュール）を行う場合は、必ず適切なツールを使用してください。ツールは確認用のプレビューを返します。「確認待ちです」と直接言うのではなく、自然にアクション（プレビュー）を提示してください。`;
 
     return prompt;
 }

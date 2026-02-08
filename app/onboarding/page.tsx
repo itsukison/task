@@ -2,11 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/lib/auth/hooks';
 import { useOrganization } from '@/lib/hooks/use-organization';
-import { CreateOrgForm } from '@/components/onboarding/CreateOrgForm';
-import { JoinOrgForm } from '@/components/onboarding/JoinOrgForm';
-import { PendingRequestCard } from '@/components/onboarding/PendingRequestCard';
+import { OnboardingWizard, type OnboardingData } from '@/components/onboarding/OnboardingWizard';
 
 type OnboardingMode = 'create' | 'join';
 
@@ -101,73 +100,50 @@ export default function OnboardingPage() {
         router.push('/login');
     };
 
+    const handleProfileComplete = async (data: OnboardingData) => {
+        // Update user profile with collected data
+        const { supabase } = await import('@/lib/supabase');
+
+        const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({
+                display_name: data.displayName,
+                job_title: data.jobTitle || null,
+                usage_intent: data.usageIntent
+            })
+            .eq('id', user.id);
+
+        if (updateError) {
+            console.error('Error updating profile:', updateError);
+            // Continue anyway - these are optional fields
+        }
+    };
+
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-white">
-            <div className="w-full max-w-md px-8">
-                {/* Header */}
-                {!pendingRequest && (
-                    <div className="text-center mb-8">
-                        <h1 className="text-2xl font-semibold text-[#37352F] mb-2">
+            <div className="w-full max-w-md p-8 space-y-6">
+                <div className="text-center mb-8">
+                    <div className="flex items-center justify-center gap-3 mb-2">
+                        <Image src="/logo.png" alt="Chrono Logo" width={32} height={32} />
+                        <h1 className="text-2xl font-semibold text-[#37352F]">
                             Welcome to Chrono
                         </h1>
-                        <p className="text-sm text-[#787774]">
-                            {user.email}
-                        </p>
                     </div>
-                )}
+                    <p className="text-sm text-[#787774]">
+                        {user.email}
+                    </p>
+                </div>
 
-                {/* Mode Toggle */}
-                {!pendingRequest && (
-                    <div className="flex mb-6 bg-[#F7F6F3] rounded-lg p-1">
-                        <button
-                            type="button"
-                            onClick={() => { setMode('create'); setError(''); }}
-                            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${mode === 'create'
-                                ? 'bg-white text-[#37352F] shadow-sm'
-                                : 'text-[#787774] hover:text-[#37352F]'
-                                }`}
-                        >
-                            Create Organization
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => { setMode('join'); setError(''); }}
-                            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${mode === 'join'
-                                ? 'bg-white text-[#37352F] shadow-sm'
-                                : 'text-[#787774] hover:text-[#37352F]'
-                                }`}
-                        >
-                            Join with Code
-                        </button>
-                    </div>
-                )}
+                <OnboardingWizard
+                    onSaveProfile={handleProfileComplete}
+                    onCreateOrg={handleCreateOrg}
+                    onJoinOrg={handleJoinOrg}
+                    orgLoading={loading}
+                    orgError={error}
+                    setOrgError={setError}
+                    pendingRequest={pendingRequest}
+                />
 
-                {/* Error Message */}
-                {error && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-                        {error}
-                    </div>
-                )}
-
-                {pendingRequest ? (
-                    <PendingRequestCard orgName={pendingRequest.orgName} />
-                ) : (
-                    <>
-                        {/* Create Organization Form */}
-                        {mode === 'create' && (
-                            <CreateOrgForm loading={loading} onSubmit={handleCreateOrg} />
-                        )}
-
-                        {/* Join Organization Form */}
-                        {mode === 'join' && (
-                            <JoinOrgForm
-                                loading={loading}
-                                onSubmit={handleJoinOrg}
-                                onError={setError}
-                            />
-                        )}
-                    </>
-                )}
 
                 {/* Sign Out Link */}
                 <div className="mt-8 text-center">
@@ -181,5 +157,6 @@ export default function OnboardingPage() {
                 </div>
             </div>
         </div>
+
     );
 }

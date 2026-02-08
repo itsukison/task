@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { HeaderMenuProps } from '../types';
 import { DataTypeIcon } from '../utils';
+import { useLanguage } from '@/lib/i18n';
 
 /**
  * Column header context menu with sorting and visibility controls
@@ -16,6 +17,8 @@ export function HeaderMenu({ label, dataType, columnId, position, onSortAsc, onS
     const menuRef = useRef<HTMLDivElement>(null);
     const [editingLabel, setEditingLabel] = useState(label);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    const { t } = useLanguage();
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -37,36 +40,36 @@ export function HeaderMenu({ label, dataType, columnId, position, onSortAsc, onS
     const menuItems = [
         {
             icon: <ArrowUp size={16} />,
-            label: 'Sort ascending',
+            label: t('header_menu.sort_asc'),
             onClick: () => { onSortAsc(); onClose(); }
         },
         {
             icon: <ArrowDown size={16} />,
-            label: 'Sort descending',
+            label: t('header_menu.sort_desc'),
             onClick: () => { onSortDesc(); onClose(); }
         },
         { divider: true },
         {
             icon: <EyeOff size={16} />,
-            label: 'Hide',
+            label: t('header_menu.hide'),
             onClick: () => { onHide(); onClose(); }
         },
         { divider: true },
         {
             icon: <PanelLeftClose size={16} />,
-            label: 'Insert left',
+            label: t('header_menu.insert_left'),
             onClick: () => { onClose(); },
             disabled: true
         },
         {
             icon: <PanelRightClose size={16} />,
-            label: 'Insert right',
+            label: t('header_menu.insert_right'),
             onClick: () => { onClose(); },
             disabled: true
         },
         {
             icon: <Trash2 size={16} />,
-            label: 'Delete property',
+            label: t('header_menu.delete_property'),
             onClick: () => { onDelete?.(); onClose(); },
             disabled: !onDelete,
             danger: true

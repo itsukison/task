@@ -44,8 +44,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Fetch user language preference
+        const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('language')
+            .eq('id', user.id)
+            .single();
+
+        // Ensure context includes language
+        const contextWithLanguage = {
+            ...context,
+            language: (profile?.language as 'en' | 'ja') || 'en'
+        };
+
         // Run AI orchestrator
-        const result = await runOrchestrator(message, context, history, documentCache);
+        const result = await runOrchestrator(message, contextWithLanguage, history, documentCache);
 
         const response: ChatResponse = {
             message: result.response,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useAI } from '@/lib/ai/AIContextProvider';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import Image from 'next/image';
 import {
     Languages,
@@ -10,7 +11,6 @@ import {
     Calendar,
     Sparkles,
     Bot,
-    PenTool
 } from 'lucide-react';
 
 const AILogoIcon = ({ className }: { className?: string }) => (
@@ -26,18 +26,19 @@ const AILogoIcon = ({ className }: { className?: string }) => (
 
 export function AIPresetActions({ onAction }: { onAction: (action: string) => void }) {
     const { currentPage } = useAI();
+    const { t } = useLanguage();
 
     const documentPresets = [
-        { icon: Bot, label: 'Personalize your Notion AI', action: 'Help me personalize my workspace' },
-        { icon: Languages, label: 'Translate this page', action: 'Translate these documents' },
-        { icon: Search, label: 'Analyze for insights', action: 'Analyze these documents and provide insights' },
-        { icon: ListTodo, label: 'Create a task tracker', action: 'Help me create a task tracking system' },
+        { icon: Bot, label: t('ai.suggestion_personalize'), action: t('ai.suggestion_personalize') },
+        { icon: Languages, label: t('ai.suggestion_translate'), action: t('ai.suggestion_translate') },
+        { icon: Search, label: t('ai.suggestion_analyze'), action: t('ai.suggestion_analyze') },
+        { icon: ListTodo, label: t('ai.suggestion_tracker'), action: t('ai.suggestion_tracker') },
     ];
 
     const workspacePresets = [
-        { icon: ClipboardList, label: 'Show my tasks', action: 'Show me all my tasks' },
-        { icon: Calendar, label: 'What\'s on my calendar?', action: 'What events do I have on my calendar today?' },
-        { icon: Sparkles, label: 'Create a task', action: 'Help me create a new task' },
+        { icon: ClipboardList, label: t('ai.suggestion_show_tasks'), action: t('ai.suggestion_show_tasks') },
+        { icon: Calendar, label: t('ai.suggestion_check_calendar'), action: t('ai.suggestion_check_calendar') },
+        { icon: Sparkles, label: t('ai.suggestion_create_task'), action: t('ai.suggestion_create_task') },
     ];
 
     const presets = currentPage === 'documents' ? documentPresets : workspacePresets;

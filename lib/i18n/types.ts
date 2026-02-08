@@ -204,6 +204,36 @@ export interface TranslationDictionary {
         delete_confirmation: string;
         estimated: string;
     };
+    ai: {
+        preview_create_task: string;
+        preview_update_task: string;
+        preview_schedule: string;
+        preview_reschedule: string;
+        preview_batch_schedule: string;
+        preview_edit_document: string;
+        preview_organize: string;
+        error_generic: string;
+        error_parse: string;
+        error_tool_not_implemented: string;
+        error_timeout: string;
+        error_rate_limit: string;
+        error_auth: string;
+        result_task_list: string;
+        result_calendar: string;
+        result_document_content: string;
+        result_search: string;
+        // UI Strings
+        greeting: string;
+        new_chat: string;
+        input_placeholder: string;
+        suggestion_show_tasks: string;
+        suggestion_check_calendar: string;
+        suggestion_create_task: string;
+        suggestion_personalize: string;
+        suggestion_translate: string;
+        suggestion_analyze: string;
+        suggestion_tracker: string;
+    };
     calendar: {
         today: string;
         month: string;
@@ -235,6 +265,14 @@ export interface TranslationDictionary {
         tasks_left: string;
         task_name: string;
         owner: string;
+    };
+    header_menu: {
+        sort_asc: string;
+        sort_desc: string;
+        hide: string;
+        insert_left: string;
+        insert_right: string;
+        delete_property: string;
     };
     stats: {
         tasks_count: string;

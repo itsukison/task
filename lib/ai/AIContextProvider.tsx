@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthContext } from '@/lib/auth/auth-context';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { usePathname } from 'next/navigation';
 import {
     ChatMessage,
@@ -79,6 +80,7 @@ export function useAI() {
 
 export function AIContextProvider({ children, onTasksChange, onCalendarChange }: AIContextProviderProps) {
     const { user, currentOrg: currentOrganization } = useAuthContext();
+    const { language } = useLanguage();
     const pathname = usePathname();
 
     const [isOpen, setIsOpen] = useState(false);
@@ -153,6 +155,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                     organizationId: currentOrganization.id,
                     selectedDocuments: currentPage === 'documents' ? selectedDocuments : undefined,
                     selectedDate: selectedDate ? formatDateToLocalISO(selectedDate) : undefined,
+                    language,
                 };
 
                 // Truncate conversation history to last 20 messages for token optimization

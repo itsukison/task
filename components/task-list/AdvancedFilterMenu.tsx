@@ -196,15 +196,27 @@ export function AdvancedFilterMenu({
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent position="popper">
-                                            {Object.values(FILTER_COLUMNS).map(col => (
-                                                <SelectItem
-                                                    key={col.id}
-                                                    value={col.id}
-                                                    className="focus:bg-gray-100 focus:text-[#37352F]"
-                                                >
-                                                    {col.label}
-                                                </SelectItem>
-                                            ))}
+                                            {Object.values(FILTER_COLUMNS).map(col => {
+                                                const getLabel = () => {
+                                                    switch (col.id) {
+                                                        case 'title': return t('headers.task_name');
+                                                        case 'status': return t('headers.status');
+                                                        case 'ownerIds': return t('headers.owner');
+                                                        case 'expectedTime': return t('headers.est_time');
+                                                        case 'actualTime': return t('headers.act_time');
+                                                        default: return col.label;
+                                                    }
+                                                };
+                                                return (
+                                                    <SelectItem
+                                                        key={col.id}
+                                                        value={col.id}
+                                                        className="focus:bg-gray-100 focus:text-[#37352F]"
+                                                    >
+                                                        {getLabel()}
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 </div>

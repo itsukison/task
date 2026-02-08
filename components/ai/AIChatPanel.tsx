@@ -8,6 +8,7 @@ import {
     Paperclip, Globe, ArrowUp, Check
 } from 'lucide-react';
 import { useAI } from '@/lib/ai/AIContextProvider';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useState, useRef, useEffect } from 'react';
 import { AIPresetActions } from './AIPresetActions';
 import { PendingActionPreview } from './PendingActionPreview';
@@ -25,6 +26,7 @@ export function AIChatPanel() {
         currentPage,
         pendingAction,
     } = useAI();
+    const { t } = useLanguage();
 
     const [input, setInput] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -53,14 +55,14 @@ export function AIChatPanel() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 shrink-0">
                 <div className="flex items-center gap-1 text-[#37352F] cursor-pointer hover:bg-[#EFEFED] px-1.5 py-1 rounded transition-colors">
-                    <span className="text-sm font-medium">New AI chat</span>
+                    <span className="text-sm font-medium">{t('ai.new_chat')}</span>
                     <ChevronDown className="h-3.5 w-3.5 text-[#787774]" />
                 </div>
                 <div className="flex items-center gap-1">
                     <button
                         onClick={clearHistory}
                         className="p-1 text-[#37352F] hover:bg-[#EFEFED] rounded transition-colors"
-                        title="New chat"
+                        title={t('ai.new_chat')}
                     >
                         <SquarePen className="h-4 w-4" />
                     </button>
@@ -98,7 +100,7 @@ export function AIChatPanel() {
                                 </div>
                             </div>
                             <h3 className="text-xl font-bold text-[#37352F]">
-                                What's our quest today?
+                                {t('ai.greeting')}
                             </h3>
                         </div>
                         <AIPresetActions onAction={handlePresetAction} />
@@ -190,7 +192,7 @@ export function AIChatPanel() {
                                 handleSend();
                             }
                         }}
-                        placeholder="Ask, search, or make anything..."
+                        placeholder={t('ai.input_placeholder')}
                         disabled={isLoading}
                         className="w-full resize-none border-none bg-transparent px-3 py-3 text-sm placeholder-[#9B9A97] focus:outline-none min-h-[40px] max-h-[200px]"
                         rows={1}
