@@ -2,8 +2,10 @@ import React from 'react';
 import { ArrowRight, CheckCircle2, Clock, Shield, Sparkles, Users, Zap } from 'lucide-react';
 import { Reveal } from './Reveal';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/i18n';
 
 export const ProductSection: React.FC = () => {
+    const { t } = useLanguage();
     return (
         <section id="features" className="w-full py-24 bg-white relative overflow-hidden flex flex-col gap-32">
 
@@ -13,18 +15,18 @@ export const ProductSection: React.FC = () => {
                 <div className="flex flex-col items-center text-center mb-32">
                     <Reveal delay={0.1}>
                         <h4 className="text-xs font-bold tracking-wider text-orange-600 uppercase mb-4">
-                            Intelligent Scheduling
+                            {t('landing.features.scheduling_badge')}
                         </h4>
                     </Reveal>
                     <Reveal delay={0.2}>
                         <h2 className="text-4xl md:text-6xl font-medium tracking-tight text-foreground leading-[1.1] mb-6 max-w-3xl">
-                            Sequential data. <br />
-                            <span className="text-accent">Intelligence built in.</span>
+                            {t('landing.features.scheduling_title_prefix')} <br />
+                            <span className="text-accent">{t('landing.features.scheduling_title_suffix')}</span>
                         </h2>
                     </Reveal>
                     <Reveal delay={0.3}>
                         <p className="text-lg text-gray-500 font-normal leading-relaxed mb-12 max-w-2xl mx-auto">
-                            The first timeline-based workspace designed for how humans and AI truly collaborate. Drag and drop to schedule, and watch your project plan adapt instantly.
+                            {t('landing.features.scheduling_desc')}
                         </p>
                     </Reveal>
 
@@ -77,18 +79,18 @@ export const ProductSection: React.FC = () => {
                     <div className="flex flex-col items-start text-left order-1 lg:order-2">
                         <Reveal delay={0.1}>
                             <h4 className="text-xs font-bold tracking-wider text-orange-600 uppercase mb-4">
-                                Quick Capture
+                                {t('landing.features.capture_badge')}
                             </h4>
                         </Reveal>
                         <Reveal delay={0.2}>
                             <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-foreground leading-[1.1] mb-6">
-                                Capture tasks at <br />
-                                <span className="text-accent">the speed of thought.</span>
+                                {t('landing.features.capture_title_prefix')} <br />
+                                <span className="text-accent">{t('landing.features.capture_title_suffix')}</span>
                             </h2>
                         </Reveal>
                         <Reveal delay={0.3}>
                             <p className="text-lg text-gray-500 font-normal leading-relaxed mb-8 max-w-lg">
-                                Don't let ideas slip away. Create tasks instantly with natural language, and let AI handle the categorization and tagging for you.
+                                {t('landing.features.capture_desc')}
                             </p>
                         </Reveal>
                         <Reveal delay={0.4}>
@@ -96,11 +98,11 @@ export const ProductSection: React.FC = () => {
                                 {/* Feature Pills - Orange/Accent */}
                                 <div className="px-4 py-2 bg-gray-50 rounded-full border border-gray-100 flex items-center gap-2 text-sm font-medium text-gray-600">
                                     <Zap className="w-4 h-4 text-orange-500" />
-                                    <span>Instant Create</span>
+                                    <span>{t('landing.features.capture_pill_instant')}</span>
                                 </div>
                                 <div className="px-4 py-2 bg-gray-50 rounded-full border border-gray-100 flex items-center gap-2 text-sm font-medium text-gray-600">
                                     <Sparkles className="w-4 h-4 text-orange-500" />
-                                    <span>AI Parsing</span>
+                                    <span>{t('landing.features.capture_pill_ai')}</span>
                                 </div>
                             </div>
                         </Reveal>
@@ -115,18 +117,18 @@ export const ProductSection: React.FC = () => {
                     <div className="flex flex-col items-start text-left">
                         <Reveal delay={0.1}>
                             <h4 className="text-xs font-bold tracking-wider text-orange-600 uppercase mb-4">
-                                Team Coordination
+                                {t('landing.features.coordination_badge')}
                             </h4>
                         </Reveal>
                         <Reveal delay={0.2}>
                             <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-foreground leading-[1.1] mb-6">
-                                Stay aligned <br />
-                                <span className="text-accent">without the noise.</span>
+                                {t('landing.features.coordination_title_prefix')} <br />
+                                <span className="text-accent">{t('landing.features.coordination_title_suffix')}</span>
                             </h2>
                         </Reveal>
                         <Reveal delay={0.3}>
                             <p className="text-lg text-gray-500 font-normal leading-relaxed mb-8 max-w-lg">
-                                Easily assign members to tasks and keep everyone in the loop. Visual progress tracking ensures your team hits every deadline.
+                                {t('landing.features.coordination_desc')}
                             </p>
                         </Reveal>
                         <Reveal delay={0.4}>
@@ -134,11 +136,11 @@ export const ProductSection: React.FC = () => {
                                 {/* Feature Pills - Orange/Accent */}
                                 <div className="px-4 py-2 bg-gray-50 rounded-full border border-gray-100 flex items-center gap-2 text-sm font-medium text-gray-600">
                                     <Users className="w-4 h-4 text-orange-500" />
-                                    <span>Team Assign</span>
+                                    <span>{t('landing.features.coordination_pill_assign')}</span>
                                 </div>
                                 <div className="px-4 py-2 bg-gray-50 rounded-full border border-gray-100 flex items-center gap-2 text-sm font-medium text-gray-600">
                                     <Clock className="w-4 h-4 text-orange-500" />
-                                    <span>Progress Tracking</span>
+                                    <span>{t('landing.features.coordination_pill_tracking')}</span>
                                 </div>
                             </div>
                         </Reveal>
@@ -148,7 +150,7 @@ export const ProductSection: React.FC = () => {
                                 href="/signup"
                                 className="bg-foreground text-background px-8 py-3.5 rounded-full font-medium text-base hover:bg-neutral-800 transition-colors flex items-center gap-2"
                             >
-                                Get Started
+                                {t('landing.features.cta_get_started')}
                                 <ArrowRight size={16} />
                             </Link>
                         </Reveal>

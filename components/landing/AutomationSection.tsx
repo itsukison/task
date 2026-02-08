@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Reveal } from './Reveal';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 // Dynamic import to avoid SSR issues with Three.js
 const Dither = dynamic(() => import('./ditherbg'), {
@@ -16,6 +17,7 @@ const Dither = dynamic(() => import('./ditherbg'), {
 });
 
 export const AutomationSection: React.FC = () => {
+    const { t } = useLanguage();
     const containerRef = useRef<HTMLElement>(null);
     const [scrollProgress, setScrollProgress] = useState(0);
     const [shouldLoadDither, setShouldLoadDither] = useState(false);
@@ -113,17 +115,17 @@ export const AutomationSection: React.FC = () => {
                 {/* Side Label */}
                 <div className="absolute left-6 md:left-12 top-1/3 hidden 2xl:flex items-center gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
-                    <span className="text-white/60 font-mono text-xs tracking-widest uppercase">AI-Native Workspace</span>
+                    <span className="text-white/60 font-mono text-xs tracking-widest uppercase">{t('landing.automation.side_label')}</span>
                 </div>
 
                 {/* Main Content */}
                 <div className="max-w-6xl mx-auto w-full lg:pl-16 mt-10 md:mt-0">
                     {/* Scroll Text Animation */}
                     <h2 className="text-3xl md:text-3xl lg:text-[3.5rem] leading-[1.0] tracking-tighter mb-12">
-                        <span style={getLineStyle(0)}>AI agents are here. Operator. Claude. Gemini.</span>
-                        <span style={getLineStyle(1)}>But they're still using tools built for humans clicking buttons.</span>
-                        <span style={getLineStyle(2)}>Burning tokens. Fighting APIs. Losing context.</span>
-                        <span style={getLineStyle(3)} className="mt-2">Chrono changes that.</span>
+                        <span style={getLineStyle(0)}>{t('landing.automation.line_1')}</span>
+                        <span style={getLineStyle(1)}>{t('landing.automation.line_2')}</span>
+                        <span style={getLineStyle(2)}>{t('landing.automation.line_3')}</span>
+                        <span style={getLineStyle(3)} className="mt-2">{t('landing.automation.line_4')}</span>
                     </h2>
 
                     {/* Actions */}
@@ -133,10 +135,10 @@ export const AutomationSection: React.FC = () => {
                                 href="/signup"
                                 className="bg-white text-foreground px-7 py-3.5 rounded-full font-semibold text-base md:text-lg hover:bg-gray-200 transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(218,119,86,0.3)]"
                             >
-                                See it in action
+                                {t('landing.automation.cta_button')}
                             </Link>
                             <p className="text-zinc-500 text-base md:text-lg max-w-md leading-relaxed">
-                                <span className="text-white font-semibold">The age of AI agents is here.</span> Your workspace should be ready.
+                                <span className="text-white font-semibold">{t('landing.automation.description_highlight')}</span> {t('landing.automation.description_text')}
                             </p>
                         </div>
                     </Reveal>

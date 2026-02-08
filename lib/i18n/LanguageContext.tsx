@@ -8,7 +8,7 @@ import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
 interface LanguageContextType {
     language: Language;
     setLanguage: (lang: Language) => Promise<void>;
-    t: (key: string) => string;
+    t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -53,7 +53,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         }
     }, [profile, updateProfile]);
 
-    const t = useCallback((path: string): string => {
+    const t = useCallback((path: string, params?: Record<string, string | number>): string => {
         const keys = path.split('.');
         let current: any = translations[language];
 
@@ -66,12 +66,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
                     if (fallback[k] === undefined) return path;
                     fallback = fallback[k];
                 }
-                return fallback;
+                current = fallback;
+                break;
+            } else {
+                current = current[key];
             }
-            current = current[key];
         }
 
-        return current as string;
+        let value = current as string;
+
+        // Perform interpolation if params are provided
+        if (params) {
+            Object.entries(params).forEach(([key, val]) => {
+                value = value.replace(new RegExp(`{${key}}`, 'g'), String(val));
+            });
+        }
+
+        return value;
     }, [language]);
 
     return (

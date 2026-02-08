@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Plus, FilePlus, FolderPlus, Upload, Link as LinkIcon, LayoutGrid, ArrowDownAZ, Calendar, ChevronDown } from 'lucide-react';
 import { Breadcrumb } from './Breadcrumb';
 import { Folder } from '@/lib/types';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export type SortOption = 'name' | 'created' | 'modified';
 
@@ -31,12 +32,13 @@ export function DocumentsHeader({
     const [showSortMenu, setShowSortMenu] = useState(false);
     const [showNewMenu, setShowNewMenu] = useState(false);
     const [showUploadMenu, setShowUploadMenu] = useState(false);
+    const { t } = useLanguage();
 
     return (
         <div className="pt-12 px-8 pb-4 flex-shrink-0 ml-2">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">Documents</h1>
+                    <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">{t('documents.title')}</h1>
                     <Breadcrumb folderPath={folderPath} onNavigate={onNavigate} />
                 </div>
 
@@ -48,7 +50,7 @@ export function DocumentsHeader({
                             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#787774] bg-white border border-[#E9E9E7] rounded-lg hover:bg-[#F7F7F5] hover:text-[#37352F] transition-colors"
                         >
                             <ArrowDownAZ size={16} />
-                            <span>Sort</span>
+                            <span>{t('common.sort')}</span>
                             <ChevronDown size={14} />
                         </button>
 
@@ -67,7 +69,7 @@ export function DocumentsHeader({
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <LayoutGrid size={16} className="text-[#9B9A97]" />
-                                        <span>As it is</span>
+                                        <span>{t('documents.sort_as_is')}</span>
                                     </button>
                                     <div className="h-px bg-[#E9E9E7] my-1 mx-2" />
                                     <button
@@ -78,7 +80,7 @@ export function DocumentsHeader({
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <ArrowDownAZ size={16} className="text-[#9B9A97]" />
-                                        <span>Name (A → Z)</span>
+                                        <span>{t('documents.sort_name')}</span>
                                     </button>
                                     <button
                                         onClick={() => {
@@ -88,7 +90,7 @@ export function DocumentsHeader({
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <Calendar size={16} className="text-[#9B9A97]" />
-                                        <span>Date Created</span>
+                                        <span>{t('documents.sort_date_created')}</span>
                                     </button>
                                     <button
                                         onClick={() => {
@@ -98,7 +100,7 @@ export function DocumentsHeader({
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <Calendar size={16} className="text-[#9B9A97]" />
-                                        <span>Date Modified</span>
+                                        <span>{t('documents.sort_date_modified')}</span>
                                     </button>
                                 </div>
                             </>
@@ -112,7 +114,7 @@ export function DocumentsHeader({
                             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#37352F] bg-white border border-[#E9E9E7] rounded-lg hover:bg-[#F7F7F5] transition-colors"
                         >
                             <Plus size={16} />
-                            <span>New</span>
+                            <span>{t('documents.new_document')}</span>
                             <ChevronDown size={14} className="text-[#9B9A97]" />
                         </button>
 
@@ -131,7 +133,7 @@ export function DocumentsHeader({
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <FolderPlus size={16} className="text-[#9B9A97]" />
-                                        <span>Folder</span>
+                                        <span>{t('documents.folder')}</span>
                                     </button>
                                     <button
                                         onClick={() => {
@@ -141,7 +143,7 @@ export function DocumentsHeader({
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <FilePlus size={16} className="text-[#9B9A97]" />
-                                        <span>Document</span>
+                                        <span>{t('documents.document')}</span>
                                     </button>
                                 </div>
                             </>
@@ -155,7 +157,7 @@ export function DocumentsHeader({
                             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-[#FF5500] rounded-lg hover:bg-[#FF7F3D] transition-colors"
                         >
                             <Upload size={16} />
-                            <span>Upload</span>
+                            <span>{t('documents.upload')}</span>
                             <ChevronDown size={14} className="text-white/80" />
                         </button>
 
@@ -174,7 +176,7 @@ export function DocumentsHeader({
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <Upload size={16} className="text-[#9B9A97]" />
-                                        <span>File</span>
+                                        <span>{t('documents.file')}</span>
                                     </button>
                                     <button
                                         onClick={() => {
@@ -184,7 +186,7 @@ export function DocumentsHeader({
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                                     >
                                         <LinkIcon size={16} className="text-[#9B9A97]" />
-                                        <span>Link</span>
+                                        <span>{t('documents.link')}</span>
                                     </button>
                                 </div>
                             </>

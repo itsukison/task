@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Reveal } from './Reveal';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { useLanguage } from '@/lib/i18n';
 
 const Dither = dynamic(() => import('./ditherbg'), { ssr: false });
 
@@ -74,6 +75,8 @@ const MockFile: React.FC<MockFileProps> = ({ title, type, rotate = 0, x = 0, y =
 );
 
 export const HeroSection: React.FC = () => {
+    const { t } = useLanguage();
+
     return (
         <main className="w-full min-h-[100vh] relative flex flex-col items-center justify-center bg-background overflow-hidden pt-24 pb-10">
 
@@ -108,26 +111,26 @@ export const HeroSection: React.FC = () => {
                 {/* Headline */}
                 <Reveal delay={0.2} variant="fade-up">
                     <h1 className="text-4xl md:text-6xl lg:text-[5.5rem] leading-[0.95] text-foreground tracking-tighter mb-8 max-w-5xl mx-auto">
-                        Built for AI agents. <br />
-                        <span className="text-accent">Not retrofitted for them.</span>
+                        {t('landing.hero.title_prefix')} <br />
+                        <span className="text-accent">{t('landing.hero.title_suffix')}</span>
                     </h1>
                 </Reveal>
 
                 {/* Subheadline */}
                 <Reveal delay={0.3} variant="fade-up">
                     <p className="text-lg md:text-xl text-gray-500 leading-relaxed font-normal max-w-2xl mx-auto mb-12">
-                        Stop fighting with API endpoints and token limits. Chrono is the workspace designed from the ground up for how humans and AI work together.
+                        {t('landing.hero.subtitle')}
                     </p>
                 </Reveal>
 
                 {/* Floating Mock Elements (Left Side) - Reduced Count */}
-                <MockFolder name="Q3 Reports" count={12} x={-540} y={-80} rotate={-12} delay={0.5} />
-                <MockFile title="Strategy.pdf" type="pdf" x={-490} y={60} rotate={-6} delay={0.6} />
+                <MockFolder name={t('landing.hero.mock_folder_1')} count={12} x={-540} y={-80} rotate={-12} delay={0.5} />
+                <MockFile title={t('landing.hero.mock_file_1')} type="pdf" x={-490} y={60} rotate={-6} delay={0.6} />
 
                 {/* Floating Mock Elements (Right Side) - Reduced Count */}
-                <MockFolder name="Assets" count={24} x={420} y={-60} rotate={12} delay={0.5} />
-                <MockFile title="Budget_v2.csv" type="sheet" x={380} y={80} rotate={8} delay={0.6} />
-                <MockFolder name="Projects" count={5} x={500} y={20} rotate={6} delay={0.7} />
+                <MockFolder name={t('landing.hero.mock_folder_2')} count={24} x={420} y={-60} rotate={12} delay={0.5} />
+                <MockFile title={t('landing.hero.mock_file_2')} type="sheet" x={380} y={80} rotate={8} delay={0.6} />
+                <MockFolder name={t('landing.hero.mock_folder_3')} count={5} x={500} y={20} rotate={6} delay={0.7} />
 
 
                 {/* Intelligent Input Box */}
@@ -140,15 +143,15 @@ export const HeroSection: React.FC = () => {
                         <input
                             type="text"
                             disabled
-                            placeholder="Generate a weekly schedule from my Q3 goals doc..."
+                            placeholder={t('landing.hero.input_placeholder')}
                             className="flex-1 bg-transparent border-none outline-none text-base text-gray-600 placeholder:text-gray-400 px-2 cursor-default"
                         />
                         <div className="hidden sm:flex items-center gap-2">
-                            <div className="px-2 py-1 bg-gray-50 rounded text-[10px] font-medium text-gray-400 border border-gray-100">Web Search</div>
-                            <div className="px-2 py-1 bg-gray-50 rounded text-[10px] font-medium text-gray-400 border border-gray-100">Notebook</div>
+                            <div className="px-2 py-1 bg-gray-50 rounded text-[10px] font-medium text-gray-400 border border-gray-100">{t('landing.hero.input_badge_web')}</div>
+                            <div className="px-2 py-1 bg-gray-50 rounded text-[10px] font-medium text-gray-400 border border-gray-100">{t('landing.hero.input_badge_notebook')}</div>
                         </div>
                         <button className="bg-foreground text-background px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors flex items-center gap-2">
-                            Ask AI <ArrowRight className="w-3 h-3" />
+                            {t('landing.hero.cta_ask_ai')} <ArrowRight className="w-3 h-3" />
                         </button>
                     </div>
                 </Reveal>
@@ -160,13 +163,13 @@ export const HeroSection: React.FC = () => {
                             href="/signup"
                             className="bg-foreground text-background px-8 py-3.5 rounded-full font-medium text-base hover:scale-105 transition-transform duration-200 shadow-xl shadow-black/5"
                         >
-                            Start Free Trial
+                            {t('landing.hero.cta_start_free')}
                         </Link>
                         <Link
                             href="/login"
                             className="px-8 py-3.5 rounded-full font-medium text-base text-foreground/70 hover:text-foreground hover:bg-gray-50 transition-colors"
                         >
-                            View Documentation
+                            {t('landing.hero.cta_view_docs')}
                         </Link>
                     </div>
                 </Reveal>

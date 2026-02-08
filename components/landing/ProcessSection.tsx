@@ -1,21 +1,23 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { ArrowRight, Calendar, User, Database, Globe, MessageSquare, Zap, FileText, Slack, Trello, Mail } from 'lucide-react';
+import { ArrowRight, Calendar, User, Database, Globe, MessageSquare, Zap, FileText, Mail } from 'lucide-react';
 import { AnimatedBeam } from '@/components/ui/animated-beam';
 import { OrbitingCircles } from '@/components/ui/orbiting-circles';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useLanguage } from '@/lib/i18n';
 
 // --- Card 1: Chat UI (Real-time AI Collaboration) - Blue #72b0ff ---
 const ChatDemo = () => {
+    const { t } = useLanguage();
     return (
         <div className="w-full h-full flex flex-col justify-center items-center p-8">
             {/* User Message (Right) */}
             <div className="w-full flex justify-end mb-6">
                 <div className="bg-[#72b0ff] text-white p-4 rounded-2xl rounded-tr-sm max-w-[80%] shadow-sm">
                     <p className="text-sm font-medium leading-relaxed">
-                        Hey, I need help scheduling a team meeting that works well for everyone. Any suggestions?
+                        {t('landing.process.demo_chat_user')}
                     </p>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-gray-200 ml-3 flex-shrink-0 overflow-hidden border-2 border-white shadow-sm mt-auto">
@@ -30,14 +32,14 @@ const ChatDemo = () => {
                 </div>
                 <div className="bg-white border border-gray-100 text-gray-600 p-5 rounded-2xl rounded-tl-sm max-w-[85%] shadow-sm">
                     <p className="text-sm leading-relaxed">
-                        Based on your calendar patterns, I recommend <strong>Tuesday at 2pm.</strong> This slot has the highest attendance rate and avoids conflicts with the Design Review.
+                        {t('landing.process.demo_chat_ai')}
                     </p>
                     <div className="mt-3 flex gap-2">
                         <button className="px-3 py-1.5 bg-[#72b0ff]/10 text-[#72b0ff] text-xs font-medium rounded-full hover:bg-[#72b0ff]/20 transition-colors">
-                            Book it
+                            {t('landing.process.demo_chat_btn_book')}
                         </button>
                         <button className="px-3 py-1.5 bg-gray-50 text-gray-500 text-xs font-medium rounded-full hover:bg-gray-100 transition-colors">
-                            Show specific attendees
+                            {t('landing.process.demo_chat_btn_attendees')}
                         </button>
                     </div>
                 </div>
@@ -205,6 +207,7 @@ const OrbitDemo = () => {
 export const ProcessSection: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [progress, setProgress] = useState(0);
+    const { t } = useLanguage();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -228,27 +231,27 @@ export const ProcessSection: React.FC = () => {
     const sections = [
         {
             id: 0,
-            label: 'Collaboration',
-            title: "Real-time AI Collaboration",
-            text: "Experience real-time assistance. Ask your AI Agent to coordinate tasks, answer questions, and maintain team alignment.",
+            label: t('landing.process.collab_tab'),
+            title: t('landing.process.collab_title'),
+            text: t('landing.process.collab_text'),
             bgColor: "bg-[#72b0ff]/10", // Blue tint
             borderColor: "border-[#72b0ff]/20",
             component: <ChatDemo />
         },
         {
             id: 1,
-            label: 'Processing',
-            title: "Natural Language to Action",
-            text: "Chrono processes unstructured request into structured, executable actions. No more manual data entry—just speak your mind.",
+            label: t('landing.process.processing_tab'),
+            title: t('landing.process.processing_title'),
+            text: t('landing.process.processing_text'),
             bgColor: "bg-[#ffce18]/10", // Yellow tint
             borderColor: "border-[#ffce18]/20",
             component: <BeamDemo />
         },
         {
             id: 2,
-            label: 'Integration',
-            title: "Seamless Integration",
-            text: "Connect your favorite tools like Notion, Linear, and Teams. Chrono unifies your workspace into a single sequential timeline.",
+            label: t('landing.process.integration_tab'),
+            title: t('landing.process.integration_title'),
+            text: t('landing.process.integration_text'),
             bgColor: "bg-[#c79ffb]/10", // Purple tint
             borderColor: "border-[#c79ffb]/20",
             component: <OrbitDemo />
@@ -302,7 +305,7 @@ export const ProcessSection: React.FC = () => {
                                         {slide.text}
                                     </p>
                                     <a href="#" className="inline-flex items-center text-orange-600 font-medium text-lg hover:text-orange-700 transition-colors group">
-                                        Learn more <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                        {t('landing.process.learn_more')} <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </a>
                                 </div>
 

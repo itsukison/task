@@ -2,6 +2,7 @@
 
 import { Edit, Trash2, Eye, EyeOff, FolderInput } from 'lucide-react';
 import { Document as DocumentType, Folder } from '@/lib/types';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface DocumentContextMenuProps {
     item: DocumentType | Folder;
@@ -24,6 +25,8 @@ export function DocumentContextMenu({
     onChangeVisibility,
     onMoveToFolder,
 }: DocumentContextMenuProps) {
+    const { t } = useLanguage();
+
     return (
         <>
             {/* Backdrop */}
@@ -45,7 +48,7 @@ export function DocumentContextMenu({
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                 >
                     <Edit size={16} className="text-[#9B9A97]" />
-                    <span>Rename</span>
+                    <span>{t('documents.rename')}</span>
                 </button>
 
                 {onMoveToFolder && (
@@ -57,14 +60,14 @@ export function DocumentContextMenu({
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                     >
                         <FolderInput size={16} className="text-[#9B9A97]" />
-                        <span>Move to Folder</span>
+                        <span>{t('documents.move_to_folder')}</span>
                     </button>
                 )}
 
                 <div className="h-px bg-[#E9E9E7] my-1" />
 
                 {/* Visibility options */}
-                <div className="px-3 py-1 text-xs font-semibold text-[#9B9A97]">Visibility</div>
+                <div className="px-3 py-1 text-xs font-semibold text-[#9B9A97]">{t('documents.visibility')}</div>
                 <button
                     onClick={() => {
                         onChangeVisibility('private');
@@ -73,7 +76,7 @@ export function DocumentContextMenu({
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                 >
                     <EyeOff size={16} className="text-[#9B9A97]" />
-                    <span>Private</span>
+                    <span>{t('documents.private')}</span>
                     {item.visibility === 'private' && (
                         <span className="ml-auto text-[#FF5500]">✓</span>
                     )}
@@ -86,7 +89,7 @@ export function DocumentContextMenu({
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                 >
                     <Eye size={16} className="text-[#9B9A97]" />
-                    <span>Team</span>
+                    <span>{t('documents.team')}</span>
                     {item.visibility === 'team' && (
                         <span className="ml-auto text-[#FF5500]">✓</span>
                     )}
@@ -99,7 +102,7 @@ export function DocumentContextMenu({
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#37352F] hover:bg-[#EFEFED] transition-colors"
                 >
                     <Eye size={16} className="text-[#9B9A97]" />
-                    <span>Leaders Only</span>
+                    <span>{t('documents.leaders_only')}</span>
                     {item.visibility === 'leaders_only' && (
                         <span className="ml-auto text-[#FF5500]">✓</span>
                     )}
@@ -115,7 +118,7 @@ export function DocumentContextMenu({
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#EB5757] hover:bg-red-50 transition-colors"
                 >
                     <Trash2 size={16} />
-                    <span>Delete</span>
+                    <span>{t('documents.delete')}</span>
                 </button>
             </div>
         </>

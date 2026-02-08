@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { X, Upload, Link as LinkIcon, File, Loader } from 'lucide-react';
 import { uploadFile, formatFileSize, isFileTypeSupported, MAX_FILE_SIZE } from '@/lib/utils/file-upload';
 import { useAuth } from '@/lib/auth/hooks';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface UploadModalProps {
     isOpen: boolean;
@@ -23,6 +24,7 @@ interface UploadModalProps {
 }
 
 export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadModalProps) {
+    const { t } = useLanguage();
     const { user, currentOrg } = useAuth();
     const [file, setFile] = useState<File | null>(null);
     const [linkUrl, setLinkUrl] = useState('');
@@ -39,13 +41,13 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
 
         // Validate file size
         if (selectedFile.size > MAX_FILE_SIZE) {
-            setError(`File size exceeds ${formatFileSize(MAX_FILE_SIZE)} limit`);
+            setError(t('documents.error_file_size', { size: formatFileSize(MAX_FILE_SIZE) }));
             return;
         }
 
         // Validate file type
         if (!isFileTypeSupported(selectedFile.name)) {
-            setError('File type not supported');
+            setError(t('documents.file_type_not_supported'));
             return;
         }
 
@@ -98,7 +100,7 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
             onClose();
             setFile(null);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to upload file');
+            setError(err instanceof Error ? err.message : t('documents.error_upload_failed'));
         } finally {
             setUploading(false);
             setUploadProgress(0);
@@ -122,7 +124,7 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
             onClose();
             setLinkUrl('');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to add link');
+            setError(err instanceof Error ? err.message : t('documents.error_add_link_failed'));
         } finally {
             setUploading(false);
         }
@@ -134,7 +136,7 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-[#37352F]">
-                        {mode === 'file' ? 'Upload file' : 'Add link'}
+                        {mode === 'file' ? t('documents.upload_file') : t('documents.add_link')}
                     </h2>
                     <button
                         onClick={onClose}
@@ -190,10 +192,10 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
                                             <Upload size={18} className="text-[#787774]" />
                                         </div>
                                         <p className="text-sm font-medium text-[#37352F] mb-1">
-                                            Click to upload
+                                            {t('documents.click_to_upload')}
                                         </p>
                                         <p className="text-xs text-[#9B9A97]">
-                                            or drag and drop
+                                            {t('documents.drag_and_drop')}
                                         </p>
                                     </>
                                 )}
@@ -219,7 +221,7 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
                                     type="url"
                                     value={linkUrl}
                                     onChange={(e) => setLinkUrl(e.target.value)}
-                                    placeholder="Paste any link..."
+                                    placeholder={t('documents.paste_link_placeholder')}
                                     className="w-full px-4 py-3 text-sm text-[#37352F] bg-[#F7F7F5] rounded-lg border-none focus:ring-2 focus:ring-[#37352F]/10 focus:bg-[#EFEFED] placeholder:text-[#9B9A97] transition-all"
                                     autoFocus
                                 />
@@ -249,7 +251,7 @@ export function UploadModal({ isOpen, mode, onClose, onUploadComplete }: UploadM
                     `}
                 >
                     {uploading && <Loader size={14} className="animate-spin" />}
-                    {mode === 'file' ? (uploading ? 'Uploading...' : 'Upload file') : 'Add link'}
+                    {mode === 'file' ? (uploading ? t('documents.uploading') : t('documents.upload_file')) : t('documents.add_link')}
                 </button>
             </div>
         </div>

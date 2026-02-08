@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '@/components/sidebar';
-import { AuthProvider } from '@/lib/auth/auth-context';
 import { useRequireOrg } from '@/lib/auth/hooks';
 import { AIContextProvider } from '@/lib/ai/AIContextProvider';
 import { AIFloatingButton } from '@/components/ai/AIFloatingButton';
@@ -34,7 +33,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     );
 }
 
-import { LanguageProvider } from '@/lib/i18n';
+
 
 // ... (DashboardContent implementation remains same) ...
 
@@ -44,12 +43,8 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <AuthProvider>
-            <LanguageProvider>
-                <AIContextProvider>
-                    <DashboardContent>{children}</DashboardContent>
-                </AIContextProvider>
-            </LanguageProvider>
-        </AuthProvider>
+        <AIContextProvider>
+            <DashboardContent>{children}</DashboardContent>
+        </AIContextProvider>
     );
 }

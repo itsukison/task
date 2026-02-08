@@ -10,6 +10,7 @@ import { X, ChevronRight, Download, FileIcon, File } from 'lucide-react';
 import { Document as DocumentType } from '@/lib/types';
 import { EditorToolbar } from './EditorToolbar';
 import { formatFileSize, getFileCategory } from '@/lib/utils/file-upload';
+import { useLanguage } from '@/lib/i18n';
 
 interface DocumentEditorProps {
     document: DocumentType;
@@ -19,6 +20,7 @@ interface DocumentEditorProps {
 }
 
 export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }: DocumentEditorProps) {
+    const { t } = useLanguage();
     const [title, setTitle] = useState(document.title);
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -45,7 +47,7 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
                 },
             }),
             Placeholder.configure({
-                placeholder: 'Start writing...',
+                placeholder: t('documents.placeholder'),
             }),
         ],
         content: isEditable ? (document.content || {
@@ -164,13 +166,13 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
         const diff = now.getTime() - lastSaved.getTime();
         const seconds = Math.floor(diff / 1000);
 
-        if (seconds < 10) return 'Saved just now';
-        if (seconds < 60) return `Saved ${seconds}s ago`;
+        if (seconds < 10) return t('documents.saved_just_now');
+        if (seconds < 60) return t('documents.saved_seconds_ago', { seconds });
 
         const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `Saved ${minutes}m ago`;
+        if (minutes < 60) return t('documents.saved_minutes_ago', { minutes });
 
-        return `Saved at ${lastSaved.toLocaleTimeString()}`;
+        return t('documents.saved_at', { time: lastSaved.toLocaleTimeString() });
     };
 
     // Render file viewer for uploaded files
@@ -216,7 +218,7 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
                     download={document.fileName || undefined}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                    Download File
+                    {t('common.download')}
                 </a>
             </div>
         );
@@ -233,7 +235,7 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
                     {/* Save status - only show for editable docs */}
                     {isEditable && (
                         <span className="text-xs text-[#9B9A97]">
-                            {isSaving ? 'Saving...' : formatLastSaved()}
+                            {isSaving ? t('documents.saving') : formatLastSaved()}
                         </span>
                     )}
 
@@ -257,7 +259,7 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
                                     type="text"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="Untitled"
+                                    placeholder={t('documents.untitled')}
                                     className="w-full text-4xl font-bold text-[#37352F] bg-transparent border-none outline-none placeholder-gray-300"
                                 />
                             </div>
@@ -293,7 +295,7 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
                                     className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors px-3 py-1.5 hover:bg-blue-50 rounded-md"
                                 >
                                     <Download className="w-4 h-4" />
-                                    Download
+                                    {t('common.download')}
                                 </a>
                             </div>
 

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AuthProvider } from '@/lib/auth/auth-context';
+import { Navbar } from '@/components/landing/Navbar';
+
 
 export default function AuthLayout({
   children,
@@ -9,8 +10,11 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthProvider>
-      {children}
-    </AuthProvider>
+    <>
+      <Navbar />
+      <div className="pt-20">
+        {children}
+      </div>
+    </>
   );
 }

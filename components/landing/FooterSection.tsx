@@ -4,10 +4,10 @@ import React from 'react';
 import Image from 'next/image';
 import { Reveal } from './Reveal';
 import Link from 'next/link';
-
-
+import { useLanguage } from '@/lib/i18n';
 
 export const FooterSection: React.FC = () => {
+    const { t } = useLanguage();
     return (
         <footer className="w-full bg-background border-t border-gray-100 overflow-hidden relative">
 
@@ -35,16 +35,16 @@ export const FooterSection: React.FC = () => {
                 <div className="max-w-2xl mx-auto relative z-10">
                     <Reveal delay={0.1}>
                         <h4 className="text-xs font-bold tracking-wider text-orange-600 uppercase mb-4">
-                            Get Started
+                            {t('landing.footer.cta_badge')}
                         </h4>
                         <h2 className="text-5xl md:text-6xl font-medium tracking-tight text-foreground mb-6 leading-[1.1]">
-                            Ready to master <br />
-                            <span className="text-accent">your time?</span>
+                            {t('landing.footer.cta_title_prefix')} <br />
+                            <span className="text-accent">{t('landing.footer.cta_title_suffix')}</span>
                         </h2>
                     </Reveal>
                     <Reveal delay={0.2}>
                         <p className="text-lg text-gray-500 font-normal mb-10 max-w-lg mx-auto leading-relaxed">
-                            Join startups building better daily rhythms. Your time is finite—make it count.
+                            {t('landing.footer.cta_subtitle')}
                         </p>
                     </Reveal>
 
@@ -53,7 +53,7 @@ export const FooterSection: React.FC = () => {
                             href="/signup"
                             className="inline-block bg-foreground text-background px-8 py-4 rounded-full text-base font-semibold hover:bg-foreground/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                         >
-                            Start Free Trial
+                            {t('landing.footer.cta_button')}
                         </Link>
                     </Reveal>
                 </div>
@@ -86,13 +86,13 @@ export const FooterSection: React.FC = () => {
                                             <span className="text-xl font-bold tracking-tight">Chrono</span>
                                         </div>
                                         <h3 className="text-3xl font-medium tracking-tight leading-snug max-w-sm text-white">
-                                            Time-aware daily planning <br />
-                                            <span className="text-white/70">for modern teams.</span>
+                                            {t('landing.footer.brand_desc_prefix')} <br />
+                                            <span className="text-white/70">{t('landing.footer.brand_desc_suffix')}</span>
                                         </h3>
                                     </div>
 
                                     <div className="relative z-10 mt-12">
-                                        <p className="text-sm font-medium text-white/80 mb-6 uppercase tracking-wider">Stay in touch</p>
+                                        <p className="text-sm font-medium text-white/80 mb-6 uppercase tracking-wider">{t('landing.footer.stay_in_touch')}</p>
                                         <div className="flex gap-3">
                                             {[
                                                 { name: 'X', path: 'M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z' },
@@ -113,21 +113,34 @@ export const FooterSection: React.FC = () => {
                                 <div className="lg:col-span-7 p-10 md:p-14 relative z-10 flex flex-col justify-between">
                                     <div className="grid grid-cols-2 gap-12 mb-12">
                                         <div>
-                                            <h4 className="text-sm font-semibold text-gray-900 mb-6">Navigation</h4>
+                                            <h4 className="text-sm font-semibold text-gray-900 mb-6">{t('landing.footer.nav_title')}</h4>
                                             <ul className="space-y-4">
-                                                {['Features', 'How it works', 'Pricing', 'Testimonials', 'FAQ', 'Changelog'].map(item => (
-                                                    <li key={item}>
-                                                        <a href="#" className="text-foreground font-medium hover:text-accent transition-colors">{item}</a>
+                                                {[
+                                                    { label: t('landing.footer.nav_items.features'), href: '#' },
+                                                    { label: t('landing.footer.nav_items.how_it_works'), href: '#' },
+                                                    { label: t('landing.footer.nav_items.pricing'), href: '#' },
+                                                    { label: t('landing.footer.nav_items.testimonials'), href: '#' },
+                                                    { label: t('landing.footer.nav_items.faq'), href: '#' },
+                                                    { label: t('landing.footer.nav_items.changelog'), href: '#' },
+                                                ].map(item => (
+                                                    <li key={item.label}>
+                                                        <a href={item.href} className="text-foreground font-medium hover:text-accent transition-colors">{item.label}</a>
                                                     </li>
                                                 ))}
                                             </ul>
                                         </div>
                                         <div>
-                                            <h4 className="text-sm font-semibold text-gray-900 mb-6">Company</h4>
+                                            <h4 className="text-sm font-semibold text-gray-900 mb-6">{t('landing.footer.company_title')}</h4>
                                             <ul className="space-y-4">
-                                                {['Blog', 'About', 'Contact Us', 'Terms & Conditions', 'Privacy Policy'].map(item => (
-                                                    <li key={item}>
-                                                        <a href="#" className="text-foreground font-medium hover:text-accent transition-colors">{item}</a>
+                                                {[
+                                                    { label: t('landing.footer.company_items.blog'), href: '#' },
+                                                    { label: t('landing.footer.company_items.about'), href: '#' },
+                                                    { label: t('landing.footer.company_items.contact'), href: '#' },
+                                                    { label: t('landing.footer.company_items.terms'), href: '#' },
+                                                    { label: t('landing.footer.company_items.privacy'), href: '#' },
+                                                ].map(item => (
+                                                    <li key={item.label}>
+                                                        <a href={item.href} className="text-foreground font-medium hover:text-accent transition-colors">{item.label}</a>
                                                     </li>
                                                 ))}
                                             </ul>
@@ -136,22 +149,22 @@ export const FooterSection: React.FC = () => {
 
                                     <div className="pt-8 border-t border-gray-200/50">
                                         <h4 className="text-2xl font-medium text-foreground tracking-tight mb-2">
-                                            Daily execution moves fast. <br />
-                                            <span className="text-foreground/70">Stay ahead with Chrono.</span>
+                                            {t('landing.footer.subscribe_title_prefix')} <br />
+                                            <span className="text-foreground/70">{t('landing.footer.subscribe_title_suffix')}</span>
                                         </h4>
 
                                         <div className="mt-6 flex gap-2">
                                             <input
                                                 type="email"
-                                                placeholder="Enter email address"
+                                                placeholder={t('landing.footer.email_placeholder')}
                                                 className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-accent transition-colors text-foreground placeholder:text-gray-400"
                                             />
                                             <button className="bg-foreground text-background px-6 py-3 rounded-xl font-medium hover:bg-foreground/90 transition-colors whitespace-nowrap">
-                                                Subscribe
+                                                {t('landing.footer.subscribe_btn')}
                                             </button>
                                         </div>
                                         <div className="mt-6 flex justify-between items-center text-xs text-gray-400">
-                                            <p>© 2026 Chrono Inc. All rights reserved.</p>
+                                            <p>{t('landing.footer.copyright')}</p>
                                         </div>
                                     </div>
                                 </div>

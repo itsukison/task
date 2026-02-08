@@ -90,7 +90,7 @@ export default function DocumentsPage() {
     const handleNewDocument = async () => {
         try {
             const newDoc = await createDocument({
-                title: 'Untitled Document',
+                title: t('documents.untitled_document'),
                 folderId: currentFolderId,
             });
             setSelectedDocument(newDoc);
@@ -103,7 +103,7 @@ export default function DocumentsPage() {
     const handleNewFolder = async () => {
         try {
             await createFolder({
-                name: 'New Folder',
+                name: t('documents.new_folder_name'),
                 parentFolderId: currentFolderId,
             });
         } catch (error) {
@@ -297,7 +297,7 @@ export default function DocumentsPage() {
         if (!contextMenu) return;
 
         const newName = prompt(
-            `Rename ${contextMenu.type}:`,
+            t('documents.rename_item', { type: contextMenu.type === 'folder' ? t('documents.folder') : t('documents.document') }),
             contextMenu.type === 'folder'
                 ? (contextMenu.item as Folder).name
                 : (contextMenu.item as DocumentType).title
@@ -319,7 +319,9 @@ export default function DocumentsPage() {
     const handleDelete = async () => {
         if (!contextMenu) return;
 
-        const confirmMessage = `Are you sure you want to delete this ${contextMenu.type}?`;
+        const confirmMessage = contextMenu.type === 'folder'
+            ? t('documents.confirm_delete_folder')
+            : t('documents.confirm_delete_document');
         if (!confirm(confirmMessage)) return;
 
         try {

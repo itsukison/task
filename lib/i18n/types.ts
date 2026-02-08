@@ -51,6 +51,7 @@ export interface TranslationDictionary {
         add_filter: string;
         reset_all_filters: string;
         select_value: string;
+        download: string;
     };
     filter_operators: {
         contains: string;
@@ -95,6 +96,7 @@ export interface TranslationDictionary {
         items: string;
         item: string;
         rename: string;
+        rename_item: string;
         delete: string;
         move_to_folder: string;
         visibility: string;
@@ -112,7 +114,13 @@ export interface TranslationDictionary {
         add: string;
         upload: string;
         file_type_not_supported: string;
+
         file_size_exceeds: string;
+        error_file_size: string;
+        error_upload_failed: string;
+        error_add_link_failed: string;
+        error_select_file: string;
+        error_invalid_url: string;
         saving: string;
         saved_just_now: string;
         saved_seconds_ago: string;
@@ -120,6 +128,19 @@ export interface TranslationDictionary {
         saved_at: string;
         confirm_delete_document: string;
         confirm_delete_folder: string;
+        sort_as_is: string;
+        sort_name: string;
+        sort_date_created: string;
+        sort_date_modified: string;
+        folder: string;
+        document: string;
+        file: string;
+        link: string;
+        click_to_upload: string;
+        drag_and_drop: string;
+
+        paste_link_placeholder: string;
+        placeholder: string;
     };
     settings: {
         title: string;
@@ -219,5 +240,167 @@ export interface TranslationDictionary {
         tasks_count: string;
         left_count: string;
         done: string;
+    };
+    landing: {
+        hero: {
+            badge: string;
+            title_prefix: string;
+            title_suffix: string;
+            subtitle: string;
+            input_placeholder: string;
+            input_badge_web: string;
+            input_badge_notebook: string;
+            cta_ask_ai: string;
+            cta_start_free: string;
+            cta_view_docs: string;
+            mock_folder_1: string;
+            mock_folder_2: string;
+            mock_folder_3: string;
+            mock_file_1: string;
+            mock_file_2: string;
+        };
+        features: {
+            scheduling_badge: string;
+            scheduling_title_prefix: string;
+            scheduling_title_suffix: string;
+            scheduling_desc: string;
+            capture_badge: string;
+            capture_title_prefix: string;
+            capture_title_suffix: string;
+            capture_desc: string;
+            capture_pill_instant: string;
+            capture_pill_ai: string;
+            coordination_badge: string;
+            coordination_title_prefix: string;
+            coordination_title_suffix: string;
+            coordination_desc: string;
+            coordination_pill_assign: string;
+            coordination_pill_tracking: string;
+            cta_get_started: string;
+        };
+        process: {
+            collab_tab: string;
+            collab_title: string;
+            collab_text: string;
+            processing_tab: string;
+            processing_title: string;
+            processing_text: string;
+            integration_tab: string;
+            integration_title: string;
+            integration_text: string;
+            learn_more: string;
+            demo_chat_user: string;
+            demo_chat_ai: string;
+            demo_chat_btn_book: string;
+            demo_chat_btn_attendees: string;
+        };
+        testimonials: {
+            badge: string;
+            title_prefix: string;
+            title_suffix: string;
+            subtitle: string;
+            stat_impact: string;
+            stat_hours: string;
+            stat_desc: string;
+            quote_1: string;
+            quote_1_highlight: string;
+            author_1_role: string;
+            quote_2: string;
+            author_2_role: string;
+            quote_3: string;
+            author_3_role: string;
+            visual_badge: string;
+        };
+        footer: {
+            cta_badge: string;
+            cta_title_prefix: string;
+            cta_title_suffix: string;
+            cta_subtitle: string;
+            cta_button: string;
+            brand_desc_prefix: string;
+            brand_desc_suffix: string;
+            stay_in_touch: string;
+            nav_title: string;
+            nav_items: {
+                features: string;
+                how_it_works: string;
+                pricing: string;
+                testimonials: string;
+                faq: string;
+                changelog: string;
+            };
+            company_title: string;
+            company_items: {
+                blog: string;
+                about: string;
+                contact: string;
+                terms: string;
+                privacy: string;
+            };
+            subscribe_title_prefix: string;
+            subscribe_title_suffix: string;
+            email_placeholder: string;
+            subscribe_btn: string;
+            copyright: string;
+        };
+        nav: {
+            features: string;
+            how_it_works: string;
+            testimonials: string;
+            login: string;
+            get_started: string;
+        };
+        services: {
+            badge: string;
+            title_prefix: string;
+            title_suffix: string;
+            subtitle: string;
+            card_1_title: string;
+            card_1_desc: string;
+            card_2_title: string;
+            card_2_desc: string;
+            card_3_title: string;
+            card_3_desc: string;
+            card_4_title: string;
+            card_4_desc: string;
+            card_5_title: string;
+            card_5_desc: string;
+        };
+        automation: {
+            side_label: string;
+            line_1: string;
+            line_2: string;
+            line_3: string;
+            line_4: string;
+            cta_button: string;
+            description_highlight: string;
+            description_text: string;
+        };
+    };
+    auth: {
+        login_title: string;
+        login_subtitle: string;
+        signup_title: string;
+        signup_subtitle: string;
+        email_label: string;
+        email_placeholder: string;
+        password_label: string;
+        password_placeholder: string;
+        confirm_password_label: string;
+        confirm_password_placeholder: string;
+        display_name_label: string;
+        display_name_placeholder: string;
+        password_min_length: string;
+        sign_in_btn: string;
+        signing_in_btn: string;
+        sign_up_btn: string;
+        creating_account_btn: string;
+        no_account: string;
+        has_account: string;
+        error_password_match: string;
+        error_password_length: string;
+        error_name_required: string;
+        error_generic_signin: string;
+        error_generic_signup: string;
     };
 }

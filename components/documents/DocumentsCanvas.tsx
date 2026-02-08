@@ -16,6 +16,7 @@ import {
     KeyboardSensor,
     DragOverlay,
 } from '@dnd-kit/core';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 // Constants for layout
 const CARD_WIDTH = 130;
@@ -60,6 +61,7 @@ export function DocumentsCanvas({
     onSelectMultiple,
     onDeselectAll,
 }: DocumentsCanvasProps) {
+    const { t } = useLanguage();
     const containerRef = useRef<HTMLDivElement>(null);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeType, setActiveType] = useState<'document' | 'folder' | null>(null);
@@ -329,7 +331,7 @@ export function DocumentsCanvas({
     if (loading) {
         return (
             <div className="w-full h-full flex items-center justify-center">
-                <div className="text-[#787774] text-sm">Loading documents...</div>
+                <div className="text-[#787774] text-sm">{t('common.loading')}</div>
             </div>
         );
     }
@@ -464,10 +466,10 @@ export function DocumentsCanvas({
                                 </svg>
                             </div>
                             <h3 className="text-lg font-medium text-[#37352F] mb-2">
-                                No documents yet
+                                {t('documents.empty_title')}
                             </h3>
                             <p className="text-sm text-[#9B9A97] max-w-sm">
-                                Create a new document, add a folder, upload a file, or save a link to get started.
+                                {t('documents.empty_description')}
                             </p>
                         </div>
                     )}
