@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [existingUser, setExistingUser] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { signUp } = useAuth();
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setExistingUser(false);
 
     if (password !== confirmPassword) {
       setError(t('auth.error_password_match'));
@@ -32,10 +34,22 @@ export default function SignupPage() {
       return;
     }
 
+    setLoading(true);
+
     try {
       const result = await signUp(email, password);
 
       if (result.error) {
+        if (result.error.message.includes('User already registered') || result.error.status === 400 || result.error.status === 422) {
+          // Supabase sometimes returns ambiguous errors for duplicates, but messge usually contains it.
+          // However, for security, sometimes it masks it. But commonly it says "User already registered".
+          // If we get an error, we can check.
+          if (result.error.message.toLowerCase().includes('already registered') || result.error.message.toLowerCase().includes('already exists')) {
+            setExistingUser(true);
+            setLoading(false);
+            return;
+          }
+        }
         setError(result.error.message || t('auth.error_generic_signup'));
         return;
       }
@@ -49,11 +63,49 @@ export default function SignupPage() {
         router.push('/onboarding');
       }
     } catch (err: any) {
-      setError(err.message || t('auth.error_generic_signup'));
+      if (err.message?.toLowerCase().includes('already registered')) {
+        setExistingUser(true);
+      } else {
+        setError(err.message || t('auth.error_generic_signup'));
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  if (existingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white px-4 pb-38">
+        <div className="w-full max-w-sm text-center space-y-6">
+          <div className="w-16 h-16 mx-auto rounded-full bg-[#F7F7F5] flex items-center justify-center">
+            <Mail className="w-8 h-8 text-[#37352F]" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-[#37352F]">You already have an account</h2>
+            <p className="text-sm text-[#787774]">
+              It looks like <span className="font-medium text-[#37352F]">{email}</span> is already registered.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/login"
+              className="block w-full bg-[#f35513] text-white font-medium py-2 rounded-sm hover:bg-[#e04e11] transition-colors"
+            >
+              Sign in with this email
+            </Link>
+          </div>
+          <div>
+            <button
+              onClick={() => setExistingUser(false)}
+              className="text-sm text-[#787774] hover:text-[#37352F] transition-colors"
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-4 pb-38">

@@ -17,8 +17,19 @@ export default function OnboardingPage() {
     const [pendingRequest, setPendingRequest] = useState<{ orgName: string } | null>(null);
 
     const router = useRouter();
-    const { user, signOut, loading: authLoading, initialized } = useAuth();
+    const { user, signOut, loading: authLoading, initialized, currentOrg } = useAuth();
     const { createOrganization, joinOrganization } = useOrganization();
+
+    // State to track if we're waiting for the org to be set in context before redirecting
+    // This prevents the race condition where we redirect before the context updates
+    const [isRedirecting, setIsRedirecting] = useState(false);
+
+    // Watch for currentOrg update after creation/joining
+    React.useEffect(() => {
+        if (isRedirecting && currentOrg) {
+            router.push('/workspace');
+        }
+    }, [isRedirecting, currentOrg, router]);
 
     // Check for pending requests on mount
     React.useEffect(() => {
@@ -67,12 +78,13 @@ export default function OnboardingPage() {
 
         try {
             await createOrganization(orgName);
-            router.push('/workspace');
+            // Don't redirect immediately. Wait for context to update.
+            // setPendingRedirect(true) would be better if we had it, but we use checks
+            setIsRedirecting(true);
         } catch (err: any) {
             console.error('Create org error:', err);
             setError(err.message || 'Failed to create organization');
-        } finally {
-            setLoading(false);
+            setLoading(false); // Only stop loading on error
         }
     };
 
