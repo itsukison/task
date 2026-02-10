@@ -11,6 +11,7 @@ import { DocumentsHeader, SortOption } from '@/components/documents/DocumentsHea
 import { DocumentEditor } from '@/components/documents/DocumentEditor';
 import { DocumentContextMenu } from '@/components/documents/DocumentContextMenu';
 import { UploadModal } from '@/components/documents/UploadModal';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useLanguage } from '@/lib/i18n';
 import { useAI } from '@/lib/ai/AIContextProvider';
 
@@ -37,6 +38,10 @@ export default function DocumentsPage() {
     } | null>(null);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{
+        item: DocumentType | Folder;
+        type: 'document' | 'folder';
+    } | null>(null);
 
     // Fetch documents and folders for current folder
     const { documents, loading: docsLoading, createDocument, updateDocument, deleteDocument } = useDocuments(currentFolderId);
@@ -316,22 +321,29 @@ export default function DocumentsPage() {
         }
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!contextMenu) return;
 
-        const confirmMessage = contextMenu.type === 'folder'
-            ? t('documents.confirm_delete_folder')
-            : t('documents.confirm_delete_document');
-        if (!confirm(confirmMessage)) return;
+        setDeleteConfirmation({
+            item: contextMenu.item,
+            type: contextMenu.type,
+        });
+        setContextMenu(null);
+    };
+
+    const executeDelete = async () => {
+        if (!deleteConfirmation) return;
 
         try {
-            if (contextMenu.type === 'folder') {
-                await deleteFolder(contextMenu.item.id);
+            if (deleteConfirmation.type === 'folder') {
+                await deleteFolder(deleteConfirmation.item.id);
             } else {
-                await deleteDocument(contextMenu.item.id);
+                await deleteDocument(deleteConfirmation.item.id);
             }
         } catch (error) {
             console.error('Failed to delete:', error);
+        } finally {
+            setDeleteConfirmation(null);
         }
     };
 
@@ -467,6 +479,22 @@ export default function DocumentsPage() {
                     onChangeVisibility={handleChangeVisibility}
                 />
             )}
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={!!deleteConfirmation}
+                title={deleteConfirmation?.type === 'folder' ? 'Delete Folder' : 'Delete Document'}
+                description={
+                    deleteConfirmation?.type === 'folder'
+                        ? t('documents.confirm_delete_folder')
+                        : t('documents.confirm_delete_document')
+                }
+                confirmLabel={t('common.delete') || 'Delete'}
+                cancelLabel={t('common.cancel') || 'Cancel'}
+                isDangerous={true}
+                onConfirm={executeDelete}
+                onCancel={() => setDeleteConfirmation(null)}
+            />
         </>
     );
 }

@@ -4,6 +4,8 @@ import React from 'react';
 import { X, Clock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Task, TaskStatus, PeopleOption } from '@/lib/types';
+import { useLanguage } from '@/lib/i18n';
+import { dateLocales } from '@/lib/i18n/date';
 
 interface MemberTasksModalProps {
     member: PeopleOption;
@@ -60,10 +62,16 @@ export function MemberTasksModal({
     selectedDate,
     onClose,
 }: MemberTasksModalProps) {
+    const { t, language } = useLanguage();
+
     // Calculate totals
     const totalEstimated = tasks.reduce((sum, t) => sum + t.expectedTime, 0);
     const totalActual = tasks.reduce((sum, t) => sum + (t.actualTime || 0), 0);
     const completedCount = tasks.filter(t => t.status === 'completed').length;
+
+    // Localized date format
+    const dateFormat = language === 'ja' ? 'M月d日 EEEE' : 'EEEE, MMMM d';
+    const formattedDate = format(selectedDate, dateFormat, { locale: dateLocales[language] });
 
     return (
         <div
@@ -91,7 +99,7 @@ export function MemberTasksModal({
                         <div>
                             <h2 className="text-xl font-bold text-[#37352F]">{member.displayName}</h2>
                             <p className="text-sm text-[#787774]">
-                                Tasks for {format(selectedDate, 'EEEE, MMMM d')}
+                                {t('member_tasks.tasks_for_date', { date: formattedDate })}
                             </p>
                         </div>
                     </div>
@@ -100,19 +108,19 @@ export function MemberTasksModal({
                     <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-1.5">
                             <CheckCircle2 size={14} className="text-[#787774]" />
-                            <span className="text-[#787774]">Completed:</span>
+                            <span className="text-[#787774]">{t('member_tasks.completed_label')}</span>
                             <span className="font-medium text-[#37352F]">{completedCount}/{tasks.length}</span>
                         </div>
                         <div className="h-3 w-px bg-[#E9E9E7]" />
                         <div className="flex items-center gap-1.5">
                             <Clock size={14} className="text-[#787774]" />
-                            <span className="text-[#787774]">Est:</span>
+                            <span className="text-[#787774]">{t('member_tasks.est_label')}</span>
                             <span className="font-medium text-[#37352F]">{formatTime(totalEstimated)}</span>
                         </div>
                         <div className="h-3 w-px bg-[#E9E9E7]" />
                         <div className="flex items-center gap-1.5">
                             <Clock size={14} className="text-[#787774]" />
-                            <span className="text-[#787774]">Act:</span>
+                            <span className="text-[#787774]">{t('member_tasks.act_label')}</span>
                             <span className="font-medium text-[#37352F]">{formatTime(totalActual)}</span>
                         </div>
                     </div>
@@ -122,7 +130,7 @@ export function MemberTasksModal({
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     {tasks.length === 0 ? (
                         <div className="flex items-center justify-center py-12">
-                            <p className="text-[#787774] text-sm">No tasks scheduled for this day</p>
+                            <p className="text-[#787774] text-sm">{t('member_tasks.no_tasks')}</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-[#E9E9E7]">
@@ -145,7 +153,7 @@ export function MemberTasksModal({
                                         <div className="flex items-center gap-3 flex-shrink-0">
                                             {/* Status Badge */}
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                                                {formatStatus(task.status)}
+                                                {t(`member_tasks.status_${task.status}`)}
                                             </span>
                                         </div>
                                     </div>
@@ -153,11 +161,11 @@ export function MemberTasksModal({
                                     {/* Time Info */}
                                     <div className="flex items-center gap-4 mt-2 text-xs text-[#9B9A97]">
                                         <div className="flex items-center gap-1">
-                                            <span>Est:</span>
+                                            <span>{t('member_tasks.est_label')}</span>
                                             <span className="font-medium text-[#787774]">{formatTime(task.expectedTime)}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <span>Act:</span>
+                                            <span>{t('member_tasks.act_label')}</span>
                                             <span className="font-medium text-[#787774]">{formatTime(task.actualTime || 0)}</span>
                                         </div>
                                     </div>

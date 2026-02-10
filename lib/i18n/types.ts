@@ -441,4 +441,42 @@ export interface TranslationDictionary {
         error_generic_signin: string;
         error_generic_signup: string;
     };
+    integrations: {
+        title: string;
+        coming_soon: string;
+        notion_name: string;
+        notion_desc: string;
+        teams_name: string;
+        teams_desc: string;
+        slack_name: string;
+        slack_desc: string;
+    };
+    members: {
+        title: string;
+        subtitle: string;
+        pending_requests: string;
+        unknown_user: string;
+        accept: string;
+        reject: string;
+        you: string;
+        remove_tooltip: string;
+        confirm_remove_title: string;
+        confirm_remove_desc: string;
+        confirm_role_change_title: string;
+        confirm_demote_self_desc: string;
+        role_leader: string;
+        role_employee: string;
+        remove: string;
+    };
+    member_tasks: {
+        tasks_for_date: string;
+        completed_label: string;
+        est_label: string;
+        act_label: string;
+        no_tasks: string;
+        status_planned: string;
+        status_in_progress: string;
+        status_overrun: string;
+        status_completed: string;
+    };
 }

@@ -16,6 +16,7 @@ import {
 import { SettingsSkeleton } from './SettingsSkeleton';
 import { InviteCodeSection } from './InviteCodeSection';
 import { MembersListModal } from './MembersListModal';
+import { IntegrationsSection } from './IntegrationsSection';
 import { useLanguage, Language } from '@/lib/i18n';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -239,6 +240,9 @@ export function SettingsForm() {
                     </span>
                 </SettingRow>
             </SettingSection>
+
+            {/* Integrations Section */}
+            <IntegrationsSection />
 
             {/* Organization Info & Members Button */}
             {currentOrg && (

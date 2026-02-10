@@ -5,6 +5,7 @@ import { Check, X, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/hooks';
 import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
 import { useJoinRequests } from '@/lib/hooks/use-join-requests';
+import { useLanguage } from '@/lib/i18n';
 import { MemberRole } from '@/lib/types';
 import { SelectDropdown } from '@/components/ui/settings-primitives';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,7 @@ interface MembersListModalProps {
 }
 
 export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
+    const { t } = useLanguage();
     const { currentOrg, user: currentUser } = useAuth();
     const { membersWithVisibility, loading: membersLoading, updateMemberRole, removeMember } = useOrganizationMembers();
     const { requests, loading: requestsLoading, acceptRequest, rejectRequest } = useJoinRequests();
@@ -36,9 +38,10 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
     const isLeader = currentOrg?.role === 'leader';
     const loading = membersLoading || requestsLoading;
 
+    // Use translations for role options
     const roleOptions: { value: MemberRole; label: string }[] = [
-        { value: 'leader', label: 'Leader' },
-        { value: 'employee', label: 'Employee' },
+        { value: 'leader', label: t('members.role_leader') },
+        { value: 'employee', label: t('members.role_employee') },
     ];
 
     const handleRoleChangeRequest = (userId: string, newRole: MemberRole) => {
@@ -71,7 +74,7 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
             }
         } catch (error) {
             console.error(error);
-            alert('Action failed');
+            alert(t('common.error'));
         } finally {
             setConfirmAction(null);
         }
@@ -95,10 +98,10 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                     <div className="flex items-center justify-between px-6 py-4 border-b border-[#E9E9E7]">
                         <div>
                             <h2 className="text-lg font-semibold text-[#37352F]">
-                                Manage Members
+                                {t('members.title')}
                             </h2>
                             <p className="text-sm text-[#787774]">
-                                {membersWithVisibility.length} members in {currentOrg?.name}
+                                {t('members.subtitle', { count: membersWithVisibility.length, org: currentOrg?.name || '' })}
                             </p>
                         </div>
                         <button
@@ -113,7 +116,7 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                     {isLeader && requests.length > 0 && (
                         <div className="px-6 py-3 bg-accent/5 border-b border-accent/10">
                             <h3 className="text-xs font-semibold text-accent uppercase tracking-wider mb-2">
-                                Pending Requests ({requests.length})
+                                {t('members.pending_requests', { count: requests.length })}
                             </h3>
                             <div className="space-y-1">
                                 {requests.map((request) => (
@@ -127,7 +130,7 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                                             </div>
                                             <div>
                                                 <div className="text-sm font-medium text-[#37352F]">
-                                                    {request.user?.display_name || 'Unknown User'}
+                                                    {request.user?.display_name || t('members.unknown_user')}
                                                 </div>
                                                 <div className="text-xs text-[#787774]">
                                                     {request.user?.email}
@@ -140,14 +143,14 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-medium rounded hover:bg-accent-dark transition-colors"
                                             >
                                                 <Check size={14} />
-                                                Accept
+                                                {t('members.accept')}
                                             </button>
                                             <button
                                                 onClick={() => rejectRequest(request.id)}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E9E9E7] text-[#5F5E5B] text-xs font-medium rounded hover:bg-[#F7F6F3] transition-colors"
                                             >
                                                 <X size={14} />
-                                                Reject
+                                                {t('members.reject')}
                                             </button>
                                         </div>
                                     </div>
@@ -184,11 +187,11 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-medium text-[#37352F] truncate">
-                                                        {member.displayName || 'Unknown Name'}
+                                                        {member.displayName || t('members.unknown_user')}
                                                     </span>
                                                     {member.id === currentUser?.id && (
                                                         <span className="text-[10px] text-[#787774] bg-[#EFEFED] px-1.5 py-0.5 rounded-full">
-                                                            You
+                                                            {t('members.you')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -213,7 +216,7 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                                                         <button
                                                             onClick={() => handleRemoveRequest(member.id)}
                                                             className="p-1.5 text-[#9B9A97] hover:text-[#EB5757] hover:bg-[#EB5757]/10 rounded transition-colors"
-                                                            title="Remove member"
+                                                            title={t('members.remove_tooltip')}
                                                         >
                                                             <Trash2 size={16} />
                                                         </button>
@@ -226,7 +229,7 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
                                                         ? "bg-accent/10 text-accent"
                                                         : "bg-[#EFEFED] text-[#5F5E5B]"
                                                 )}>
-                                                    {member.role === 'leader' ? 'Leader' : 'Employee'}
+                                                    {member.role === 'leader' ? t('members.role_leader') : t('members.role_employee')}
                                                 </span>
                                             )}
                                         </div>
@@ -241,13 +244,13 @@ export function MembersListModal({ isOpen, onClose }: MembersListModalProps) {
             {/* Confirmation Dialogs */}
             <ConfirmationModal
                 isOpen={!!confirmAction}
-                title={confirmAction?.type === 'remove' ? 'Remove Member' : 'Change Role'}
+                title={confirmAction?.type === 'remove' ? t('members.confirm_remove_title') : t('members.confirm_role_change_title')}
                 description={
                     confirmAction?.type === 'remove'
-                        ? "Are you sure you want to remove this member from the organization? They will lose access to all tasks and data immediately."
-                        : "If you demote yourself to Employee, you will lose access to organization settings and member management."
+                        ? t('members.confirm_remove_desc')
+                        : t('members.confirm_demote_self_desc')
                 }
-                confirmLabel={confirmAction?.type === 'remove' ? 'Remove' : 'Confirm'}
+                confirmLabel={confirmAction?.type === 'remove' ? t('members.remove') : t('common.confirm')}
                 isDangerous={true}
                 onConfirm={executeAction}
                 onCancel={() => setConfirmAction(null)}

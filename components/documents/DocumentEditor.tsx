@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -65,6 +65,8 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
         },
     });
 
+    const lastSavedContent = useRef<any>(null);
+
     // Auto-save logic with debouncing (only for editable documents)
     useEffect(() => {
         if (!isEditable || !editor) return;
@@ -76,10 +78,13 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
             timeoutId = setTimeout(async () => {
                 setIsSaving(true);
                 try {
+                    const content = editor.getJSON();
                     await onUpdate(document.id, {
                         title,
-                        content: editor.getJSON(),
+                        content,
                     });
+                    // Store the content we just saved so we can ignore it when it comes back via realtime
+                    lastSavedContent.current = content;
                     setLastSaved(new Date());
                 } catch (error) {
                     console.error('Failed to save document:', error);
@@ -136,14 +141,35 @@ export function DocumentEditor({ document, onClose, onUpdate, folderPath = [] }:
                 (payload: any) => {
                     // Update editor content if it changed externally
                     if (payload.new && payload.new.content) {
+                        const newContent = payload.new.content;
+
+                        // Check if this update matches what we last saved
+                        // If it does, it's likely an "echo" of our own save, so we ignore it
+                        // to prevent overwriting any changes made since the save started relative to the debounce
+                        if (lastSavedContent.current && JSON.stringify(lastSavedContent.current) === JSON.stringify(newContent)) {
+                            return;
+                        }
+
                         // Only update if content is different to avoid overwriting user's current edits
                         const currentContent = editor.getJSON();
-                        const newContent = payload.new.content;
 
                         // Simple check: compare stringified versions
                         if (JSON.stringify(currentContent) !== JSON.stringify(newContent)) {
+                            // Store current selection/cursor position
+                            const { from, to } = editor.state.selection;
+
                             editor.commands.setContent(newContent);
+
+                            // Restore selection if possible (best effort)
+                            try {
+                                editor.commands.setTextSelection({ from, to });
+                            } catch (e) {
+                                // Ignore selection errors if content structure changed significantly
+                            }
+
                             setLastSaved(new Date());
+                            // Update our ref so we don't think the next echo is ours if we just set it
+                            lastSavedContent.current = newContent;
                         }
                     }
 
