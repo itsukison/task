@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/hooks';
 import { useLanguage } from '@/lib/i18n';
+import { useLoginWebMCPRegistration } from '@/lib/ai/use-login-webmcp';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,13 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const router = useRouter();
   const { t } = useLanguage();
+
+  useLoginWebMCPRegistration(
+    async (emailToUse, passToUse) => {
+      await signIn(emailToUse, passToUse);
+      router.push('/workspace');
+    }
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

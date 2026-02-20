@@ -13,6 +13,7 @@ import {
     DocumentContentCache,
 } from './types';
 import { Document } from '@/lib/types';
+import { useWebMCPRegistration } from './use-webmcp';
 
 interface AIContextValue {
     // State
@@ -97,6 +98,9 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
 
     // Determine current page from pathname
     const currentPage = getCurrentPage(pathname);
+
+    // Register WebMCP tools
+    useWebMCPRegistration(currentOrganization?.id, user?.id, setPendingAction, setIsOpen);
 
     // Load messages from localStorage
     useEffect(() => {
