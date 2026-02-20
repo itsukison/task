@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { addWeeks, subWeeks, addDays, format, addMinutes } from 'date-fns';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import WorkspaceView from '@/components/workspace-view';
 import TaskModal from '@/components/task-modal';
 import { Task } from '@/lib/types';
@@ -42,8 +43,8 @@ export default function WorkspacePage() {
     const [viewDate, setViewDate] = useState<Date>(new Date());
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
-    // Get showWeekends from user preferences
-    const showWeekends = (preferences as any)?.show_weekends ?? false;
+    // Get daysToShow from user preferences
+    const daysToShow = (preferences as any)?.days_to_show ?? 5;
 
     // Multi-member schedule viewing state
     const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -90,7 +91,7 @@ export default function WorkspacePage() {
     } = useMultiMemberBlocks({
         selectedMemberIds,
         viewDate,
-        showWeekends,
+        daysToShow,
     });
 
     // Generate preview objects from pending AI action
@@ -157,16 +158,47 @@ export default function WorkspacePage() {
         }
     };
 
-    const handleAddTask = async () => {
+    const handleAddTask = async (initialData?: { scheduledDate?: string | Date, expectedTime?: number, title?: string, shouldOpenModal?: boolean }) => {
         try {
-            // Create task with scheduled_date set to the selected date
-            await createTask({
-                title: '',
+            // Create task with scheduled_date set to the selected date or provided initial date
+            const newTask = await createTask({
+                title: initialData?.title ?? '',
                 description: '',
                 status: 'planned',
-                expectedTime: 30,
-                scheduledDate: formatDateToLocalISO(selectedDate),
+                expectedTime: initialData?.expectedTime ?? 30,
+                scheduledDate: initialData?.scheduledDate
+                    ? (initialData.scheduledDate instanceof Date
+                        ? formatDateToLocalISO(initialData.scheduledDate)
+                        : initialData.scheduledDate)
+                    : formatDateToLocalISO(selectedDate),
             });
+
+            // If created from calendar context menu (Date object provided), create a time block immediately
+            if (initialData?.scheduledDate instanceof Date) {
+                const startTime = initialData.scheduledDate;
+                const duration = initialData.expectedTime ?? 30;
+                const endTime = addMinutes(startTime, duration);
+
+                // Create the block linked to the new task
+                await createCalendarBlock({
+                    taskId: newTask.id,
+                    startTime,
+                    endTime
+                });
+            }
+
+            // Open modal logic:
+            // 1. If explicit shouldOpenModal is true, open (e.g. Header button)
+            // 2. If created via Table (no args), shouldOpenModal is undefined -> false (inline edit)
+            // 3. If created via Quick Add (title provided), shouldOpenModal is undefined -> false
+            const shouldOpen = initialData?.shouldOpenModal ?? false;
+
+            if (shouldOpen) {
+                setSelectedTask(newTask);
+            }
+
+            // Return new task for EditableTable focus
+            return newTask;
         } catch (err) {
             console.error('Failed to create task:', err);
         }
@@ -260,6 +292,8 @@ export default function WorkspacePage() {
             await deleteCalendarBlock(blockId);
         } catch (err) {
             console.error('Failed to delete calendar block:', err);
+            // Show user-visible error notification
+            alert(t('common.error_delete_block') || 'Failed to delete calendar block. Please try again.');
         }
     };
 
@@ -292,7 +326,7 @@ export default function WorkspacePage() {
                 onSelectDate={setSelectedDate}
                 viewDate={viewDate}
                 onViewDateChange={setViewDate}
-                showWeekends={showWeekends}
+                daysToShow={daysToShow}
                 onTaskClick={setSelectedTask}
                 onUpdateTask={handleTaskUpdate}
                 onAddTask={handleAddTask}

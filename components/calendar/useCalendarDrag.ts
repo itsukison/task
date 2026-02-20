@@ -55,6 +55,7 @@ export function useCalendarDrag({
     (e: React.DragEvent, task: Task, blockId?: string) => {
       onDragStart(task.id);
       e.dataTransfer.setData('taskId', task.id);
+      e.dataTransfer.setData('duration', task.expectedTime.toString());
       if (blockId) {
         e.dataTransfer.setData('blockId', blockId);
         setDragSource('calendar');
@@ -75,13 +76,20 @@ export function useCalendarDrag({
       // Check both 'taskId' (from calendar drag) and 'rowId' (from table drag)
       const taskId = e.dataTransfer.getData('taskId') || e.dataTransfer.getData('rowId');
       const blockId = e.dataTransfer.getData('blockId');
+      const durationStr = e.dataTransfer.getData('duration');
       const source = dragSource;
       setDragSource(null);
 
       console.log('handleDrop:', { taskId, blockId, source, dragPreview: !!dragPreview, dateStr });
 
       if (taskId && dragPreview) {
-        const task = tasks.find((t) => t.id === taskId);
+        let task = tasks.find((t) => t.id === taskId);
+
+        // Fallback for optimistic tasks (not in main list yet)
+        if (!task && taskId.startsWith('optimistic-')) {
+          const duration = durationStr ? parseInt(durationStr, 10) : 30;
+          task = { id: taskId, expectedTime: duration } as Task;
+        }
 
         if (task) {
           // Calculate start/end times
@@ -90,6 +98,9 @@ export function useCalendarDrag({
           startDate.setMinutes(dragPreview.minutes);
 
           const endDate = new Date(startDate);
+          // For optimistic tasks, we want to update the quick add duration if we can
+          // But actually handleUpdateBlockInternal calculates duration from start/end
+          // So passing the correct end time (based on duration) maintains size
           endDate.setMinutes(startDate.getMinutes() + task.expectedTime);
 
           if (source === 'calendar' && blockId && onUpdateBlock) {

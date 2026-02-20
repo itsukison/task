@@ -247,7 +247,7 @@ export interface EditableTableProps<T extends { id: string }> {
     data: T[];
     columns: TableColumn<T>[];
     onCellChange: (rowId: string, columnId: string, value: unknown) => void;
-    onAddRow: () => void;
+    onAddRow: () => Promise<T | void> | T | void;
     onRowClick?: (row: T) => void;
     onOpenRow?: (rowId: string) => void;
     onDragStart?: (rowId: string) => void;
@@ -273,6 +273,8 @@ export interface EditableTableProps<T extends { id: string }> {
     onRemoveCustomColumn?: (columnId: string) => void;
     // Subtask creation callback
     onCreateSubtask?: (parentTaskId: string, title: string) => void;
+    // Row separator logic (Assigned vs Unassigned)
+    isAssigned?: (row: T) => boolean;
 }
 
 /**
@@ -297,10 +299,10 @@ export interface WorkspaceViewProps {
     onSelectDate: (date: Date) => void;
     viewDate: Date;
     onViewDateChange: (date: Date) => void;
-    showWeekends: boolean;
+    daysToShow: number;
     onTaskClick: (task: Task) => void;
     onUpdateTask: (task: Task) => void;
-    onAddTask: () => void;
+    onAddTask: (initialData?: { scheduledDate?: Date | string, expectedTime?: number, title?: string, shouldOpenModal?: boolean }) => Promise<Task | void> | void;
     onDeleteTask: (taskId: string) => void;
     // Subtask creation callback
     onCreateSubtask?: (parentTaskId: string, title: string) => void;
@@ -321,6 +323,8 @@ export interface WorkspaceViewProps {
     // AI preview objects
     previewTask?: Task | null;
     previewBlock?: CalendarBlock | null;
+    // Optimistic UI
+    optimisticBlock?: CalendarBlock | null;
 }
 
 export interface CalendarProps {
@@ -332,12 +336,16 @@ export interface CalendarProps {
     onTaskClick: (task: Task) => void;
     draggingTask: Task | null;
     onDragStart: (taskId: string | null) => void;
+    onContextMenu?: (e: React.MouseEvent, taskId: string | null, blockId: string | null, date: Date, xOffset?: number) => void;
+    onAddTask?: (initialData?: { scheduledDate?: Date | string, expectedTime?: number, title?: string, shouldOpenModal?: boolean }) => Promise<Task | void> | void;
     onDeleteTask: (taskId: string) => void;
     view: 'week' | 'day';
     viewDate: Date;
-    showWeekends?: boolean;
+    daysToShow?: number;
     // Calendar toolbar controls
     onViewChange?: (view: 'week' | 'day') => void;
+    onViewDateChange?: (date: Date) => void;
+    scrollAlignment?: 'center' | 'left';
     onPrev?: () => void;
     onNext?: () => void;
     onToday?: () => void;
@@ -351,6 +359,8 @@ export interface CalendarProps {
     multiMemberBlocks?: MultiMemberBlock[];
     // AI preview
     previewBlock?: CalendarBlock | null;
+    // Optimistic UI
+    optimisticBlock?: CalendarBlock | null;
 }
 
 export interface TaskListProps {
@@ -360,7 +370,7 @@ export interface TaskListProps {
     filterRules: import('@/lib/utils/filterRules').FilterRule[];
     onTaskClick: (task: Task) => void;
     onUpdateTask: (task: Task) => void;
-    onAddTask: () => void;
+    onAddTask: (initialData?: { scheduledDate?: Date | string, expectedTime?: number, title?: string, shouldOpenModal?: boolean }) => Promise<Task | void> | void;
     onDeleteTask: (taskId: string) => void;
     onDuplicateTask?: (taskId: string) => void;
     onDragStart: (taskId: string | null) => void;

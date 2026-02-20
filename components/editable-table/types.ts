@@ -20,6 +20,10 @@ export interface CellProps {
     onChange: (rowId: string, columnId: string, value: unknown) => void;
     // Callback to create a subtask that appears in the main table
     onCreateSubtask?: (parentTaskId: string, title: string) => void;
+    // Auto-focus this cell on mount
+    autoFocus?: boolean;
+    // Callback when Enter is pressed in the cell
+    onEnter?: () => void;
 }
 
 /**

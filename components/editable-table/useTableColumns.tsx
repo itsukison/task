@@ -34,6 +34,9 @@ interface UseTableColumnsProps<T> {
     onAddCustomColumn?: (type: 'subtask' | 'document') => void;
     onRemoveCustomColumn?: (columnId: string) => void;
     onCreateSubtask?: (parentTaskId: string, title: string) => void;
+    // Row focus management
+    focusRowId?: string | null;
+    onEnter?: () => void;
 }
 
 export function useTableColumns<T extends { id: string }>({
@@ -50,6 +53,8 @@ export function useTableColumns<T extends { id: string }>({
     onAddCustomColumn,
     onRemoveCustomColumn,
     onCreateSubtask,
+    focusRowId,
+    onEnter,
 }: UseTableColumnsProps<T>) {
     return useMemo<ColumnDef<T>[]>(() => {
         // Row action handle column (hidden by default, visible on hover)
@@ -129,6 +134,8 @@ export function useTableColumns<T extends { id: string }>({
                                 ownerStatuses={col.dataType === 'people' && getOwnerStatuses ? getOwnerStatuses(row.original) : undefined}
                                 onChange={onCellChange}
                                 onCreateSubtask={col.dataType === 'subtask' ? onCreateSubtask : undefined}
+                                autoFocus={focusRowId === row.original.id && isFirstDataCol}
+                                onEnter={isFirstDataCol && col.dataType === 'text' ? onEnter : undefined}
                             />
                         </div>
                         {/* OPEN button for first column - appears on row hover */}

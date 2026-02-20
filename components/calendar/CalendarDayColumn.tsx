@@ -22,7 +22,7 @@ interface CalendarDayColumnProps {
   onDragOverDay: (e: React.DragEvent, dateStr: string) => void;
   onDrop: (e: React.DragEvent, dateStr: string) => void;
   onTaskClick: (task: Task) => void;
-  onContextMenu: (e: React.MouseEvent, taskId: string, blockId: string) => void;
+  onContextMenu: (e: React.MouseEvent, taskId?: string, blockId?: string, date?: Date, xOffset?: number) => void;
   onDragStart: (e: React.DragEvent, task: Task, blockId?: string) => void;
   onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
   onUpdateTask?: (task: Task) => void;
@@ -133,7 +133,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizingBlockId, resizeHeight, onUpdateBlock]);
+  }, [resizingBlockId, resizeHeight, onUpdateBlock, onUpdateTask, tasks, hourHeight]); // Added dependencies for useEffect
 
   const handleResizeStart = (e: React.MouseEvent, block: CalendarBlock | MultiMemberBlock, task: Task) => {
     e.stopPropagation();
@@ -172,14 +172,33 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
     }));
 
   const isToday = isSameDay(date, new Date());
+  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
   const isPreviewing = dragPreview?.dateStr === dateStr && draggingTask;
 
   return (
     <div
-      className={`flex-1 border-r border-[#E9E9E7] last:border-r-0 relative group ${isSameDay(date, selectedDate) ? 'bg-orange-50/10' : ''
+      className={`flex-1 border-r border-[#E9E9E7] last:border-r-0 relative group ${isSameDay(date, selectedDate) ? 'bg-orange-50/10' : isWeekend ? 'bg-[#FAFAFA]' : ''
         }`}
       onDragOver={(e) => onDragOverDay(e, dateStr)}
       onDrop={(e) => onDrop(e, dateStr)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+
+        // Calculate time from click position
+        const rect = e.currentTarget.getBoundingClientRect();
+        // Adjust for scroll position if the container is scrolled
+        const y = e.clientY - rect.top;
+        const minutes = Math.floor(y / (hourHeight / 60) / 15) * 15; // Snap to 15m
+
+        const clickDate = new Date(date);
+        clickDate.setHours(Math.floor(minutes / 60));
+        clickDate.setMinutes(minutes % 60);
+
+        // Pass the absolute right edge of the column for popover positioning
+        const xOffset = rect.right;
+
+        onContextMenu(e, undefined, undefined, clickDate, xOffset);
+      }}
     >
       {/* Background Grid Lines */}
       {hours.map(hour => (
@@ -254,8 +273,15 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             style.zIndex = 50; // Bring to front while resizing
           }
 
+          // Optimistic block styling (translucent orange)
+          if (block.id.startsWith('optimistic-') || task.id.startsWith('optimistic-')) {
+            style.className = `${style.className} bg-orange-500/20 border-orange-500/30 text-orange-700 backdrop-blur-sm quick-add-target`;
+          }
+
           // Allow dragging if user is confirmed owner and assignment is not pending and not preview
-          const canDrag = isConfirmedOwner && !isPendingBlock && !isPreviewBlock;
+          // Optimistic blocks (ID starts with 'optimistic-') are always draggable
+          const isOptimisticBlock = block.id.startsWith('optimistic-') || block.taskId.startsWith('optimistic-');
+          const canDrag = (isConfirmedOwner && !isPendingBlock && !isPreviewBlock) || isOptimisticBlock;
 
           // Generate initials for multi-member blocks
           const getInitials = (name: string) => {

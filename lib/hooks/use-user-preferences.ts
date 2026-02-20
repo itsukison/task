@@ -26,7 +26,7 @@ interface UpdatePreferencesData {
     work_start_time?: string;
     work_end_time?: string;
     calendar_tasks_split_ratio?: number;
-    show_weekends?: boolean;
+    days_to_show?: number;
 }
 
 export function useUserPreferences() {

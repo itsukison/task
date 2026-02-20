@@ -66,7 +66,7 @@ function dbToMultiMemberBlock(
 export interface UseMultiMemberBlocksInput {
     selectedMemberIds: string[];
     viewDate: Date;           // The center date for the week view
-    showWeekends?: boolean;   // Whether weekends are shown (default: false)
+    daysToShow?: number;      // Number of days shown (default: 5)
 }
 
 export interface UseMultiMemberBlocksReturn {
@@ -79,7 +79,7 @@ export interface UseMultiMemberBlocksReturn {
 export function useMultiMemberBlocks({
     selectedMemberIds,
     viewDate,
-    showWeekends = false,
+    daysToShow = 5,
 }: UseMultiMemberBlocksInput): UseMultiMemberBlocksReturn {
     const { user, currentOrg } = useAuth();
     const [multiMemberBlocks, setMultiMemberBlocks] = useState<MultiMemberBlock[]>([]);
@@ -113,7 +113,7 @@ export function useMultiMemberBlocks({
             user: user?.id,
             selectedMemberIds,
             viewDate: viewDate.toISOString(),
-            showWeekends,
+            daysToShow,
         });
 
         if (!currentOrg || !user || selectedMemberIds.length === 0) {
@@ -126,11 +126,9 @@ export function useMultiMemberBlocks({
         try {
             setError(null);
 
-            // Calculate week range based on viewDate
+            // Calculate week range - always fetch full week (Mon-Sun)
             const weekStart = startOfWeek(viewDate, { weekStartsOn: 1 }); // Monday
-            const weekEnd = showWeekends
-                ? addDays(weekStart, 6)  // Sunday
-                : addDays(weekStart, 4); // Friday
+            const weekEnd = addDays(weekStart, 6); // Always Sunday
 
             weekStart.setHours(0, 0, 0, 0);
             weekEnd.setHours(23, 59, 59, 999);
@@ -138,7 +136,7 @@ export function useMultiMemberBlocks({
             console.log('📅 Week range:', {
                 weekStart: weekStart.toISOString(),
                 weekEnd: weekEnd.toISOString(),
-                showWeekends,
+                daysToShow,
             });
 
             // Step 1: Fetch blocks owned by selected members (without task join to avoid RLS issues)
@@ -378,7 +376,7 @@ export function useMultiMemberBlocks({
         } finally {
             setLoading(false);
         }
-    }, [currentOrg, user, selectedMemberIds, viewDate, showWeekends, currentUserRole]);
+    }, [currentOrg, user, selectedMemberIds, viewDate, daysToShow, currentUserRole]);
 
     // Initial fetch of user role
     useEffect(() => {

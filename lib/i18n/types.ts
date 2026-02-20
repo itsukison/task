@@ -155,8 +155,11 @@ export interface TranslationDictionary {
         work_start_description: string;
         work_end_time: string;
         work_end_description: string;
-        show_weekends: string;
-        show_weekends_description: string;
+        days_to_show: string;
+        days_to_show_description: string;
+        days_3: string;
+        days_5: string;
+        days_7: string;
         privacy_visibility: string;
         task_visibility: string;
         task_visibility_description: string;

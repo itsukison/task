@@ -596,7 +596,7 @@ export type Database = {
           custom_columns: Json | null
           id: string
           organization_id: string
-          show_weekends: boolean | null
+          days_to_show: number | null
           tasks_collapsed: boolean | null
           theme: string | null
           updated_at: string
@@ -611,7 +611,7 @@ export type Database = {
           custom_columns?: Json | null
           id?: string
           organization_id: string
-          show_weekends?: boolean | null
+          days_to_show?: number | null
           tasks_collapsed?: boolean | null
           theme?: string | null
           updated_at?: string
@@ -626,7 +626,7 @@ export type Database = {
           custom_columns?: Json | null
           id?: string
           organization_id?: string
-          show_weekends?: boolean | null
+          days_to_show?: number | null
           tasks_collapsed?: boolean | null
           theme?: string | null
           updated_at?: string

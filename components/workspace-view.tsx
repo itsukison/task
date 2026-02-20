@@ -17,7 +17,7 @@ export default function WorkspaceView({
     onSelectDate,
     viewDate,
     onViewDateChange,
-    showWeekends,
+    daysToShow,
     onTaskClick,
     onUpdateTask,
     onAddTask,
@@ -35,11 +35,14 @@ export default function WorkspaceView({
     onRejectAssignment,
     previewTask,
     previewBlock,
+    optimisticBlock,
     onCreateSubtask,
 }: WorkspaceViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
     const [calendarView, setCalendarView] = useState<'week' | 'day'>('week');
+    // Track scroll alignment for "Center Today" vs "Left Next/Prev"
+    const [scrollAlignment, setScrollAlignment] = useState<'center' | 'left'>('center');
 
     // Sort state
     const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
@@ -49,16 +52,19 @@ export default function WorkspaceView({
     const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
 
     const handlePrev = useCallback(() => {
+        setScrollAlignment('left');
         if (calendarView === 'week') onViewDateChange(subWeeks(viewDate, 1));
         else onViewDateChange(addDays(viewDate, -1));
     }, [calendarView, viewDate, onViewDateChange]);
 
     const handleNext = useCallback(() => {
+        setScrollAlignment('left');
         if (calendarView === 'week') onViewDateChange(addWeeks(viewDate, 1));
         else onViewDateChange(addDays(viewDate, 1));
     }, [calendarView, viewDate, onViewDateChange]);
 
     const handleToday = useCallback(() => {
+        setScrollAlignment('center');
         const today = new Date();
         onViewDateChange(today);
         onSelectDate(today);
@@ -145,8 +151,10 @@ export default function WorkspaceView({
                             onDeleteTask={onDeleteTask}
                             view={calendarView}
                             viewDate={viewDate}
-                            showWeekends={showWeekends}
+                            daysToShow={daysToShow}
+                            scrollAlignment={scrollAlignment}
                             onViewChange={setCalendarView}
+                            onViewDateChange={onViewDateChange}
                             onPrev={handlePrev}
                             onNext={handleNext}
                             onToday={handleToday}
@@ -157,6 +165,8 @@ export default function WorkspaceView({
                             onSelectedMembersChange={onSelectedMembersChange}
                             multiMemberBlocks={multiMemberBlocks}
                             previewBlock={previewBlock}
+                            optimisticBlock={optimisticBlock}
+                            onAddTask={onAddTask}
                         />
                     }
                     right={

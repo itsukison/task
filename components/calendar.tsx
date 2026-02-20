@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useMemo, useCallback } from 'react';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays, startOfWeek, addMinutes } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task, CalendarBlock, CalendarProps, MultiMemberBlock } from '@/lib/types';
 import {
@@ -11,12 +11,14 @@ import {
   CalendarDayColumn,
   MemberSelector,
 } from './calendar/';
+import { CalendarQuickAddPopover } from './calendar/CalendarQuickAddPopover';
 import { getBlocksWithLayout, BlockLayoutInfo } from './calendar/overlap-layout';
 import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
 import { useAuth } from '@/lib/auth/hooks';
 import { HOURS } from './calendar/constants';
 import { useCalendarZoom } from './calendar/useCalendarZoom';
 import { useCalendarState } from './calendar/useCalendarState';
+import { useCalendarHorizontalScroll } from './calendar/useCalendarHorizontalScroll';
 
 import { useCalendarDrag } from './calendar/useCalendarDrag';
 import { useLanguage } from '@/lib/i18n';
@@ -42,8 +44,10 @@ const Calendar = React.memo(function Calendar({
   onDeleteTask,
   view,
   viewDate,
-  showWeekends = false,
+  daysToShow = 5,
+  scrollAlignment = 'center',
   onViewChange,
+  onViewDateChange,
   onPrev,
   onNext,
   onToday,
@@ -54,16 +58,69 @@ const Calendar = React.memo(function Calendar({
   onSelectedMembersChange,
   multiMemberBlocks = [],
   previewBlock,
+  optimisticBlock,
+  onAddTask,
 }: CalendarProps) {
   const { membersWithVisibility } = useOrganizationMembers();
-  const { user } = useAuth();
+  const { user, currentOrg } = useAuth();
   const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Use extracted hooks
   const { hourHeight } = useCalendarZoom(containerRef);
-  const { dragPreview, setDragPreview, contextMenu, setContextMenu, dragSource, setDragSource } =
+
+  // Horizontal scroll hook
+  const {
+    allDisplayedDays,
+    bodyScrollRef,
+    headerScrollRef,
+    handleBodyScroll,
+    daysPerWeek,
+  } = useCalendarHorizontalScroll({
+    viewDate,
+    view,
+    daysToShow,
+    scrollAlignment,
+    onViewDateChange: onViewDateChange || (() => { }),
+  });
+
+  const { dragPreview, setDragPreview, contextMenu, setContextMenu, quickAdd, setQuickAdd, dragSource, setDragSource } =
     useCalendarState();
+  // Wrap handlers to intercept quick-add block updates
+  const handleUpdateBlockInternal = useCallback((blockId: string, startTime: Date, endTime: Date) => {
+    // Check for quick-add block
+    if (blockId.startsWith('optimistic-quick-add-')) {
+      // Only update state if quickAdd is still active to avoid zombies
+      if (quickAdd) {
+        const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+        setQuickAdd({
+          ...quickAdd,
+          date: startTime,
+          duration: duration
+        });
+      }
+      // Always return to prevent calling backend with fake ID
+      return;
+    }
+
+    // Check for other optimistic blocks (created via page.tsx)
+    // These are handled by the parent component, but we should ensure they don't break anything
+    // identifying them by ID prefix is done in the parent handleUpdateBlock too usually.
+    // So we just pass through.
+
+    if (onUpdateBlock) onUpdateBlock(blockId, startTime, endTime);
+  }, [quickAdd, setQuickAdd, onUpdateBlock]);
+
+  const handleTaskUpdateInternal = useCallback((task: Task) => {
+    if (task.id.startsWith('optimistic-quick-add-')) return;
+    if (onTaskUpdate) onTaskUpdate(task);
+  }, [onTaskUpdate]);
+
+  const handleTaskClickInternal = useCallback((task: Task) => {
+    if (task.id.startsWith('optimistic-quick-add-')) return;
+    if (onTaskClick) onTaskClick(task);
+  }, [onTaskClick]);
+
   const { handleDragOverDay, handleDragStartInternal, handleDrop, formatMinutesToTime } =
     useCalendarDrag({
       draggingTask,
@@ -75,14 +132,11 @@ const Calendar = React.memo(function Calendar({
       setDragSource,
       onDragStart,
       onCreateBlock,
-      onUpdateBlock,
+      onUpdateBlock: handleUpdateBlockInternal,
     });
 
-  const currentWeekStart = startOfWeek(viewDate, { weekStartsOn: 1 });
-  const displayedDays =
-    view === 'week'
-      ? Array.from({ length: showWeekends ? 7 : 5 }, (_, i) => addDays(currentWeekStart, i))
-      : [viewDate];
+  // displayedDays is now driven by the horizontal scroll hook
+  const displayedDays = view === 'week' ? allDisplayedDays : [viewDate];
 
   const getTaskStyle = useCallback(
     (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => {
@@ -104,6 +158,11 @@ const Calendar = React.memo(function Calendar({
       if (task.status === 'completed')
         bgColor = 'bg-[#F7F7F5] border-[#E9E9E7] text-[#9B9A97] line-through decoration-gray-400';
       if (task.status === 'overrun') bgColor = 'bg-red-50 border-red-100 text-red-800';
+
+      // Optimistic block styling (orange/amber)
+      if (block.id.startsWith('optimistic-') || task.id.startsWith('optimistic-')) {
+        bgColor = 'bg-amber-100 border-amber-200 text-amber-800 opacity-90';
+      }
 
       // Check if this is the current user's block
       const isOwnBlock = block.ownerId === user?.id;
@@ -150,19 +209,89 @@ const Calendar = React.memo(function Calendar({
 
     // Add preview block if it exists
     if (previewBlock) {
-      return [...blocks, previewBlock];
+      blocks = [...blocks, previewBlock];
+    }
+
+    // Add optimistic block if it exists
+    if (optimisticBlock) {
+      blocks = [...blocks, optimisticBlock];
+    }
+
+    // Add quick add preview (instant feedback during creation)
+    if (quickAdd && user && currentOrg) {
+      const startTime = quickAdd.date;
+      const endTime = addMinutes(startTime, quickAdd.duration);
+      const tempId = `optimistic-quick-add-${startTime.getTime()}`;
+
+      const quickAddBlock: CalendarBlock = {
+        id: tempId,
+        taskId: tempId,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        ownerId: user.id,
+        organizationId: currentOrg.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // Create minimal task object for rendering
+        task: {
+          id: tempId,
+          title: t('tasks.new_task'),
+          description: '',
+          status: 'planned',
+          expectedTime: quickAdd.duration,
+          actualTime: 0,
+          visibility: 'private',
+          owners: [], // No owners yet
+          ownerId: user.id,
+          organizationId: currentOrg.id,
+          scheduledDate: format(startTime, 'yyyy-MM-dd'),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      };
+
+      blocks = [...blocks, quickAddBlock];
     }
 
     return blocks;
-  }, [calendarBlocks, multiMemberBlocks, selectedMemberIds, user?.id, previewBlock]);
+  }, [calendarBlocks, multiMemberBlocks, selectedMemberIds, user?.id, previewBlock, optimisticBlock, quickAdd, currentOrg]);
 
   return (
     <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans relative pl-3">
       <CalendarContextMenu
         contextMenu={contextMenu}
         onDeleteBlock={onDeleteBlock}
+        onCreateTask={(date) => {
+          if (contextMenu) {
+            setQuickAdd({
+              // Use xOffset (column right edge) if available, otherwise fallback to click X + standard offset
+              x: contextMenu.xOffset || (contextMenu.x),
+              y: contextMenu.y,
+              date,
+              duration: 30
+            });
+            setContextMenu(null);
+          }
+        }}
         onClose={() => setContextMenu(null)}
       />
+
+      {quickAdd && onAddTask && (
+        <CalendarQuickAddPopover
+          initialDate={quickAdd.date}
+          initialTime={quickAdd.duration}
+          position={{ x: quickAdd.x + 10, y: quickAdd.y }}
+          onClose={() => setQuickAdd(null)}
+          onCreate={(data) => {
+            onAddTask({
+              scheduledDate: data.scheduledDate,
+              expectedTime: data.expectedTime,
+              title: data.title
+            });
+            setQuickAdd(null);
+          }}
+        />
+      )}
 
       {/* Calendar Toolbar */}
       <div className="px-3 h-12 border-b border-[#E9E9E7] flex items-center justify-between gap-2">
@@ -173,8 +302,8 @@ const Calendar = React.memo(function Calendar({
               <button
                 onClick={() => onViewChange('week')}
                 className={`px-2 py-0.5 text-xs font-medium rounded-sm transition-all ${view === 'week'
-                    ? 'bg-white text-[#37352F] shadow-sm'
-                    : 'bg-transparent text-[#787774] hover:text-[#37352F]'
+                  ? 'bg-white text-[#37352F] shadow-sm'
+                  : 'bg-transparent text-[#787774] hover:text-[#37352F]'
                   }`}
               >
                 {t('calendar.week')}
@@ -182,8 +311,8 @@ const Calendar = React.memo(function Calendar({
               <button
                 onClick={() => onViewChange('day')}
                 className={`px-2 py-0.5 text-xs font-medium rounded-sm transition-all ${view === 'day'
-                    ? 'bg-white text-[#37352F] shadow-sm'
-                    : 'bg-transparent text-[#787774] hover:text-[#37352F]'
+                  ? 'bg-white text-[#37352F] shadow-sm'
+                  : 'bg-transparent text-[#787774] hover:text-[#37352F]'
                   }`}
               >
                 {t('calendar.day')}
@@ -250,59 +379,77 @@ const Calendar = React.memo(function Calendar({
         )}
       </div>
 
+      {/* Calendar Header — syncs horizontal scroll with body */}
       <CalendarHeader
         displayedDays={displayedDays}
         selectedDate={selectedDate}
         onSelectDate={onSelectDate}
+        scrollRef={headerScrollRef}
+        daysPerWeek={daysPerWeek}
+        isHorizontalScroll={view === 'week'}
       />
 
       {/* Scrollable Grid */}
       <div className="flex-1 overflow-y-auto relative custom-scrollbar" ref={containerRef}>
         <div className="flex relative" style={{ height: HOURS.length * hourHeight }}>
-          <CalendarTimeColumn hours={HOURS} hourHeight={hourHeight} />
+          {/* Time column — sticky left */}
+          <div className="sticky left-0 z-30 bg-white">
+            <CalendarTimeColumn hours={HOURS} hourHeight={hourHeight} />
+          </div>
 
-          {/* Grid Columns */}
-          {displayedDays.map((date) => {
-            const dateStr = format(date, 'yyyy-MM-dd');
+          {/* Horizontally scrollable day columns */}
+          <div
+            ref={bodyScrollRef}
+            onScroll={handleBodyScroll}
+            className="flex-1 overflow-x-auto"
+          >
+            <div
+              className="flex relative"
+              style={{
+                width: view === 'week' ? `${(displayedDays.length / daysPerWeek) * 100}%` : '100%',
+                height: HOURS.length * hourHeight,
+              }}
+            >
+              {displayedDays.map((date) => {
+                const dateStr = format(date, 'yyyy-MM-dd');
+                const dayBlocks = allBlocks.filter((b) => {
+                  const blockDate = format(new Date(b.startTime), 'yyyy-MM-dd');
+                  return blockDate === dateStr;
+                });
+                const blocksWithLayout = getBlocksWithLayout(dayBlocks);
 
-            // Get blocks for this day
-            const dayBlocks = allBlocks.filter((b) => {
-              const blockDate = format(new Date(b.startTime), 'yyyy-MM-dd');
-              return blockDate === dateStr;
-            });
-
-            // Calculate Notion-style layout for overlapping blocks
-            const blocksWithLayout = getBlocksWithLayout(dayBlocks);
-
-            return (
-              <CalendarDayColumn
-                key={dateStr}
-                date={date}
-                dateStr={dateStr}
-                selectedDate={selectedDate}
-                hours={HOURS}
-                hourHeight={hourHeight}
-                tasks={tasks}
-                calendarBlocks={allBlocks}
-                draggingTask={draggingTask}
-                dragPreview={dragPreview}
-                getTaskStyle={getTaskStyle}
-                formatMinutesToTime={formatMinutesToTime}
-                onDragOverDay={handleDragOverDay}
-                onDrop={handleDrop}
-                onTaskClick={onTaskClick}
-                onContextMenu={(e, taskId, blockId) =>
-                  setContextMenu({ x: e.clientX, y: e.clientY, taskId, blockId })
-                }
-                onDragStart={handleDragStartInternal}
-                onUpdateBlock={onUpdateBlock}
-                onUpdateTask={onTaskUpdate}
-                blocksWithLayout={blocksWithLayout}
-                isMultiMemberMode={selectedMemberIds.length > 1}
-                currentUserId={user?.id}
-              />
-            );
-          })}
+                return (
+                  <CalendarDayColumn
+                    key={dateStr}
+                    date={date}
+                    dateStr={dateStr}
+                    selectedDate={selectedDate}
+                    hours={HOURS}
+                    hourHeight={hourHeight}
+                    tasks={tasks}
+                    calendarBlocks={allBlocks}
+                    draggingTask={draggingTask}
+                    dragPreview={dragPreview}
+                    getTaskStyle={getTaskStyle}
+                    formatMinutesToTime={formatMinutesToTime}
+                    onDragOverDay={handleDragOverDay}
+                    onDrop={handleDrop}
+                    onTaskClick={handleTaskClickInternal}
+                    onContextMenu={(e, taskId, blockId, date, xOffset) => {
+                      setContextMenu({ x: e.clientX, y: e.clientY, taskId, blockId, date, xOffset });
+                      setQuickAdd(null);
+                    }}
+                    onDragStart={handleDragStartInternal}
+                    onUpdateBlock={handleUpdateBlockInternal}
+                    onUpdateTask={handleTaskUpdateInternal}
+                    blocksWithLayout={blocksWithLayout}
+                    isMultiMemberMode={selectedMemberIds.length > 1}
+                    currentUserId={user?.id}
+                  />
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div >

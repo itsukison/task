@@ -8,7 +8,7 @@ import { MultiMemberBlock } from '@/lib/types';
 export interface UseMultiMemberBlocksInput {
   selectedMemberIds: string[];
   viewDate: Date;
-  showWeekends?: boolean;
+  daysToShow?: number;
 }
 
 export interface UseMultiMemberBlocksReturn {
@@ -35,18 +35,18 @@ export interface UseMultiMemberBlocksReturn {
 export function useMultiMemberBlocks({
   selectedMemberIds,
   viewDate,
-  showWeekends = false,
+  daysToShow = 5,
 }: UseMultiMemberBlocksInput): UseMultiMemberBlocksReturn {
   // Fetch data with React Query
   const { data, isLoading, error, refetch } = useMultiMemberBlocksData({
     selectedMemberIds,
     viewDate,
-    showWeekends,
+    daysToShow,
   });
 
-  // Calculate week range for subscription
+  // Calculate week range for subscription - always full week
   const weekStart = startOfWeek(viewDate, { weekStartsOn: 1 });
-  const weekEnd = showWeekends ? addDays(weekStart, 6) : addDays(weekStart, 4);
+  const weekEnd = addDays(weekStart, 6); // Always Sunday
   weekStart.setHours(0, 0, 0, 0);
   weekEnd.setHours(23, 59, 59, 999);
 

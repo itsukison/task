@@ -41,7 +41,7 @@ export function SettingsForm() {
     const [displayName, setDisplayName] = useState('');
     const [workStartTime, setWorkStartTime] = useState('09:00');
     const [workEndTime, setWorkEndTime] = useState('18:00');
-    const [showWeekends, setShowWeekends] = useState(false);
+    const [daysToShow, setDaysToShow] = useState<number>(5);
     const [taskVisibility, setTaskVisibility] = useState<TaskVisibility>('team');
     const [scheduleVisibility, setScheduleVisibility] = useState<ScheduleVisibility>('team');
     const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
@@ -78,11 +78,7 @@ export function SettingsForm() {
 
     useEffect(() => {
         if (preferences) {
-            // Parse time from database format if exists
-            // Assuming format is "HH:MM:SS" or similar
-            // For now, using defaults if not set
-            // Note: show_weekends may not be in DB yet, so we cast to any
-            setShowWeekends((preferences as any).show_weekends ?? false);
+            setDaysToShow((preferences as any).days_to_show ?? 5);
         }
     }, [preferences]);
 
@@ -172,14 +168,20 @@ export function SettingsForm() {
                     />
                 </SettingRow>
                 <SettingRow
-                    title={t('settings.show_weekends')}
-                    description={t('settings.show_weekends_description')}
+                    title={t('settings.days_to_show')}
+                    description={t('settings.days_to_show_description')}
                 >
-                    <ToggleSwitch
-                        checked={showWeekends}
-                        onChange={async (checked) => {
-                            setShowWeekends(checked);
-                            await updatePreferences({ show_weekends: checked });
+                    <SelectDropdown
+                        value={String(daysToShow)}
+                        options={[
+                            { value: '3', label: t('settings.days_3') },
+                            { value: '5', label: t('settings.days_5') },
+                            { value: '7', label: t('settings.days_7') },
+                        ]}
+                        onChange={async (val) => {
+                            const num = Number(val);
+                            setDaysToShow(num);
+                            await updatePreferences({ days_to_show: num });
                         }}
                         disabled={saving}
                     />

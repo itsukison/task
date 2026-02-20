@@ -119,21 +119,24 @@ export default function TaskList({
         onUpdateTaskRef.current = onUpdateTask;
     });
 
-    // Transform tasks to include virtual ownerIds field
-    type TaskWithOwnerIds = Task & { ownerIds: string[] };
+    // Transform tasks to include virtual properties
+    type TaskWithExtras = Task & {
+        ownerIds: string[];
+        startTime?: string; // ISO string from calendar block
+    };
 
     // Filter tasks based on search, status, and date
     // Task list shows tasks matching the selected date
-    const filteredTasks = useMemo((): TaskWithOwnerIds[] => {
-        let result = [...tasks];
+    const filteredTasks = useMemo((): TaskWithExtras[] => {
+        let result = [...tasks] as TaskWithExtras[];
 
-        // Filter by selected date - show tasks matching scheduled_date
+        // Filter by selected date
         if (selectedDate) {
             const selectedDateISO = formatDateToLocalISO(selectedDate);
             result = result.filter(t => t.scheduledDate === selectedDateISO);
         }
 
-        // Filter by status (filter rules with AND logic)
+        // Filter by status rules
         if (filterRules && filterRules.length > 0) {
             result = result.filter(t => evaluateFilterRules(t, filterRules));
         }
@@ -147,30 +150,62 @@ export default function TaskList({
             );
         }
 
-        // Add virtual ownerIds field for PeopleCell
-        const tasksWithOwnerIds = result.map(t => ({
-            ...t,
-            ownerIds: t.owners.map(o => o.id),
-        }));
+        // Enrich with startTime from calendarBlocks
+        // We only do this efficiently if calendarBlocks are available
+        const tasksWithTime = result.map(t => {
+            const block = calendarBlocks.find(b => b.taskId === t.id);
+            return {
+                ...t,
+                ownerIds: t.owners.map(o => o.id),
+                startTime: block?.startTime
+            };
+        });
 
-        // Add preview task if it exists and matches filter criteria
+        // Apply default sorting if no external sort config is present
+        if (!sortConfig) {
+            tasksWithTime.sort((a, b) => {
+                // 1. Assigned (has startTime) comes first
+                if (a.startTime && !b.startTime) return -1;
+                if (!a.startTime && b.startTime) return 1;
+
+                // 2. If both assigned, sort by startTime asc
+                if (a.startTime && b.startTime) {
+                    return a.startTime.localeCompare(b.startTime);
+                }
+
+                // 3. If both unassigned, keep original order (or maybe creation date?)
+                // Defaulting to creation date desc for unassigned could be nice, or just stable
+                return 0;
+            });
+        }
+
+        // Add preview task if it exists (at the top)
         if (previewTask) {
-            // Check if preview task matches current filters
             const matchesDateFilter = !selectedDate ||
                 previewTask.scheduledDate === formatDateToLocalISO(selectedDate);
 
             if (matchesDateFilter) {
-                // Add preview at the top
-                const previewWithOwnerIds: TaskWithOwnerIds = {
+                const previewWithExtras: TaskWithExtras = {
                     ...previewTask,
                     ownerIds: previewTask.owners.map(o => o.id),
+                    startTime: undefined // Preview usually implies pending creation/scheduling? Or if it has time, we should check.
+                    // Assuming preview doesn't have a block yet unless optimistically created.
                 };
-                return [previewWithOwnerIds, ...tasksWithOwnerIds];
+                return [previewWithExtras, ...tasksWithTime];
             }
         }
 
-        return tasksWithOwnerIds;
-    }, [tasks, filterRules, searchQuery, selectedDate, previewTask]);
+        return tasksWithTime;
+    }, [tasks, filterRules, searchQuery, selectedDate, previewTask, sortConfig, calendarBlocks]);
+
+    // Check if a task is assigned (has start time) for the separator
+    const isAssigned = useCallback((task: Task) => {
+        // We need to check against the enriched data really, but here we can just lookup in calendarBlocks again
+        // Or if EditableTable passes the enriched row, checking `startTime` would work if we cast it.
+        // But types say T is Task.
+        // Let's do a lookup.
+        return calendarBlocks.some(b => b.taskId === task.id);
+    }, [calendarBlocks]);
 
     // Handle cell value changes
     // Stabilized with useCallback and refs to prevent table re-renders that close dropdowns
@@ -455,6 +490,7 @@ export default function TaskList({
                     onAddCustomColumn={handleAddCustomColumn}
                     onRemoveCustomColumn={removeCustomColumn}
                     onCreateSubtask={onCreateSubtask}
+                    isAssigned={isAssigned}
                 />
             </div>
         </div>

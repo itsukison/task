@@ -356,6 +356,17 @@ export function useTasks(): UseTasksReturn {
             throw new Error('Must be authenticated with an organization');
         }
 
+        // CRITICAL: Delete associated calendar blocks BEFORE soft-deleting the task
+        // This prevents orphaned blocks that cause "phantom overlap" issues
+        const { error: blocksDeleteError } = await supabase
+            .from('calendar_blocks')
+            .delete()
+            .eq('task_id', id);
+
+        if (blocksDeleteError) {
+            throw new Error(`Failed to delete calendar blocks: ${blocksDeleteError.message}`);
+        }
+
         // Use RPC function to perform soft delete (bypasses RLS with internal auth check)
         const { data: deleteResult, error: deleteError } = await supabase.rpc('soft_delete_task', {
             task_id: id

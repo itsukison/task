@@ -33,7 +33,7 @@ const Calendar = React.memo(function Calendar({
     onDeleteTask,
     view,
     viewDate,
-    showWeekends = false,
+    daysToShow = 5,
     onViewChange,
     onPrev,
     onNext,
@@ -113,7 +113,7 @@ const Calendar = React.memo(function Calendar({
 
     const currentWeekStart = startOfWeek(viewDate, { weekStartsOn: 1 });
     const displayedDays = view === 'week'
-        ? Array.from({ length: showWeekends ? 7 : 5 }, (_, i) => addDays(currentWeekStart, i))
+        ? Array.from({ length: daysToShow }, (_, i) => addDays(currentWeekStart, i))
         : [viewDate];
 
     const getTaskStyle = useCallback((block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => {
@@ -354,7 +354,7 @@ const Calendar = React.memo(function Calendar({
                                 onDragOverDay={handleDragOverDay}
                                 onDrop={handleDrop}
                                 onTaskClick={onTaskClick}
-                                onContextMenu={(e, taskId, blockId) => setContextMenu({ x: e.clientX, y: e.clientY, taskId, blockId })}
+                                onContextMenu={(e, taskId, blockId) => setContextMenu({ x: e.clientX, y: e.clientY, taskId: taskId || '', blockId: blockId || '' })}
                                 onDragStart={handleDragStartInternal}
                                 onUpdateBlock={onUpdateBlock}
                                 onUpdateTask={onTaskUpdate}

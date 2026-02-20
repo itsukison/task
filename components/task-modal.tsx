@@ -52,8 +52,8 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
     useEffect(() => {
         if (!editedTask || !task) return;
 
-        // Only trigger update if description has changed and it's different from initial/prop task
-        if (editedTask.description !== task.description) {
+        // Only trigger update if description or title has changed and it's different from initial/prop task
+        if (editedTask.description !== task.description || editedTask.title !== task.title) {
             // Mark as having pending changes
             pendingSaveRef.current = true;
 
@@ -66,14 +66,14 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [editedTask?.description]);
+    }, [editedTask?.description, editedTask?.title]);
 
     const handleChange = (field: keyof Task, value: any) => {
         const newTask = { ...editedTask, [field]: value };
         setEditedTask(newTask);
 
-        // Immediate update for non-description fields
-        if (field !== 'description') {
+        // Immediate update for non-description/non-title fields
+        if (field !== 'description' && field !== 'title') {
             onUpdate(newTask);
         }
     };

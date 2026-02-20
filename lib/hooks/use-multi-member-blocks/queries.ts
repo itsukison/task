@@ -12,7 +12,7 @@ import { startOfWeek, addDays } from 'date-fns';
 export interface UseMultiMemberBlocksDataParams {
   selectedMemberIds: string[];
   viewDate: Date;
-  showWeekends?: boolean;
+  daysToShow?: number;
 }
 
 /**
@@ -32,14 +32,14 @@ export interface UseMultiMemberBlocksDataParams {
 export function useMultiMemberBlocksData({
   selectedMemberIds,
   viewDate,
-  showWeekends = false,
+  daysToShow = 5,
 }: UseMultiMemberBlocksDataParams) {
   const { user, currentOrg } = useAuth();
   const { data: userRole } = useCurrentUserRole();
 
-  // Calculate week range
+  // Calculate week range - always full week (Mon-Sun)
   const weekStart = startOfWeek(viewDate, { weekStartsOn: 1 }); // Monday
-  const weekEnd = showWeekends ? addDays(weekStart, 6) : addDays(weekStart, 4); // Sunday or Friday
+  const weekEnd = addDays(weekStart, 6); // Always Sunday
 
   weekStart.setHours(0, 0, 0, 0);
   weekEnd.setHours(23, 59, 59, 999);

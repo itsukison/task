@@ -1,8 +1,5 @@
-dragging the same scheudle to multiple time blocks
-block size adjusts on time change
-Japanese mode
-Dark mode
+I want to improve the calendar view to resolve the problem where user can not put time block smaller than 15min. This is totally fine in the regular zoom size, i hope that there will be more horizontal lines apeearing naturally as user zoom in to expand the calendar. This will then allow user to shorten the block to as small as to 5 min. but when the user return to the normal zoom size, the block should automatically adjust to the nearest 15 min interval so that its not too small and invisible
 
-②サブタスクを追加できるようにしたい
-概要: 大きなタスクを細分化して管理するための階層構造。
-右サイドバー（リスト側）: タスク名の左に「展開/折りたたみ（▶︎/▼）」ボタンを設置し、クリックすると子タスク（サブタスク）がインデントされて表示される。
+I want to make the calendar view horizontal scrollable so that user can scroll to the right to see future dates or to the left to see past dates. However, in order to make it clear between each week, I want to add a little haptic, bounce back feeling when user tries to scoroll pass in btw Sunday and Monday. It's like they feel slightly sticky when they are in the middle of the week, but when they try to scroll pass the boundary of the week, they feel a slight resistance and bounce back.
+
+Make the task table's default sorting into first top for tasks assigned into the calendar already and bottom as tasks not assigned yet, with a little subtle line separating them. Then within the top part, it should be sorted by the time of the day, from morning to night. 

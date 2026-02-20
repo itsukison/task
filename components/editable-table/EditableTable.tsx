@@ -45,6 +45,7 @@ export default function EditableTable<T extends { id: string }>({
     onAddCustomColumn,
     onRemoveCustomColumn,
     onCreateSubtask,
+    ...props
 }: EditableTableProps<T>) {
     const [internalSorting, setInternalSorting] = useState<SortingState>([]);
     const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
@@ -96,6 +97,15 @@ export default function EditableTable<T extends { id: string }>({
         });
     }, []);
 
+    const [focusRowId, setFocusRowId] = useState<string | null>(null);
+
+    const handleAddRow = useCallback(async () => {
+        const newRow = await onAddRow();
+        if (newRow && typeof newRow === 'object' && 'id' in newRow) {
+            setFocusRowId(String((newRow as any).id));
+        }
+    }, [onAddRow]);
+
     const columns = useTableColumns({
         tableColumns,
         onCellChange,
@@ -110,6 +120,8 @@ export default function EditableTable<T extends { id: string }>({
         onAddCustomColumn,
         onRemoveCustomColumn,
         onCreateSubtask,
+        focusRowId,
+        onEnter: handleAddRow,
     });
 
     const table = useReactTable({
@@ -144,12 +156,14 @@ export default function EditableTable<T extends { id: string }>({
                         isPendingRow={isPendingRow}
                         onAcceptRow={onAcceptRow}
                         onRejectRow={onRejectRow}
+                        isAssigned={props.isAssigned}
+                        enableSeparator={props.isAssigned && !externalSorting} // Only show separator when using default sort
                     />
 
                     {/* Add Row Button - aligned with first column */}
                     <div
                         className="flex items-center gap-1.5 py-2 text-[#9e9e9e] text-sm cursor-pointer hover:bg-[#f5f5f5] transition-colors"
-                        onClick={onAddRow}
+                        onClick={handleAddRow}
                         style={{ paddingLeft: 32 }} // Matches drag column width for alignment
                     >
                         <Plus size={14} />

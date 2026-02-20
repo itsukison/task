@@ -13,7 +13,7 @@ interface ResizableSplitViewProps {
 export default function ResizableSplitView({
     left,
     right,
-    leftMinWidth = 300,
+    leftMinWidth = 400,
     rightMinWidth = 400
 }: ResizableSplitViewProps) {
     const [leftWidth, setLeftWidth] = useState<number>(50); // Percentage
@@ -36,11 +36,15 @@ export default function ResizableSplitView({
             const relativeX = e.clientX - containerRect.left;
             const newWidth = (relativeX / containerRect.width) * 100;
 
-            if (newWidth > 15 && newWidth < 85) {
+            // Enforce pixel-based min widths for both panes
+            const leftPx = (newWidth / 100) * containerRect.width;
+            const rightPx = containerRect.width - leftPx;
+
+            if (leftPx >= leftMinWidth && rightPx >= rightMinWidth && newWidth > 15 && newWidth < 85) {
                 setLeftWidth(newWidth);
             }
         }
-    }, [isDragging]);
+    }, [isDragging, leftMinWidth, rightMinWidth]);
 
     useEffect(() => {
         window.addEventListener('mousemove', resize);

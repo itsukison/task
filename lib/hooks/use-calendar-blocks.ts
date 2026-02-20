@@ -222,8 +222,8 @@ export function useCalendarBlocks(): UseCalendarBlocksReturn {
             .eq('task_id', input.taskId);
 
         if (deleteError) {
-            console.error('Error deleting existing blocks:', deleteError);
-            // Don't throw - we can still try to create the new block
+            // Throw error to prevent duplicate creation when deletion fails
+            throw new Error(`Failed to delete existing blocks: ${deleteError.message}`);
         }
 
         const insertData: CalendarBlockInsert = {

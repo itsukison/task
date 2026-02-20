@@ -170,21 +170,45 @@ export function calculateDayBlockLayouts(
     // De-duplicate blocks: when multiple owners have blocks for the SAME task at the SAME time,
     // they should be treated as ONE block, not overlapping blocks.
     // This prevents multi-owner tasks from appearing at half-width.
-    const seenTaskTimeSlots = new Map<string, CalendarBlock | MultiMemberBlock>();
+    //
+    // Also deduplicates by task+owner to catch duplicate blocks in the database
+    // (same task+owner but different block IDs, possibly with slightly different timestamps)
+    const seenBlockIds = new Set<string>();
+    const seenTaskOwners = new Map<string, CalendarBlock | MultiMemberBlock>();
     const uniqueBlocks: (CalendarBlock | MultiMemberBlock)[] = [];
     const duplicateToOriginal = new Map<string, string>(); // Maps duplicate block IDs to the kept block ID
 
     for (const block of dayBlocks) {
-        // Create a key based on taskId + startTime + endTime
-        const timeSlotKey = `${block.taskId}-${block.startTime}-${block.endTime}`;
+        // Skip if we've already seen this exact block ID
+        if (seenBlockIds.has(block.id)) {
+            continue;
+        }
 
-        if (!seenTaskTimeSlots.has(timeSlotKey)) {
-            seenTaskTimeSlots.set(timeSlotKey, block);
+        // Create a key based on taskId + ownerId to catch duplicate blocks
+        // This handles cases where the same task+owner has multiple blocks (database duplicates)
+        const taskOwnerKey = `${block.taskId}-${block.ownerId}`;
+
+        if (!seenTaskOwners.has(taskOwnerKey)) {
+            // First block for this task+owner combination
+            seenTaskOwners.set(taskOwnerKey, block);
+            seenBlockIds.add(block.id);
             uniqueBlocks.push(block);
         } else {
-            // This is a duplicate - map it to the original block for layout lookup
-            const originalBlock = seenTaskTimeSlots.get(timeSlotKey)!;
+            // Duplicate task+owner - map to original block for layout lookup
+            const originalBlock = seenTaskOwners.get(taskOwnerKey)!;
             duplicateToOriginal.set(block.id, originalBlock.id);
+
+            // Log duplicate detection in development for debugging
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('Detected duplicate calendar block:', {
+                    duplicateId: block.id,
+                    originalId: originalBlock.id,
+                    taskId: block.taskId,
+                    ownerId: block.ownerId,
+                    duplicateTime: `${block.startTime} → ${block.endTime}`,
+                    originalTime: `${originalBlock.startTime} → ${originalBlock.endTime}`,
+                });
+            }
         }
     }
 

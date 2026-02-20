@@ -7,7 +7,7 @@ import { useLanguage } from '@/lib/i18n';
 
 interface WorkspaceHeaderProps {
     viewDate: Date;
-    onAddTask: () => void;
+    onAddTask: (initialData?: { shouldOpenModal?: boolean }) => void;
     stats: {
         totalTasks: number;
         tasksLeft: number;
@@ -57,7 +57,7 @@ export function WorkspaceHeader({
 
                     {/* Add Task Button */}
                     <button
-                        onClick={onAddTask}
+                        onClick={() => onAddTask({ shouldOpenModal: true })}
                         className="flex items-center gap-1 bg-accent hover:bg-accent-dark text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
                     >
                         <Plus size={14} /> {t('common.new_task')}
