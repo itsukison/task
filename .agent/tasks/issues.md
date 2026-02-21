@@ -3,3 +3,5 @@ I want to improve the calendar view to resolve the problem where user can not pu
 I want to make the calendar view horizontal scrollable so that user can scroll to the right to see future dates or to the left to see past dates. However, in order to make it clear between each week, I want to add a little haptic, bounce back feeling when user tries to scoroll pass in btw Sunday and Monday. It's like they feel slightly sticky when they are in the middle of the week, but when they try to scroll pass the boundary of the week, they feel a slight resistance and bounce back.
 
 Make the task table's default sorting into first top for tasks assigned into the calendar already and bottom as tasks not assigned yet, with a little subtle line separating them. Then within the top part, it should be sorted by the time of the day, from morning to night. 
+
+A skill section where users can upload videos and documents to be teach AI
