@@ -241,7 +241,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                 e.stopPropagation();
                                 setIsOpen(false);
                             }}
-                            className="text-gray-400 opacity-0 group-hover/header:opacity-100 hover:text-gray-600 transition-opacity p-1 rounded hover:bg-gray-200 flex-shrink-0 ml-2"
+                            className="text-gray-400 opacity-100 hover:text-gray-600 transition-opacity p-1 rounded hover:bg-gray-200 flex-shrink-0 ml-2"
                         >
                             <ChevronsLeft size={18} />
                         </button>

@@ -118,44 +118,47 @@ export function useTableColumns<T extends { id: string }>({
                     </div>
                 );
             },
-            cell: ({ row, column }) => {
-                const isFirstDataCol = tableColumns.findIndex(c => String(c.id) === column.id) === 0;
+            // In the cell definition for data columns, replace the cell render function:
 
-                return (
-                    <div className="relative flex items-center w-full h-full">
-                        <div className="flex-1 min-w-0">
-                            <Cell
-                                value={col.dataType === 'combinedTime' ? row.original : row.getValue(column.id)}
-                                rowId={row.original.id}
-                                columnId={column.id}
-                                dataType={col.dataType}
-                                options={col.options}
-                                peopleOptions={col.peopleOptions}
-                                ownerStatuses={col.dataType === 'people' && getOwnerStatuses ? getOwnerStatuses(row.original) : undefined}
-                                onChange={onCellChange}
-                                onCreateSubtask={col.dataType === 'subtask' ? onCreateSubtask : undefined}
-                                autoFocus={focusRowId === row.original.id && isFirstDataCol}
-                                onEnter={isFirstDataCol && col.dataType === 'text' ? onEnter : undefined}
-                            />
-                        </div>
-                        {/* OPEN button for first column - appears on row hover */}
-                        {isFirstDataCol && onOpenRow && (
-                            <button
-                                className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-0.5 text-xs text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded border border-gray-200 mr-1 whitespace-nowrap"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenRow(row.original.id);
-                                }}
-                            >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                </svg>
-                                OPEN
-                            </button>
-                        )}
-                    </div>
-                );
-            },
+cell: ({ row, column }) => {
+    const isFirstDataCol = tableColumns.findIndex(c => String(c.id) === column.id) === 0;
+
+    return (
+        <div className="relative flex items-center w-full h-full overflow-hidden">
+            {/* Text fills the full column width */}
+            <div className="w-full min-w-0">
+                <Cell
+                    value={col.dataType === 'combinedTime' ? row.original : row.getValue(column.id)}
+                    rowId={row.original.id}
+                    columnId={column.id}
+                    dataType={col.dataType}
+                    options={col.options}
+                    peopleOptions={col.peopleOptions}
+                    ownerStatuses={col.dataType === 'people' && getOwnerStatuses ? getOwnerStatuses(row.original) : undefined}
+                    onChange={onCellChange}
+                    onCreateSubtask={col.dataType === 'subtask' ? onCreateSubtask : undefined}
+                    autoFocus={focusRowId === row.original.id && isFirstDataCol}
+                    onEnter={isFirstDataCol && col.dataType === 'text' ? onEnter : undefined}
+                />
+            </div>
+            {/* OPEN button — absolutely positioned, overlays the text on hover */}
+            {isFirstDataCol && onOpenRow && (
+                <button
+                    className="absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-0.5 text-xs text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded border border-gray-200 whitespace-nowrap bg-white"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenRow(row.original.id);
+                    }}
+                >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    </svg>
+                    OPEN
+                </button>
+            )}
+        </div>
+    );
+},
             size: col.width || 150,
             enableResizing: true,
             minSize: col.minWidth || 100,

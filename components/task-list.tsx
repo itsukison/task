@@ -42,7 +42,7 @@ function getTaskColumns(orgMembers: PeopleOption[], customColumns: any[], t: any
             id: 'title',
             label: t('headers.task_name'),
             dataType: 'text',
-            width: 200,
+            width: 280,
             minWidth: 150,
         },
         {

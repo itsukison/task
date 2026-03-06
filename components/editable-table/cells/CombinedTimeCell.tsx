@@ -21,7 +21,14 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
     const [isRunning, setIsRunning] = useState(false);
     const [localActual, setLocalActual] = useState(actualTime);
     const [localExpected, setLocalExpected] = useState(expectedTime);
+    const localExpectedRef = useRef(localExpected);
+    const isSelectingRef = useRef(false);
     const [editingField, setEditingField] = useState<'actual' | 'expected' | null>(null);
+
+    // Keep ref in sync for the blur handler closure
+    useEffect(() => {
+        localExpectedRef.current = localExpected;
+    }, [localExpected]);
     const actualInputRef = useRef<HTMLInputElement>(null);
     const expectedInputRef = useRef<HTMLInputElement>(null);
     const timerRef = useRef<number | null>(null);
@@ -116,12 +123,18 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
     const handleExpectedBlur = () => {
         // Delay blur to allow preset clicks to register before the popover closes and input unmounts
         setTimeout(() => {
+            if (isSelectingRef.current) {
+                isSelectingRef.current = false;
+                return;
+            }
             setEditingField((prev) => prev === 'expected' ? null : prev);
-            onChange(rowId, 'expectedTime', localExpected);
+            onChange(rowId, 'expectedTime', localExpectedRef.current);
         }, 150);
     };
 
     const handlePresetSelect = (preset: number) => {
+        isSelectingRef.current = true;
+        localExpectedRef.current = preset;
         setLocalExpected(preset);
         onChange(rowId, 'expectedTime', preset);
         setEditingField(null);
@@ -200,7 +213,11 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
                                 ref={expectedInputRef}
                                 type="number"
                                 value={localExpected}
-                                onChange={(e) => setLocalExpected(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    setLocalExpected(val);
+                                    localExpectedRef.current = val;
+                                }}
                                 onBlur={handleExpectedBlur}
                                 onKeyDown={(e) => handleKeyDown(e, 'expected')}
                                 className="w-12 bg-transparent border-none outline-none text-[#37352F]"
