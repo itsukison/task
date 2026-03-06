@@ -5,3 +5,5 @@ I want to make the calendar view horizontal scrollable so that user can scroll t
 Make the task table's default sorting into first top for tasks assigned into the calendar already and bottom as tasks not assigned yet, with a little subtle line separating them. Then within the top part, it should be sorted by the time of the day, from morning to night. 
 
 A skill section where users can upload videos and documents to be teach AI
+
+edit goal should actually be editale

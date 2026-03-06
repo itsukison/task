@@ -16,14 +16,15 @@ interface CalendarDayColumnProps {
   tasks: Task[];
   calendarBlocks: (CalendarBlock | MultiMemberBlock | CalendarBlockWithPending)[];
   draggingTask: Task | null;
-  dragPreview: { dateStr: string; minutes: number } | null;
+  dragPreview: { dateStr: string; minutes: number; deltaMinutes?: number; isMultiDrag?: boolean } | null;
   getTaskStyle: (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => any;
   formatMinutesToTime: (minutes: number) => string;
   onDragOverDay: (e: React.DragEvent, dateStr: string) => void;
   onDrop: (e: React.DragEvent, dateStr: string) => void;
   onTaskClick: (task: Task) => void;
   onContextMenu: (e: React.MouseEvent, taskId?: string, blockId?: string, date?: Date, xOffset?: number) => void;
-  onDragStart: (e: React.DragEvent, task: Task, blockId?: string) => void;
+  onDragStart: (e: React.DragEvent, task: Task, blockId?: string, startTime?: string) => void;
+  snapInterval?: number;
   onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
   onUpdateTask?: (task: Task) => void;
   blocksWithLayout?: Array<{
@@ -32,6 +33,8 @@ interface CalendarDayColumnProps {
   }>;
   isMultiMemberMode?: boolean;
   currentUserId?: string;  // For enabling drag only on own blocks
+  selectedBlockIds?: Set<string>;
+  onSelectBlocks?: (blockIds: Set<string>) => void;
 }
 
 export const CalendarDayColumn = React.memo(function CalendarDayColumn({
@@ -51,11 +54,14 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   onTaskClick,
   onContextMenu,
   onDragStart,
+  snapInterval = 15,
   onUpdateBlock,
   onUpdateTask,
   blocksWithLayout,
   isMultiMemberMode = false,
-  currentUserId
+  currentUserId,
+  selectedBlockIds,
+  onSelectBlocks
 }: CalendarDayColumnProps) {
   // Resize state
   const [resizingBlockId, setResizingBlockId] = useState<string | null>(null);
@@ -78,10 +84,10 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       const rawCurrentHeight = Math.max(resizeRef.current.startHeight + deltaY, 15); // min 15px visual
 
       // Calculate minutes for snapping
-      const minutes = Math.round((rawCurrentHeight / (hourHeight / 60)) / 15) * 15;
+      const minutes = Math.round((rawCurrentHeight / (hourHeight / 60)) / snapInterval) * snapInterval;
       const snappedHeight = minutes * (hourHeight / 60);
 
-      setResizeHeight(Math.max(snappedHeight, Math.max(16, (15 * (hourHeight / 60))))); // Min 15 mins
+      setResizeHeight(Math.max(snappedHeight, Math.max(16, (snapInterval * (hourHeight / 60))))); // Min one snap interval
     };
 
     const handleMouseUp = () => {
@@ -188,7 +194,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
         const rect = e.currentTarget.getBoundingClientRect();
         // Adjust for scroll position if the container is scrolled
         const y = e.clientY - rect.top;
-        const minutes = Math.floor(y / (hourHeight / 60) / 15) * 15; // Snap to 15m
+        const minutes = Math.floor(y / (hourHeight / 60) / snapInterval) * snapInterval;
 
         const clickDate = new Date(date);
         clickDate.setHours(Math.floor(minutes / 60));
@@ -207,7 +213,18 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           className="h-16 border-b border-[#E9E9E7] box-border w-full absolute left-0 right-0 pointer-events-none z-0"
           style={{ top: `${hour * hourHeight}px`, height: `${hourHeight}px` }}
         >
-          <div className="absolute w-full border-t border-dashed border-gray-100 top-1/2 left-0"></div>
+          {Array.from({ length: Math.floor(60 / snapInterval) - 1 }, (_, i) => i + 1).map(i => {
+            const minuteOffset = i * snapInterval;
+            const isHalfHour = minuteOffset % 30 === 0;
+            return (
+              <div
+                key={i}
+                className={`absolute w-full left-0 pointer-events-none border-t border-dashed ${isHalfHour ? 'border-gray-200' : 'border-gray-100'
+                  }`}
+                style={{ top: `${(minuteOffset / 60) * 100}%` }}
+              />
+            );
+          })}
         </div>
       ))}
 
@@ -221,25 +238,72 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
         </div>
       )}
 
-      {/* Ghost Block for Drag Preview */}
-      {isPreviewing && draggingTask && (
-        <div
-          style={{
-            top: `${dragPreview!.minutes * (hourHeight / 60)}px`,
-            height: `${Math.max(draggingTask.expectedTime, 30) * (hourHeight / 60) - 1}px`,
-            left: '2px',
-            right: '2px',
-          }}
-          className="absolute z-30 rounded-md bg-accent/20 border-2 border-accent/50 pointer-events-none flex flex-col justify-start p-1.5"
-        >
-          <div className="font-medium text-accent-dark truncate leading-tight text-xs">
-            {draggingTask.title}
-          </div>
-          <div className="text-[10px] text-accent font-medium mt-0.5 flex items-center gap-1">
-            <Clock size={10} />
-            {formatMinutesToTime(dragPreview!.minutes)}
-          </div>
-        </div>
+      {/* Ghost Blocks for Drag Preview */}
+      {dragPreview && draggingTask && (
+        <>
+          {/* Single Drag Preview */}
+          {!dragPreview.isMultiDrag && isPreviewing && (
+            <div
+              style={{
+                top: `${dragPreview.minutes * (hourHeight / 60)}px`,
+                height: `${Math.max(draggingTask.expectedTime, 30) * (hourHeight / 60) - 1}px`,
+                left: '2px',
+                right: '2px',
+              }}
+              className="absolute z-30 rounded-md bg-accent/20 border-2 border-accent/50 pointer-events-none flex flex-col justify-start p-1.5"
+            >
+              <div className="font-medium text-accent-dark truncate leading-tight text-xs">
+                {draggingTask.title}
+              </div>
+              <div className="text-[10px] text-accent font-medium mt-0.5 flex items-center gap-1">
+                <Clock size={10} />
+                {formatMinutesToTime(dragPreview.minutes)}
+              </div>
+            </div>
+          )}
+
+          {/* Multi Drag Preview */}
+          {dragPreview.isMultiDrag && dragPreview.deltaMinutes !== undefined && calendarBlocks
+            .filter(b => selectedBlockIds?.has(b.id))
+            .map(block => {
+              const task = block.task || tasks.find(t => t.id === block.taskId);
+              if (!task) return null;
+
+              const newStart = new Date(new Date(block.startTime).getTime() + dragPreview.deltaMinutes! * 60000);
+              if (format(newStart, 'yyyy-MM-dd') !== dateStr) return null;
+
+              const duration = (new Date(block.endTime).getTime() - new Date(block.startTime).getTime()) / 60000;
+              const newMinutes = newStart.getHours() * 60 + newStart.getMinutes();
+
+              const blockPxHeight = duration * (hourHeight / 60);
+              const isMicroBlock = blockPxHeight < 14;
+              const isSmallBlock = blockPxHeight < 22;
+
+              return (
+                <div
+                  key={`ghost-${block.id}`}
+                  style={{
+                    top: `${newMinutes * (hourHeight / 60)}px`,
+                    height: `${Math.max(duration, 15) * (hourHeight / 60) - 1}px`,
+                    left: '2px',
+                    right: '2px',
+                  }}
+                  className={`absolute z-30 rounded-md bg-accent/20 border-2 border-accent/50 pointer-events-none flex flex-col justify-start ${isMicroBlock ? 'px-1 py-0' : isSmallBlock ? 'px-1 py-0.5' : 'p-1.5'}`}
+                >
+                  <div className={`font-medium text-accent-dark truncate leading-tight ${isMicroBlock ? 'text-[8px]' : isSmallBlock ? 'text-[9px]' : 'text-xs'}`}>
+                    {task.title}
+                  </div>
+                  {!isSmallBlock && duration >= 45 && (
+                    <div className="text-[10px] text-accent font-medium mt-0.5 flex items-center gap-1">
+                      <Clock size={10} />
+                      {formatMinutesToTime(newMinutes)}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          }
+        </>
       )}
 
       {/* Tasks Layer */}
@@ -258,6 +322,12 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           const isPendingBlock = 'isPendingAssignment' in block && block.isPendingAssignment;
           const isPreviewBlock = block.id === 'preview-block-temp';
 
+          // Compute pixel height to adapt text density for short blocks
+          const blockDurationMin = (new Date(block.endTime).getTime() - new Date(block.startTime).getTime()) / 60000;
+          const blockPxHeight = blockDurationMin * (hourHeight / 60);
+          const isSmallBlock = blockPxHeight < 22;
+          const isMicroBlock = blockPxHeight < 14;
+
           // Check if current user is a confirmed owner of the task
           const isConfirmedOwner = task.owners?.some(
             owner => owner.id === currentUserId && owner.status === 'confirmed'
@@ -265,6 +335,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
 
           const isResizing = resizingBlockId === block.id;
           const hasOptimisticHeight = optimisticResizeBlock?.blockId === block.id;
+          const isSelected = selectedBlockIds?.has(block.id);
 
           // Apply resize height during active resize or optimistic state
           if ((isResizing && resizeHeight !== null) || hasOptimisticHeight) {
@@ -276,6 +347,17 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           // Optimistic block styling (translucent orange)
           if (block.id.startsWith('optimistic-') || task.id.startsWith('optimistic-')) {
             style.className = `${style.className} bg-orange-500/20 border-orange-500/30 text-orange-700 backdrop-blur-sm quick-add-target`;
+          }
+
+          if (isSelected) {
+            style.className = `${style.className} ring-2 ring-accent ring-offset-[1px] shadow-md z-40`;
+          }
+
+          // Reduce padding for short blocks so text isn't clipped
+          if (isMicroBlock) {
+            style.className = style.className.replace('p-1.5', 'px-1 py-0');
+          } else if (isSmallBlock) {
+            style.className = style.className.replace('p-1.5', 'px-1 py-0.5');
           }
 
           // Allow dragging if user is confirmed owner and assignment is not pending and not preview
@@ -299,6 +381,22 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
                 if (isPreviewBlock) return;
                 // Prevent modal from opening if we just finished resizing
                 if (justResized) return;
+
+                if ((e.shiftKey || e.metaKey || e.ctrlKey) && onSelectBlocks && selectedBlockIds) {
+                  const newSelected = new Set(selectedBlockIds);
+                  if (newSelected.has(block.id)) {
+                    newSelected.delete(block.id);
+                  } else {
+                    newSelected.add(block.id);
+                  }
+                  onSelectBlocks(newSelected);
+                  return;
+                }
+
+                if (selectedBlockIds && selectedBlockIds.size > 0 && onSelectBlocks) {
+                  onSelectBlocks(new Set());
+                }
+
                 onTaskClick(task);
               }}
               onContextMenu={(e) => {
@@ -307,10 +405,10 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
                 onContextMenu(e, task.id, block.id);
               }}
               draggable={canDrag && !resizingBlockId}
-              onDragStart={(e) => canDrag && onDragStart(e, task, block.id)}
+              onDragStart={(e) => canDrag && onDragStart(e, task, block.id, block.startTime)}
             >
-              <div className="font-medium truncate leading-tight flex items-center gap-1.5">
-                {isMultiMember && isMultiMemberMode && (
+              <div className={`font-medium truncate leading-none flex items-center gap-1 ${isMicroBlock ? 'text-[8px]' : isSmallBlock ? 'text-[9px]' : 'text-xs'}`}>
+                {!isMicroBlock && isMultiMember && isMultiMemberMode && (
                   <div
                     className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-medium text-white flex-shrink-0"
                     style={{ backgroundColor: block.ownerColor }}
@@ -322,7 +420,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
                 {task.status === 'completed' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>}
                 {task.title}
               </div>
-              {task.expectedTime >= 45 && (
+              {!isSmallBlock && task.expectedTime >= 45 && (
                 <div className="opacity-70 truncate mt-0.5 text-[10px] flex items-center gap-1">
                   <Clock size={10} /> {format(new Date(block.startTime), 'HH:mm')} ({isResizing ? Math.round((resizeHeight || 0) / (hourHeight / 60)) : task.expectedTime}m)
                 </div>

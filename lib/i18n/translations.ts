@@ -82,6 +82,7 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             home: 'Home',
             new_page: 'New Page',
             soon: 'Soon',
+            workflows: 'Workflows',
         },
         documents: {
             title: 'Documents',
@@ -563,6 +564,7 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             home: 'ホーム',
             new_page: '新規ページ',
             soon: '近日公開',
+            workflows: 'ワークフロー',
         },
         documents: {
             title: 'ドキュメント',

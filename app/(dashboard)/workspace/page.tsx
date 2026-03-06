@@ -42,6 +42,7 @@ export default function WorkspacePage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [viewDate, setViewDate] = useState<Date>(new Date());
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+    const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(new Set());
 
     // Get daysToShow from user preferences
     const daysToShow = (preferences as any)?.days_to_show ?? 5;
@@ -287,6 +288,34 @@ export default function WorkspacePage() {
         }
     };
 
+    const handleUpdateMultipleBlocks = async (deltaMinutes: number, blockIds: string[]) => {
+        try {
+            const updates = blockIds.map(async (blockId) => {
+                const block = calendarBlocks.find(b => b.id === blockId) || multiMemberBlocks.find(b => b.id === blockId);
+                if (!block) return;
+
+                const newStartTime = addMinutes(new Date(block.startTime), deltaMinutes);
+                const newEndTime = addMinutes(new Date(block.endTime), deltaMinutes);
+
+                await updateCalendarBlock(blockId, { startTime: newStartTime, endTime: newEndTime });
+
+                const newDateISO = formatDateToLocalISO(newStartTime);
+                const task = tasks.find(t => t.id === block.taskId);
+                if (task && task.scheduledDate !== newDateISO) {
+                    await updateTask(block.taskId, { scheduledDate: newDateISO });
+                }
+            });
+
+            await Promise.all(updates);
+
+            if (selectedMemberIds.length > 1) {
+                refetchMultiMemberBlocks();
+            }
+        } catch (err) {
+            console.error('Failed to update multiple calendar blocks:', err);
+        }
+    };
+
     const handleDeleteBlock = async (blockId: string) => {
         try {
             await deleteCalendarBlock(blockId);
@@ -345,6 +374,9 @@ export default function WorkspacePage() {
                 previewTask={previewTask}
                 previewBlock={previewBlock}
                 onCreateSubtask={handleCreateSubtask}
+                selectedBlockIds={selectedBlockIds}
+                onSelectBlocks={setSelectedBlockIds}
+                onUpdateMultipleBlocks={handleUpdateMultipleBlocks}
             />
 
             {selectedTask && (

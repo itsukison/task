@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, BarChart2, Settings, Menu, ChevronsLeft, Search, PlusCircle, FileText, LogOut, ChevronDown, Users, Plus } from 'lucide-react';
+import { Calendar, BarChart2, Settings, Menu, ChevronsLeft, Search, PlusCircle, FileText, LogOut, ChevronDown, Users, Plus, Bot, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SidebarProps, ViewMode } from '@/lib/types';
 import { useAuth } from '@/lib/auth/hooks';
@@ -11,10 +11,15 @@ import { useJoinRequests } from '@/lib/hooks/use-join-requests';
 import { OrgSwitcherModal } from '@/components/organization/OrgSwitcherModal';
 import { useLanguage } from '@/lib/i18n';
 
-const navItems: { id: ViewMode | 'documents'; href: string; icon: typeof Calendar; label: string }[] = [
+const topNavItems: { id: string; href: string; icon: any; label: string }[] = [
     { id: 'documents', href: '/documents', icon: FileText, label: 'Documents' },
     { id: 'workspace', href: '/workspace', icon: Calendar, label: 'Task Tracker' },
+];
+
+const secondaryNavItems: { id: string; href: string; icon: any; label: string }[] = [
     { id: 'progress', href: '/progress', icon: BarChart2, label: 'Goals & Progress' },
+    { id: 'workflows', href: '/workflows', icon: Bot, label: 'Workflows' },
+    { id: 'chat', href: '/chat', icon: Sparkles, label: 'AI Chat' },
     { id: 'settings', href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -295,24 +300,14 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     )}
                 </div>
 
-                {/* Quick Actions */}
-                <div className="px-2 py-1 flex flex-col gap-0.5 mb-4">
-                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
+                {/* Quick Actions (Top Section) */}
+                <div className="px-2 py-1 flex flex-col gap-0.5 mb-2">
+                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60 mb-1 mt-1">
                         <Search size={16} />
                         <span className="flex-1">{t('navigation.search')}</span>
                         <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">{t('navigation.soon')}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60">
-                        <PlusCircle size={16} />
-                        <span className="flex-1">{t('navigation.new_page')}</span>
-                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">{t('navigation.soon')}</span>
-                    </div>
-                </div>
-
-                {/* Navigation */}
-                <div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
-                    <div className="text-xs font-semibold text-[#9B9A97] px-3 py-2 mb-1">{t('navigation.favorites')}</div>
-                    {navItems.map((item) => (
+                    {topNavItems.map((item) => (
                         <Link
                             key={item.id}
                             href={item.href}
@@ -327,7 +322,30 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                 size={16}
                                 className={isActive(item.href) ? "text-[#37352F]" : "text-[#9B9A97]"}
                             />
-                            <span className="flex-1">{t('navigation.' + item.id)}</span>
+                            <span className="flex-1">{t('navigation.' + item.id) === 'navigation.' + item.id ? item.label : t('navigation.' + item.id)}</span>
+                        </Link>
+                    ))}
+                </div>
+
+                {/* Navigation (Secondary Section) */}
+                <div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
+                    <div className="text-xs font-semibold text-[#9B9A97] px-3 py-2 mb-1">{t('navigation.favorites')}</div>
+                    {secondaryNavItems.map((item) => (
+                        <Link
+                            key={item.id}
+                            href={item.href}
+                            className={cn(
+                                "w-full flex items-center gap-2.5 px-3 py-1 text-sm rounded-md transition-colors mb-0.5 relative group/link",
+                                isActive(item.href)
+                                    ? "bg-[#EFEFED] text-[#37352F] font-medium"
+                                    : "text-[#5F5E5B] hover:bg-[#EFEFED]"
+                            )}
+                        >
+                            <item.icon
+                                size={16}
+                                className={isActive(item.href) ? "text-[#37352F]" : "text-[#9B9A97]"}
+                            />
+                            <span className="flex-1">{t('navigation.' + item.id) === 'navigation.' + item.id ? item.label : t('navigation.' + item.id)}</span>
 
                             {/* Notification Badge for Settings */}
                             {item.id === 'settings' && pendingCount > 0 && currentOrg?.role === 'leader' && (

@@ -59,5 +59,7 @@ export function useCalendarZoom(containerRef: React.RefObject<HTMLDivElement | n
     }
   }, [hourHeight]);
 
-  return { hourHeight };
+  const snapInterval = hourHeight >= 80 ? 5 : 15;
+
+  return { hourHeight, snapInterval };
 }

@@ -125,7 +125,7 @@ export function useCalendarHorizontalScroll({
             isInfiniteScrollingRef.current = false;
         } else {
             // External update of viewDate (not via scroll) implies reset
-            if (!isSameDay(viewDate, previousViewDateRef.current)) {
+            if (viewDate !== previousViewDateRef.current) {
                 const colWidth = getColumnWidth(containerWidth);
                 let targetCol = 7; // Default: Start of center week (Monday)
 
@@ -206,14 +206,24 @@ export function useCalendarHorizontalScroll({
             // Center reliably on mount if at 0
             if (el.scrollLeft === 0 && el.clientWidth > 0) {
                 const colWidth = getColumnWidth(el.clientWidth);
-                const targetCol = daysPerWeek;
+
+                let targetCol = 7; // Center week, Monday
+                if (scrollAlignment === 'center') {
+                    const dayIndex = (viewDate.getDay() + 6) % 7;
+                    const absoluteIndex = 7 + dayIndex;
+                    const centerOffset = Math.floor((daysToShow - 1) / 2);
+                    targetCol = Math.max(0, absoluteIndex - centerOffset);
+                } else {
+                    targetCol = 7;
+                }
+
                 el.scrollLeft = targetCol * colWidth;
                 firstVisibleColRef.current = targetCol;
                 stableWidthRef.current = el.clientWidth;
                 if (headerScrollRef.current) headerScrollRef.current.scrollLeft = el.scrollLeft;
             }
         }
-    }, [daysPerWeek, getColumnWidth]);
+    }, [daysPerWeek, getColumnWidth, viewDate, scrollAlignment, daysToShow, view]);
 
     // Clean up snap timer on unmount
     useEffect(() => {

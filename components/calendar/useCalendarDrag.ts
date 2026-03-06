@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { Task } from '@/lib/types';
 import { transparentDragImage } from './constants';
 import { DragPreview, DragSource } from './useCalendarState';
@@ -6,6 +6,7 @@ import { DragPreview, DragSource } from './useCalendarState';
 export interface UseCalendarDragParams {
   draggingTask: Task | null;
   hourHeight: number;
+  snapInterval: number;
   tasks: Task[];
   dragPreview: DragPreview | null;
   dragSource: DragSource;
@@ -14,6 +15,8 @@ export interface UseCalendarDragParams {
   onDragStart: (taskId: string | null) => void;
   onCreateBlock?: (taskId: string, startTime: Date, endTime: Date) => void;
   onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
+  selectedBlockIds?: Set<string>;
+  onUpdateMultipleBlocks?: (deltaMinutes: number, blockIds: string[]) => void;
 }
 
 /**
@@ -27,6 +30,7 @@ export interface UseCalendarDragParams {
 export function useCalendarDrag({
   draggingTask,
   hourHeight,
+  snapInterval,
   tasks,
   dragPreview,
   dragSource,
@@ -35,7 +39,11 @@ export function useCalendarDrag({
   onDragStart,
   onCreateBlock,
   onUpdateBlock,
+  selectedBlockIds,
+  onUpdateMultipleBlocks,
 }: UseCalendarDragParams) {
+  const dragStartDataRef = useRef<{ blockId: string, startTime: Date, isMultiDrag: boolean } | null>(null);
+
   const handleDragOverDay = useCallback(
     (e: React.DragEvent, dateStr: string) => {
       e.preventDefault();
@@ -44,27 +52,48 @@ export function useCalendarDrag({
       const rect = e.currentTarget.getBoundingClientRect();
       const offsetY = e.clientY - rect.top;
       const minutes = Math.floor((offsetY / hourHeight) * 60);
-      const snapped = Math.max(0, Math.min(1440 - 15, Math.round(minutes / 15) * 15));
+      const snapped = Math.max(0, Math.min(1440 - snapInterval, Math.round(minutes / snapInterval) * snapInterval));
 
-      setDragPreview({ dateStr, minutes: snapped });
+      let deltaMinutes = 0;
+      let isMultiDrag = false;
+      if (dragStartDataRef.current) {
+        const newStartDate = new Date(dateStr);
+        newStartDate.setHours(0, 0, 0, 0);
+        newStartDate.setMinutes(snapped);
+        deltaMinutes = (newStartDate.getTime() - dragStartDataRef.current.startTime.getTime()) / 60000;
+        isMultiDrag = dragStartDataRef.current.isMultiDrag;
+      }
+
+      setDragPreview({ dateStr, minutes: snapped, deltaMinutes, isMultiDrag });
     },
-    [draggingTask, hourHeight, setDragPreview]
+    [draggingTask, hourHeight, snapInterval, setDragPreview]
   );
 
   const handleDragStartInternal = useCallback(
-    (e: React.DragEvent, task: Task, blockId?: string) => {
+    (e: React.DragEvent, task: Task, blockId?: string, startTimeStr?: string) => {
       onDragStart(task.id);
       e.dataTransfer.setData('taskId', task.id);
       e.dataTransfer.setData('duration', task.expectedTime.toString());
       if (blockId) {
         e.dataTransfer.setData('blockId', blockId);
+        if (startTimeStr) {
+          e.dataTransfer.setData('startTime', startTimeStr);
+          dragStartDataRef.current = {
+            blockId,
+            startTime: new Date(startTimeStr),
+            isMultiDrag: !!(selectedBlockIds && selectedBlockIds.has(blockId) && selectedBlockIds.size > 1)
+          };
+        } else {
+          dragStartDataRef.current = null;
+        }
         setDragSource('calendar');
       } else {
+        dragStartDataRef.current = null;
         setDragSource('task-list');
       }
       e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
     },
-    [onDragStart, setDragSource]
+    [onDragStart, setDragSource, selectedBlockIds]
   );
 
   const handleDrop = useCallback(
@@ -73,10 +102,10 @@ export function useCalendarDrag({
       setDragPreview(null);
       onDragStart(null);
 
-      // Check both 'taskId' (from calendar drag) and 'rowId' (from table drag)
       const taskId = e.dataTransfer.getData('taskId') || e.dataTransfer.getData('rowId');
       const blockId = e.dataTransfer.getData('blockId');
       const durationStr = e.dataTransfer.getData('duration');
+      const startTimeStr = e.dataTransfer.getData('startTime');
       const source = dragSource;
       setDragSource(null);
 
@@ -104,8 +133,17 @@ export function useCalendarDrag({
           endDate.setMinutes(startDate.getMinutes() + task.expectedTime);
 
           if (source === 'calendar' && blockId && onUpdateBlock) {
-            // Moving existing block
-            onUpdateBlock(blockId, startDate, endDate);
+            // Multi drag check
+            if (selectedBlockIds && selectedBlockIds.has(blockId) && selectedBlockIds.size > 1 && onUpdateMultipleBlocks && startTimeStr) {
+              const oldStart = new Date(startTimeStr);
+              const deltaMinutes = (startDate.getTime() - oldStart.getTime()) / 60000;
+              if (deltaMinutes !== 0) {
+                onUpdateMultipleBlocks(deltaMinutes, Array.from(selectedBlockIds));
+              }
+            } else {
+              // Moving existing block
+              onUpdateBlock(blockId, startDate, endDate);
+            }
           } else if (onCreateBlock) {
             // Creating new block from task list
             onCreateBlock(taskId, startDate, endDate);
@@ -122,6 +160,8 @@ export function useCalendarDrag({
       onDragStart,
       setDragPreview,
       setDragSource,
+      selectedBlockIds,
+      onUpdateMultipleBlocks,
     ]
   );
 

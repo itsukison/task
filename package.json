@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@browserbasehq/sdk": "^2.6.0",
+    "@browserbasehq/stagehand": "^3.0.8",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -41,7 +43,7 @@
     "lucide-react": "^0.562.0",
     "motion": "^12.31.2",
     "next": "16.1.1",
-    "openai": "^6.17.0",
+    "openai": "^6.22.0",
     "pdfjs-dist": "^5.4.530",
     "postprocessing": "^6.38.2",
     "react": "19.2.3",

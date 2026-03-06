@@ -26,6 +26,13 @@ export interface ChatMessage {
     action?: PendingAction; // For persisting actions in history
 }
 
+export interface ChatSession {
+    id: string;
+    title: string;
+    updatedAt: number;
+    isActive?: boolean;
+}
+
 // ============================================================================
 // Agent Context
 // ============================================================================
@@ -46,6 +53,9 @@ export interface AgentContext {
     calendarBlocks?: CalendarBlock[];
     selectedDate?: string; // ISO date string (YYYY-MM-DD)
     language: 'en' | 'ja';
+
+    // Workflow mention (for OpenClaw execution)
+    mentionedWorkflow?: { id: string; name: string };
 }
 
 // ============================================================================
@@ -169,6 +179,7 @@ export interface ChatRequest {
     context: AgentContext;
     history: ChatMessage[];
     documentCache?: DocumentContentCache;
+    sessionId?: string; // For streaming workflow logs back
 }
 
 export interface ChatResponse {

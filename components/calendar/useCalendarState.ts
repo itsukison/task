@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 export interface DragPreview {
   dateStr: string;
   minutes: number;
+  deltaMinutes?: number;
+  isMultiDrag?: boolean;
 }
 
 export interface ContextMenu {

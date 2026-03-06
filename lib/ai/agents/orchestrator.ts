@@ -27,6 +27,8 @@ import {
     scheduleTask,
     autoScheduleTasks,
 } from '../tools/calendar-tools';
+import { workflowTools } from '../tools/workflow-tools';
+import { executeWorkflowAgent } from '../../executeWorkflowAgent';
 import { translateAI } from '../translation-helper';
 
 // ============================================================================
@@ -37,11 +39,14 @@ export async function runOrchestrator(
     message: string,
     context: AgentContext,
     history: ChatMessage[],
-    documentCache?: DocumentContentCache
+    documentCache?: DocumentContentCache,
+    sessionId?: string,
 ): Promise<{ response: string; pendingAction?: PendingAction; updatedCache?: DocumentContentCache }> {
     try {
         // Determine which tools are available based on context
         const availableTools = getAvailableTools(context);
+        console.log(`🧠 [Orchestrator] Tools available: ${availableTools.map(t => t.function.name).join(', ') || 'NONE (no tools)'}`);
+        console.log(`🧠 [Orchestrator] mentionedWorkflow in context:`, context.mentionedWorkflow);
 
         // Build system prompt based on context
         const systemPrompt = buildSystemPrompt(context);
@@ -65,12 +70,18 @@ export async function runOrchestrator(
         });
 
         const assistantMessage = response.choices[0].message;
+        console.log(`🧠 [Orchestrator] finish_reason: ${response.choices[0].finish_reason}`);
+        if (assistantMessage.tool_calls?.length) {
+            console.log(`🧠 [Orchestrator] → Tool called: ${(assistantMessage.tool_calls[0] as any).function.name}`);
+        } else {
+            console.log(`🧠 [Orchestrator] → No tool call. Text response: ${assistantMessage.content?.substring(0, 100)}`);
+        }
 
         // Handle tool calls
         if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
             console.log('🤖 AI Orchestrator: Tool calls received', JSON.stringify(assistantMessage.tool_calls, null, 2));
             const toolCall = assistantMessage.tool_calls[0];
-            const result = await executeToolCall(toolCall, context, messages, documentCache);
+            const result = await executeToolCall(toolCall, context, messages, documentCache, sessionId);
 
             return result;
         }
@@ -94,7 +105,8 @@ async function executeToolCall(
     toolCall: any,  // OpenAI.Chat.ChatCompletionMessageToolCall is a union type; using any for simplicity
     context: AgentContext,
     originalMessages?: OpenAI.Chat.ChatCompletionMessageParam[],
-    documentCache?: DocumentContentCache
+    documentCache?: DocumentContentCache,
+    sessionId?: string,
 ): Promise<{ response: string; pendingAction?: PendingAction; updatedCache?: DocumentContentCache }> {
     const functionName = toolCall.function.name;
 
@@ -110,6 +122,24 @@ async function executeToolCall(
     }
 
     try {
+        // ── Workflow Execution ──────────────────────────────────────────────
+        if (functionName === 'execute_workflow') {
+            const { workflow_id, variables } = args;
+            const workflowName = context.mentionedWorkflow?.name || 'workflow';
+
+            if (!sessionId) {
+                return { response: `I can't start the workflow right now — no active session to stream updates to. Please try again.` };
+            }
+
+            // Fire-and-forget: runs Stagehand agent in background, streams via Realtime
+            executeWorkflowAgent(workflow_id, variables || {}, context.userId, sessionId).catch((err: Error) => {
+                console.error('Workflow execution failed:', err);
+            });
+
+            return {
+                response: `Starting "${workflowName}" now. I'll stream live progress updates here as it runs...`,
+            };
+        }
         // Document tools
         if (functionName === 'get_document_content') {
             const { content, updatedCache } = await getDocumentContent(args.document_id, documentCache);
@@ -352,6 +382,11 @@ async function executeToolCall(
 function getAvailableTools(context: AgentContext): any[] {
     const tools: any[] = [];
 
+    // Workflow execution tool — available when a workflow is mentioned
+    if (context.mentionedWorkflow) {
+        tools.push(...workflowTools);
+    }
+
     // Document tools only available on documents page with selected docs
     if (context.currentPage === 'documents' && context.selectedDocuments && context.selectedDocuments.length > 0) {
         tools.push(...documentTools);
@@ -377,7 +412,9 @@ function buildEnglishSystemPrompt(context: AgentContext): string {
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const currentYear = new Date().getFullYear();
 
-    let prompt = `You are a helpful AI assistant for a task management workspace app.
+    let prompt = `You are an AI assistant built into a task management and browser automation platform.
+You MUST NOT describe yourself as "an AI developed by Moonshot AI".
+You CAN and MUST use the tools provided to you — including running real browser automations via Stagehand.
 
 Current date: ${currentDate} (year ${currentYear})
 ${context.selectedDate ? `User's selected calendar date: ${context.selectedDate}` : ''}
@@ -386,6 +423,18 @@ Current context:
 - Page: ${context.currentPage}
 - Organization: ${context.organizationId}
 `;
+
+    // ── Workflow awareness ─────────────────────────────────────────────────
+    if (context.mentionedWorkflow) {
+        prompt += `
+## Active Workflow
+The user has mentioned the workflow: "${context.mentionedWorkflow.name}" (ID: ${context.mentionedWorkflow.id}).
+This is a browser automation that will run on an external website using AI-powered browser control.
+
+IMPORTANT: Call execute_workflow with workflow_id="${context.mentionedWorkflow.id}" and extract any variable values (like dates, names, topics) from the user's message as the 'variables' object.
+Do NOT use create_task, update_task, or other tools as a substitute for running this workflow.
+`;
+    }
 
     if (context.currentPage === 'documents' && context.selectedDocuments && context.selectedDocuments.length > 0) {
         prompt += `\n\nSelected Documents:`;
@@ -473,7 +522,16 @@ Tool Result References (INTERNAL USE ONLY - never show UUIDs to user):
 - In your conversational responses, refer to tasks/blocks by their human-readable names only`;
     }
 
-    prompt += `\n\nIMPORTANT: For any mutation operations (creating, updating, deleting, rescheduling), you must use the appropriate tool which will return a preview for the user to confirm. Never directly mention that you're waiting for confirmation - just present the action naturally.`;
+    prompt += `
+
+IMPORTANT: For any mutation operations (creating, updating, deleting, rescheduling), you must use the appropriate tool which will return a preview for the user to confirm. Never directly mention that you're waiting for confirmation - just present the action naturally.
+
+## Decision Priority (follow this order)
+1. If a workflow is mentioned → call execute_workflow (do not use task tools as a substitute)
+2. If user wants to manage tasks/calendar → use task/calendar tools
+3. If user is asking about documents → use document tools
+4. For general questions, suggestions, or conversation → respond directly with no tool calls
+5. Never call tools when the user is just chatting or asking a question`;
 
     return prompt;
 }
@@ -492,6 +550,18 @@ ${context.selectedDate ? `ユーザーが選択中のカレンダー日付: ${co
 - ページ: ${context.currentPage}
 - 組織ID: ${context.organizationId}
 `;
+
+    // ── ワークフロー認識 ───────────────────────────────────────────────────
+    if (context.mentionedWorkflow) {
+        prompt += `
+## アクティブなワークフロー
+ユーザーがワークフロー「${context.mentionedWorkflow.name}」(ID: ${context.mentionedWorkflow.id}) に言及しました。
+これはAIブラウザ制御を使用して外部サイト上で実行されるブラウザ自動化です。
+
+重要: execute_workflow を workflow_id="${context.mentionedWorkflow.id}" で呼び出し、ユーザーのメッセージから変数の値（日時、名前、トピックなど）を抽出して 'variables' オブジェクトに渡してください。
+このワークフローの代わりに create_task などのツールを使用しないでください。
+`;
+    }
 
     if (context.currentPage === 'documents' && context.selectedDocuments && context.selectedDocuments.length > 0) {
         prompt += `\n\n選択されたドキュメント:`;
@@ -578,7 +648,14 @@ ${context.selectedDate ? `- 選択された日付: ${context.selectedDate}` : ''
 - 会話での応答では、タスクやブロックの名称のみを使用してください`;
     }
 
-    prompt += `\n\n重要: 変更操作（作成、更新、削除、再スケジュール）を行う場合は、必ず適切なツールを使用してください。ツールは確認用のプレビューを返します。「確認待ちです」と直接言うのではなく、自然にアクション（プレビュー）を提示してください。`;
+    prompt += `\n\n重要: 変更操作（作成、更新、削除、再スケジュール）を行う場合は、必ず適切なツールを使用してください。ツールは確認用のプレビューを返します。「確認待ちです」と直接言うのではなく、自然にアクション（プレビュー）を提示してください。
+
+## 判断の優先順位（この順序に従ってください）
+1. ワークフローが言及された場合 → execute_workflow を呼び出す（タスクツールの代替として使わないこと）
+2. タスク・カレンダーの管理を求められた場合 → タスク・カレンダーツールを使用
+3. ドキュメントについて尋ねられた場合 → ドキュメントツールを使用
+4. 一般的な質問・会話・提案の場合 → ツールを使わず直接回答
+5. ユーザーが雑談や質問をしているだけの場合はツールを呼び出さない`;
 
     return prompt;
 }

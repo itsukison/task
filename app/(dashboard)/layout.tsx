@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import Sidebar from '@/components/sidebar';
 import { useRequireOrg } from '@/lib/auth/hooks';
-import { AIContextProvider } from '@/lib/ai/AIContextProvider';
+import { AIContextProvider, useAI } from '@/lib/ai/AIContextProvider';
 import { AIFloatingButton } from '@/components/ai/AIFloatingButton';
 import { AIChatPanel } from '@/components/ai/AIChatPanel';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const { loading } = useRequireOrg();
+    const { agentViewMode } = useAI();
 
     // Show loading state while checking auth/org
     if (loading) {
@@ -27,8 +28,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 {children}
             </main>
             {/* AI Components */}
-            <AIFloatingButton />
-            <AIChatPanel />
+            {agentViewMode === 'floating' && (
+                <>
+                    <AIFloatingButton />
+                    <AIChatPanel />
+                </>
+            )}
         </div>
     );
 }

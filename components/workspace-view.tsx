@@ -37,6 +37,9 @@ export default function WorkspaceView({
     previewBlock,
     optimisticBlock,
     onCreateSubtask,
+    selectedBlockIds,
+    onSelectBlocks,
+    onUpdateMultipleBlocks,
 }: WorkspaceViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
@@ -167,6 +170,9 @@ export default function WorkspaceView({
                             previewBlock={previewBlock}
                             optimisticBlock={optimisticBlock}
                             onAddTask={onAddTask}
+                            selectedBlockIds={selectedBlockIds}
+                            onSelectBlocks={onSelectBlocks}
+                            onUpdateMultipleBlocks={onUpdateMultipleBlocks}
                         />
                     }
                     right={

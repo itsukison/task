@@ -14,7 +14,12 @@ export async function POST(request: NextRequest) {
         }
 
         const body: ChatRequest = await request.json();
-        const { message, context, history, documentCache } = body;
+        const { message, context, history, documentCache, sessionId } = body;
+
+        console.log('🔵 [/api/ai/chat] ─────────────────────────────────');
+        console.log('🔵 [/api/ai/chat] Message:', message);
+        console.log('🔵 [/api/ai/chat] mentionedWorkflow (from client):', context.mentionedWorkflow);
+        console.log('🔵 [/api/ai/chat] sessionId:', sessionId);
 
         // Verify auth
         const supabase = await createClient();
@@ -44,6 +49,36 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // ── @mention text-scan fallback ──────────────────────────────────────
+        // If the client didn't pass a structured mentionedWorkflow (e.g. user
+        // typed "@WorkflowName" without clicking the popup), scan the message
+        // text for @words and resolve the workflow from the DB.
+        let resolvedWorkflow = context.mentionedWorkflow;
+
+        if (!resolvedWorkflow) {
+            // Match @Word or @Multi Word patterns (up to 6 words)
+            const atMatches = message.match(/@([\w][\w\s]{0,60}?)(?=[,\n]|$|\s{2}|\.)/g);
+            if (atMatches && atMatches.length > 0) {
+                const workflowName = atMatches[0].substring(1).trim(); // strip the @
+                console.log(`🟡 [/api/ai/chat] @mention in text: "${workflowName}" — querying DB`);
+
+                const { data: foundWorkflow } = await supabase
+                    .from('workflows')
+                    .select('id, name')
+                    .eq('organization_id', context.organizationId)
+                    .ilike('name', `%${workflowName}%`)
+                    .limit(1)
+                    .single();
+
+                if (foundWorkflow) {
+                    resolvedWorkflow = { id: foundWorkflow.id, name: foundWorkflow.name };
+                    console.log(`✅ [/api/ai/chat] Resolved via text scan: ${JSON.stringify(resolvedWorkflow)}`);
+                } else {
+                    console.warn(`⚠️ [/api/ai/chat] No workflow matched "${workflowName}" in org ${context.organizationId}`);
+                }
+            }
+        }
+
         // Fetch user language preference
         const { data: profile } = await supabase
             .from('user_profiles')
@@ -51,14 +86,20 @@ export async function POST(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        // Ensure context includes language
+        // Build final context
         const contextWithLanguage = {
             ...context,
-            language: (profile?.language as 'en' | 'ja') || 'en'
+            language: (profile?.language as 'en' | 'ja') || 'en',
+            mentionedWorkflow: resolvedWorkflow,
         };
 
+        console.log('🟢 [/api/ai/chat] Final mentionedWorkflow:', contextWithLanguage.mentionedWorkflow);
+        console.log('🟢 [/api/ai/chat] execute_workflow tool ENABLED:', !!contextWithLanguage.mentionedWorkflow);
+
         // Run AI orchestrator
-        const result = await runOrchestrator(message, contextWithLanguage, history, documentCache);
+        const result = await runOrchestrator(message, contextWithLanguage, history, documentCache, sessionId);
+
+        console.log('🟢 [/api/ai/chat] Orchestrator replied:', result.response?.substring(0, 120));
 
         const response: ChatResponse = {
             message: result.response,
@@ -68,7 +109,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(response);
     } catch (error) {
-        console.error('AI Chat API error:', error);
+        console.error('❌ [/api/ai/chat] Error:', error);
         return NextResponse.json(
             { error: 'AI service unavailable' } as ChatResponse,
             { status: 500 }

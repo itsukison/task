@@ -14,6 +14,7 @@ import {
 } from './types';
 import { Document } from '@/lib/types';
 import { useWebMCPRegistration } from './use-webmcp';
+import { Json } from '@/lib/database.types';
 
 interface AIContextValue {
     // State
@@ -35,13 +36,19 @@ interface AIContextValue {
     cancelAction: () => void;
 
     // Actions
-    sendMessage: (text: string) => Promise<void>;
+    sendMessage: (text: string, mentionedWorkflow?: { id: string; name: string }) => Promise<void>;
+    stopGeneration: () => void;
     clearHistory: () => void;
+    loadSession: (sessionId: string) => Promise<void>;
 
     // New conversation management
     shouldShowNewConvoPrompt: boolean;
     startNewConversation: () => void;
     dismissNewConvoPrompt: () => void;
+
+    // View mode management
+    agentViewMode: 'chat' | 'floating';
+    setAgentViewMode: (mode: 'chat' | 'floating') => void;
 
     // Refetch callbacks (optional, for UI updates)
     onTasksChange?: () => void | Promise<void>;
@@ -86,12 +93,17 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
 
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedDocuments, setSelectedDocuments] = useState<Document[]>([]);
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [documentContentCache, setDocumentContentCache] = useState<DocumentContentCache>({});
     const [lastNotificationAt, setLastNotificationAt] = useState<number>(0); // Track when to show "start new conversation" notification
+    const [agentViewMode, setAgentViewModeState] = useState<'chat' | 'floating'>('chat');
+
+    // Add abort controller tracking
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // Use ref to avoid messages dependency in useCallback
     const messagesRef = useRef<ChatMessage[]>([]);
@@ -102,37 +114,229 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
     // Register WebMCP tools
     useWebMCPRegistration(currentOrganization?.id, user?.id, setPendingAction, setIsOpen);
 
-    // Load messages from localStorage
+    // Load latest session from Supabase on mount
     useEffect(() => {
-        if (user && currentOrganization) {
-            const key = `ai_chat_${currentOrganization.id}_${user.id}`;
-            const stored = localStorage.getItem(key);
-            if (stored) {
-                try {
-                    setMessages(JSON.parse(stored));
-                } catch (e) {
-                    console.error('Failed to load chat history', e);
+        async function loadLatestSession() {
+            if (!user || !currentOrganization) return;
+            const supabaseImport = await import('@/lib/supabase/client');
+            const supabase = supabaseImport.createClient();
+
+            const storedSessionId = localStorage.getItem('taskos_ai_current_session_id');
+
+            if (storedSessionId === 'new') {
+                // User explicitly requested a new chat, stay in new chat state
+                setIsLoading(false);
+                return;
+            }
+
+            // 1. Find the target session (either stored or most recently updated)
+            let session;
+            if (storedSessionId && storedSessionId !== 'new') {
+                const { data } = await supabase
+                    .from('chat_sessions')
+                    .select('id')
+                    .eq('id', storedSessionId)
+                    .eq('user_id', user.id)
+                    .single();
+                session = data;
+            }
+
+            if (!session) {
+                const { data: latestSession } = await supabase
+                    .from('chat_sessions')
+                    .select('id')
+                    .eq('organization_id', currentOrganization.id)
+                    .eq('user_id', user.id)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                session = latestSession;
+            }
+
+            if (session) {
+                setCurrentSessionId(session.id);
+                localStorage.setItem('taskos_ai_current_session_id', session.id);
+                // 2. Load messages for that session
+                const { data: history } = await supabase
+                    .from('chat_messages')
+                    .select('role, content, action, created_at')
+                    .eq('session_id', session.id)
+                    .order('created_at', { ascending: true });
+
+                if (history && history.length > 0) {
+                    const typedHistory = history.map(msg => ({
+                        role: msg.role as 'user' | 'assistant',
+                        content: msg.content,
+                        action: msg.action as unknown as PendingAction | undefined,
+                        timestamp: msg.created_at ? new Date(msg.created_at).getTime() : 0,
+                    }));
+                    setMessages(typedHistory);
                 }
             }
         }
+
+        loadLatestSession();
+
+        const storedViewMode = localStorage.getItem('taskos_ai_view_mode') as 'chat' | 'floating' | null;
+        if (storedViewMode) {
+            setAgentViewModeState(storedViewMode);
+        }
     }, [user, currentOrganization]);
 
-    // Save messages to localStorage
-    useEffect(() => {
-        if (user && currentOrganization && messages.length > 0) {
-            const key = `ai_chat_${currentOrganization.id}_${user.id}`;
-            localStorage.setItem(key, JSON.stringify(messages));
+    const loadSession = useCallback(async (sessionId: string) => {
+        if (!user || !currentOrganization) return;
+
+        setIsLoading(true);
+        // cancel any running generation
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
         }
-    }, [messages, user, currentOrganization]);
+
+        try {
+            const supabaseImport = await import('@/lib/supabase/client');
+            const supabase = supabaseImport.createClient();
+
+            // Set current session First
+            setCurrentSessionId(sessionId);
+            localStorage.setItem('taskos_ai_current_session_id', sessionId);
+
+            // Fetch messages for this session
+            const { data: history } = await supabase
+                .from('chat_messages')
+                .select('role, content, action, created_at')
+                .eq('session_id', sessionId)
+                .order('created_at', { ascending: true });
+
+            if (history) {
+                const typedHistory = history.map(msg => ({
+                    role: msg.role as 'user' | 'assistant',
+                    content: msg.content,
+                    action: msg.action as unknown as PendingAction | undefined,
+                    timestamp: msg.created_at ? new Date(msg.created_at).getTime() : 0,
+                }));
+                setMessages(typedHistory);
+            } else {
+                setMessages([]);
+            }
+        } catch (err) {
+            console.error('Failed to load session:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user, currentOrganization]);
 
     // Sync messages ref to avoid circular dependency in useCallback
     useEffect(() => {
         messagesRef.current = messages;
     }, [messages]);
 
+    // Supabase Realtime Subscription for Background Workflow Logs
+    useEffect(() => {
+        if (!currentSessionId) return;
+
+        let channel: any;
+
+        async function setupSubscription() {
+            const supabaseImport = await import('@/lib/supabase/client');
+            const supabase = supabaseImport.createClient();
+
+            channel = supabase
+                .channel(`chat_messages_${currentSessionId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'chat_messages',
+                        filter: `session_id=eq.${currentSessionId}`,
+                    },
+                    (payload) => {
+                        const newMsg = payload.new;
+                        // Only add if it's an assistant message (background logs are assistant)
+                        if (newMsg.role === 'assistant') {
+                            setMessages((prev) => {
+                                // Prevent duplicates if the message was added optimistically by the client
+                                const isDuplicate = prev.some(
+                                    (m) => m.content === newMsg.content && Math.abs((m.timestamp || 0) - (newMsg.created_at ? new Date(newMsg.created_at).getTime() : 0)) < 2000
+                                );
+
+                                if (!isDuplicate) {
+                                    return [
+                                        ...prev,
+                                        {
+                                            role: 'assistant',
+                                            content: newMsg.content,
+                                            timestamp: newMsg.created_at ? new Date(newMsg.created_at).getTime() : 0,
+                                            action: newMsg.action as unknown as PendingAction | undefined,
+                                        },
+                                    ];
+                                }
+                                return prev;
+                            });
+                        }
+                    }
+                )
+                .subscribe();
+        }
+
+        setupSubscription();
+
+        return () => {
+            if (channel) {
+                channel.unsubscribe();
+            }
+        };
+    }, [currentSessionId]);
+
+    const setAgentViewMode = useCallback((mode: 'chat' | 'floating') => {
+        setAgentViewModeState(mode);
+        localStorage.setItem('taskos_ai_view_mode', mode);
+    }, []);
+
+    const stopGeneration = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            setIsLoading(false);
+        }
+    }, []);
+
     const sendMessage = useCallback(
-        async (text: string) => {
+        async (text: string, mentionedWorkflow?: { id: string; name: string }) => {
             if (!user || !currentOrganization) return;
+
+            const supabaseImport = await import('@/lib/supabase/client');
+            const supabase = supabaseImport.createClient();
+
+            let sessionId = currentSessionId;
+            let newlyCreatedSession = false;
+
+            // Optional: If this is the FIRST message, let's create a session lazily
+            if (!sessionId) {
+                // Determine a quick title from the text payload (first 30 chars approx)
+                const titlePreview = text.split(" ").slice(0, 5).join(" ").substring(0, 30);
+
+                const { data: newSession } = await supabase
+                    .from('chat_sessions')
+                    .insert({
+                        organization_id: currentOrganization.id,
+                        user_id: user.id,
+                        title: titlePreview + (text.length > 30 ? '...' : '')
+                    })
+                    .select('id')
+                    .single();
+
+                if (newSession) {
+                    sessionId = newSession.id;
+                    setCurrentSessionId(newSession.id);
+                    localStorage.setItem('taskos_ai_current_session_id', newSession.id);
+                    newlyCreatedSession = true;
+                }
+            } else {
+                // Bump the generated_at to signify it's now the active top session again
+                await supabase.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId);
+            }
 
             const userMessage: ChatMessage = {
                 role: 'user',
@@ -142,7 +346,21 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
 
             setMessages((prev) => [...prev, userMessage]);
             setIsLoading(true);
-            setPendingAction(null); // Clear any pending action
+            setPendingAction(null);
+
+            // Save user message to database concurrently
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            abortControllerRef.current = new AbortController();
+
+            if (sessionId) {
+                supabase.from('chat_messages').insert({
+                    session_id: sessionId,
+                    role: 'user',
+                    content: text
+                }).then(); // fire and forget
+            }
 
             try {
                 // Build context
@@ -160,6 +378,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                     selectedDocuments: currentPage === 'documents' ? selectedDocuments : undefined,
                     selectedDate: selectedDate ? formatDateToLocalISO(selectedDate) : undefined,
                     language,
+                    mentionedWorkflow: mentionedWorkflow ?? undefined,
                 };
 
                 // Truncate conversation history to last 20 messages for token optimization
@@ -169,6 +388,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                     context,
                     history: slidingWindowHistory(messagesRef.current),
                     documentCache: documentContentCache,
+                    sessionId: sessionId ?? undefined,
                 };
 
                 const response = await fetch('/api/ai/chat', {
@@ -176,6 +396,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(request),
                     credentials: 'include',
+                    signal: abortControllerRef.current?.signal,
                 });
 
                 const data: ChatResponse = await response.json();
@@ -188,9 +409,20 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                     role: 'assistant',
                     content: data.message,
                     timestamp: Date.now(),
+                    action: data.pendingAction
                 };
 
                 setMessages((prev) => [...prev, assistantMessage]);
+
+                // Save assistant message and potential action to db
+                if (sessionId) {
+                    supabase.from('chat_messages').insert({
+                        session_id: sessionId,
+                        role: 'assistant',
+                        content: data.message,
+                        action: (data.pendingAction as unknown as Json) || null
+                    }).then();
+                }
 
                 // Check if we should show "start new conversation" notification
                 const totalMessages = messagesRef.current.length + 2; // +2 for user + assistant just added
@@ -207,7 +439,11 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                 if (data.updatedCache) {
                     setDocumentContentCache(data.updatedCache);
                 }
-            } catch (error) {
+            } catch (error: any) {
+                if (error.name === 'AbortError') {
+                    console.log('AI Generation stopped by user');
+                    return;
+                }
                 console.error('Chat error:', error);
                 const errorMessage: ChatMessage = {
                     role: 'assistant',
@@ -217,6 +453,7 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
                 setMessages((prev) => [...prev, errorMessage]);
             } finally {
                 setIsLoading(false);
+                abortControllerRef.current = null;
             }
         },
         [user, currentOrganization, currentPage, selectedDocuments, documentContentCache]
@@ -739,14 +976,12 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
 
     const clearHistory = useCallback(() => {
         setMessages([]);
+        setCurrentSessionId(null);
+        localStorage.setItem('taskos_ai_current_session_id', 'new');
         setPendingAction(null);
         setDocumentContentCache({});
         setLastNotificationAt(0); // Reset notification tracking
-        if (user && currentOrganization) {
-            const key = `ai_chat_${currentOrganization.id}_${user.id}`;
-            localStorage.removeItem(key);
-        }
-    }, [user, currentOrganization]);
+    }, []);
 
     const value: AIContextValue = {
         isOpen,
@@ -762,10 +997,14 @@ export function AIContextProvider({ children, onTasksChange, onCalendarChange }:
         confirmAction,
         cancelAction,
         sendMessage,
+        stopGeneration,
         clearHistory,
+        loadSession,
         shouldShowNewConvoPrompt: messages.length >= lastNotificationAt && lastNotificationAt > 0,
         startNewConversation: clearHistory,
         dismissNewConvoPrompt: () => setLastNotificationAt(0),
+        agentViewMode,
+        setAgentViewMode,
         onTasksChange,
         onCalendarChange,
     };

@@ -81,6 +81,7 @@ export interface TranslationDictionary {
         home: string;
         new_page: string;
         soon: string;
+        workflows: string;
     };
     documents: {
         title: string;

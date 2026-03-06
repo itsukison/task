@@ -63,6 +63,40 @@ export interface JoinRequest {
 }
 
 /**
+ * Workflow entity for the canvas
+ */
+export interface Workflow {
+    id: string;
+    organizationId: string;
+    createdBy: string;
+    folderId: string | null;
+    name: string;
+    description: string | null;
+    site: string | null;
+    content: any; // Tiptap JSON content
+    positionX: number | null;
+    positionY: number | null;
+    visibility: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/**
+ * WorkflowFolder entity for organizing workflows
+ */
+export interface WorkflowFolder {
+    id: string;
+    organizationId: string;
+    name: string;
+    parentFolderId: string | null;
+    positionX: number | null;
+    positionY: number | null;
+    visibility: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/**
  * Folder entity for organizing documents
  */
 export interface Folder {
@@ -316,6 +350,10 @@ export interface WorkspaceViewProps {
     selectedMemberIds?: string[];
     onSelectedMembersChange?: (memberIds: string[]) => void;
     multiMemberBlocks?: MultiMemberBlock[];
+    // Interacting with blocks
+    selectedBlockIds?: Set<string>;
+    onSelectBlocks?: (blockIds: Set<string>) => void;
+    onUpdateMultipleBlocks?: (deltaMinutes: number, blockIds: string[]) => void;
     // Pending assignment handling
     currentUserId?: string;
     onAcceptAssignment?: (taskId: string) => void;
@@ -357,6 +395,10 @@ export interface CalendarProps {
     selectedMemberIds?: string[];
     onSelectedMembersChange?: (memberIds: string[]) => void;
     multiMemberBlocks?: MultiMemberBlock[];
+    // Interacting with blocks
+    selectedBlockIds?: Set<string>;
+    onSelectBlocks?: (blockIds: Set<string>) => void;
+    onUpdateMultipleBlocks?: (deltaMinutes: number, blockIds: string[]) => void;
     // AI preview
     previewBlock?: CalendarBlock | null;
     // Optimistic UI

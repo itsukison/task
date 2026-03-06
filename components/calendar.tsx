@@ -12,6 +12,7 @@ import {
   MemberSelector,
 } from './calendar/';
 import { CalendarQuickAddPopover } from './calendar/CalendarQuickAddPopover';
+import { SelectionBox } from '@/components/documents/SelectionBox';
 import { getBlocksWithLayout, BlockLayoutInfo } from './calendar/overlap-layout';
 import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
 import { useAuth } from '@/lib/auth/hooks';
@@ -60,14 +61,20 @@ const Calendar = React.memo(function Calendar({
   previewBlock,
   optimisticBlock,
   onAddTask,
+  selectedBlockIds,
+  onSelectBlocks,
+  onUpdateMultipleBlocks,
 }: CalendarProps) {
   const { membersWithVisibility } = useOrganizationMembers();
   const { user, currentOrg } = useAuth();
   const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [selectionBox, setSelectionBox] = React.useState<{ startX: number; startY: number; currentX: number; currentY: number; } | null>(null);
+  const isDragSelectingRef = useRef(false);
+
   // Use extracted hooks
-  const { hourHeight } = useCalendarZoom(containerRef);
+  const { hourHeight, snapInterval } = useCalendarZoom(containerRef);
 
   // Horizontal scroll hook
   const {
@@ -125,6 +132,7 @@ const Calendar = React.memo(function Calendar({
     useCalendarDrag({
       draggingTask,
       hourHeight,
+      snapInterval,
       tasks,
       dragPreview,
       dragSource,
@@ -133,6 +141,8 @@ const Calendar = React.memo(function Calendar({
       onDragStart,
       onCreateBlock,
       onUpdateBlock: handleUpdateBlockInternal,
+      selectedBlockIds,
+      onUpdateMultipleBlocks,
     });
 
   // displayedDays is now driven by the horizontal scroll hook
@@ -180,7 +190,7 @@ const Calendar = React.memo(function Calendar({
 
       return {
         top: `${top}px`,
-        height: `${Math.max(height - 1, 24)}px`,
+        height: `${Math.max(height - 1, snapInterval * (hourHeight / 60))}px`,
         position: 'absolute' as 'absolute',
         // Notion-style: side-by-side layout using percentages
         left: `calc(${layout.leftPercent}% + ${padding}px)`,
@@ -190,7 +200,7 @@ const Calendar = React.memo(function Calendar({
         zIndex: 10 + layout.columnIndex, // Stack columns for visual layering
       };
     },
-    [selectedMemberIds, user, hourHeight]
+    [selectedMemberIds, user, hourHeight, snapInterval]
   );
 
   // Combine calendar blocks with multi-member blocks for rendering
@@ -255,6 +265,83 @@ const Calendar = React.memo(function Calendar({
 
     return blocks;
   }, [calendarBlocks, multiMemberBlocks, selectedMemberIds, user?.id, previewBlock, optimisticBlock, quickAdd, currentOrg]);
+
+  // Selection Handlers
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-draggable="true"]') || target.closest('[draggable="true"]') || target.closest('button') || target.closest('.cursor-ns-resize')) {
+      return;
+    }
+
+    const container = bodyScrollRef.current;
+    if (!container) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const startX = e.clientX - rect.left;
+    const startY = e.clientY - rect.top;
+
+    setSelectionBox({
+      startX,
+      startY,
+      currentX: startX,
+      currentY: startY,
+    });
+    isDragSelectingRef.current = true;
+
+    if (!e.shiftKey && !e.metaKey && !e.ctrlKey && onSelectBlocks) {
+      onSelectBlocks(new Set());
+    }
+  }, [bodyScrollRef, onSelectBlocks]);
+
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragSelectingRef.current || !selectionBox || !bodyScrollRef.current) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+
+    const newBox = { ...selectionBox, currentX, currentY };
+    setSelectionBox(newBox);
+
+    if (!onSelectBlocks) return;
+
+    const left = Math.min(newBox.startX, newBox.currentX);
+    const right = Math.max(newBox.startX, newBox.currentX);
+    const top = Math.min(newBox.startY, newBox.currentY);
+    const bottom = Math.max(newBox.startY, newBox.currentY);
+
+    const colWidth = bodyScrollRef.current.clientWidth / daysPerWeek;
+    const newSelected = new Set<string>();
+
+    allBlocks.forEach(block => {
+      const dateStr = format(new Date(block.startTime), 'yyyy-MM-dd');
+      const dayIndex = displayedDays.findIndex(d => format(d, 'yyyy-MM-dd') === dateStr);
+      if (dayIndex < 0) return;
+
+      const start = new Date(block.startTime);
+      const end = new Date(block.endTime);
+      const duration = (end.getTime() - start.getTime()) / 60000;
+
+      const blockTop = (start.getHours() * 60 + start.getMinutes()) * (hourHeight / 60);
+      const blockBottom = blockTop + duration * (hourHeight / 60);
+
+      const actualColWidth = view === 'week' ? colWidth : rect.width;
+      const blockLeft = dayIndex * actualColWidth;
+      const blockRight = blockLeft + actualColWidth;
+
+      // Simple rect intersection
+      if (!(blockRight < left || blockLeft > right || blockBottom < top || blockTop > bottom)) {
+        newSelected.add(block.id);
+      }
+    });
+
+    onSelectBlocks(newSelected);
+  }, [selectionBox, view, bodyScrollRef, daysPerWeek, allBlocks, displayedDays, hourHeight, onSelectBlocks]);
+
+  const handleCanvasMouseUp = useCallback(() => {
+    isDragSelectingRef.current = false;
+    setSelectionBox(null);
+  }, []);
 
   return (
     <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans relative pl-3">
@@ -394,7 +481,7 @@ const Calendar = React.memo(function Calendar({
         <div className="flex relative" style={{ height: HOURS.length * hourHeight }}>
           {/* Time column — sticky left */}
           <div className="sticky left-0 z-30 bg-white">
-            <CalendarTimeColumn hours={HOURS} hourHeight={hourHeight} />
+            <CalendarTimeColumn hours={HOURS} hourHeight={hourHeight} snapInterval={snapInterval} />
           </div>
 
           {/* Horizontally scrollable day columns */}
@@ -409,7 +496,19 @@ const Calendar = React.memo(function Calendar({
                 width: view === 'week' ? `${(displayedDays.length / daysPerWeek) * 100}%` : '100%',
                 height: HOURS.length * hourHeight,
               }}
+              onMouseDown={handleCanvasMouseDown}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseUp}
             >
+              {selectionBox && (
+                <SelectionBox
+                  startX={selectionBox.startX}
+                  startY={selectionBox.startY}
+                  currentX={selectionBox.currentX}
+                  currentY={selectionBox.currentY}
+                />
+              )}
               {displayedDays.map((date) => {
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const dayBlocks = allBlocks.filter((b) => {
@@ -426,6 +525,7 @@ const Calendar = React.memo(function Calendar({
                     selectedDate={selectedDate}
                     hours={HOURS}
                     hourHeight={hourHeight}
+                    snapInterval={snapInterval}
                     tasks={tasks}
                     calendarBlocks={allBlocks}
                     draggingTask={draggingTask}
@@ -445,6 +545,8 @@ const Calendar = React.memo(function Calendar({
                     blocksWithLayout={blocksWithLayout}
                     isMultiMemberMode={selectedMemberIds.length > 1}
                     currentUserId={user?.id}
+                    selectedBlockIds={selectedBlockIds}
+                    onSelectBlocks={onSelectBlocks}
                   />
                 );
               })}

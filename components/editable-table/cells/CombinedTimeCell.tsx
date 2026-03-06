@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CellProps } from '../types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 /**
  * Combined time cell showing actual/estimated time with integrated timer
@@ -113,8 +114,17 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
     };
 
     const handleExpectedBlur = () => {
+        // Delay blur to allow preset clicks to register before the popover closes and input unmounts
+        setTimeout(() => {
+            setEditingField((prev) => prev === 'expected' ? null : prev);
+            onChange(rowId, 'expectedTime', localExpected);
+        }, 150);
+    };
+
+    const handlePresetSelect = (preset: number) => {
+        setLocalExpected(preset);
+        onChange(rowId, 'expectedTime', preset);
         setEditingField(null);
-        onChange(rowId, 'expectedTime', localExpected);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent, field: 'actual' | 'expected') => {
@@ -184,16 +194,37 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
 
                 {/* Expected time */}
                 {editingField === 'expected' ? (
-                    <input
-                        ref={expectedInputRef}
-                        type="number"
-                        value={localExpected}
-                        onChange={(e) => setLocalExpected(parseFloat(e.target.value) || 0)}
-                        onBlur={handleExpectedBlur}
-                        onKeyDown={(e) => handleKeyDown(e, 'expected')}
-                        className="w-12 bg-transparent border-none outline-none text-[#37352F]"
-                        autoFocus
-                    />
+                    <Popover open={true} onOpenChange={(open) => !open && setEditingField(null)}>
+                        <PopoverTrigger asChild>
+                            <input
+                                ref={expectedInputRef}
+                                type="number"
+                                value={localExpected}
+                                onChange={(e) => setLocalExpected(parseFloat(e.target.value) || 0)}
+                                onBlur={handleExpectedBlur}
+                                onKeyDown={(e) => handleKeyDown(e, 'expected')}
+                                className="w-12 bg-transparent border-none outline-none text-[#37352F]"
+                                autoFocus
+                            />
+                        </PopoverTrigger>
+                        <PopoverContent
+                            className="w-32 p-1 border shadow-lg rounded-md bg-white z-50"
+                            align="start"
+                            onOpenAutoFocus={(e) => e.preventDefault()}
+                        >
+                            <div className="flex flex-col gap-0.5">
+                                {[5, 15, 30, 60].map((preset) => (
+                                    <button
+                                        key={preset}
+                                        className="text-left w-full px-2 py-1.5 text-sm text-[#37352F] hover:bg-[#F2F1EE] rounded transition-colors"
+                                        onClick={() => handlePresetSelect(preset)}
+                                    >
+                                        {preset} min
+                                    </button>
+                                ))}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 ) : (
                     <span
                         className="cursor-text text-[#37352F] min-w-[2ch]"

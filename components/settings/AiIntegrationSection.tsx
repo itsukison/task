@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { Download, Bot } from 'lucide-react';
-import { SettingSection } from '@/components/ui/settings-primitives';
+import { SettingSection, SettingRow, SelectDropdown } from '@/components/ui/settings-primitives';
 import { useLanguage } from '@/lib/i18n';
+import { useAI } from '@/lib/ai/AIContextProvider';
 
 export function AiIntegrationSection() {
     const { t } = useLanguage();
+    const { agentViewMode, setAgentViewMode } = useAI();
     const [downloading, setDownloading] = useState(false);
 
     const handleDownloadSkill = async () => {
@@ -38,6 +40,20 @@ export function AiIntegrationSection() {
 
     return (
         <SettingSection title="AI Integration">
+            <SettingRow
+                title="Agent View Mode"
+                description="Choose how you want to interact with the AI assistant."
+            >
+                <SelectDropdown
+                    value={agentViewMode}
+                    options={[
+                        { value: 'chat', label: 'Chat Page (Default)' },
+                        { value: 'floating', label: 'Floating Widget' },
+                    ]}
+                    onChange={(val) => setAgentViewMode(val as 'chat' | 'floating')}
+                />
+            </SettingRow>
+
             <div className="flex flex-col gap-3 pt-2">
                 <p className="text-sm text-[#787774] leading-relaxed">
                     Chrono is fully compatible with AI Agents via the Browser Model Context Protocol (WebMCP).
