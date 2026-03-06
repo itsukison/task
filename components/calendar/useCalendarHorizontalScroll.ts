@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useEffect, useMemo, useLayoutEffect } from 'react';
-import { addDays, startOfWeek, subWeeks, addWeeks, isSameDay } from 'date-fns';
+import { addDays, startOfWeek, subWeeks, addWeeks } from 'date-fns';
 
 interface UseCalendarHorizontalScrollOptions {
     viewDate: Date;
@@ -23,10 +23,9 @@ export function useCalendarHorizontalScroll({
 
     // Track infinite scroll state
     const isInfiniteScrollingRef = useRef(false);
-    const previousViewDateRef = useRef(viewDate);
+    const previousViewDateRef = useRef<Date | null>(null);
 
     // Track first visible column index (integer) for snap & resize stability
-    // daysPerWeek controls how many columns are visible at once
     const daysPerWeek = daysToShow;
     const firstVisibleColRef = useRef(daysPerWeek);
 
@@ -38,6 +37,9 @@ export function useCalendarHorizontalScroll({
     const stableWidthRef = useRef(0);
     const isResizingRef = useRef(false);
     const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Track if we've already centered on mount
+    const hasCenteredRef = useRef(false);
 
     // Compute 3 weeks of days centered on viewDate
     const allDisplayedDays = useMemo(() => {
@@ -52,7 +54,6 @@ export function useCalendarHorizontalScroll({
         const days: Date[] = [];
 
         for (const weekStart of weeks) {
-            // Always generate all 7 days (Mon-Sun) per week
             for (let i = 0; i < 7; i++) {
                 days.push(addDays(weekStart, i));
             }
@@ -60,6 +61,17 @@ export function useCalendarHorizontalScroll({
 
         return days;
     }, [viewDate, view, daysToShow]);
+
+    // Helper: calculate target column for centering
+    const calculateTargetColumn = useCallback(() => {
+        // Calculate 0-based day index within week (Mon=0, Sun=6)
+        const dayIndex = (viewDate.getDay() + 6) % 7;
+        // viewDate is in center week (index 7-13)
+        const absoluteIndex = 7 + dayIndex;
+        // Center offset based on daysToShow
+        const centerOffset = Math.floor((daysToShow - 1) / 2);
+        return Math.max(0, absoluteIndex - centerOffset);
+    }, [viewDate, daysToShow]);
 
     // Helper: get column width from container
     const getColumnWidth = useCallback((containerWidth: number) => {
@@ -75,22 +87,19 @@ export function useCalendarHorizontalScroll({
         const nearestCol = Math.round(el.scrollLeft / colWidth);
         const targetLeft = nearestCol * colWidth;
 
-        // Only snap if not already aligned (2px tolerance)
         if (Math.abs(el.scrollLeft - targetLeft) > 2) {
             isSnappingRef.current = true;
             el.scrollTo({ left: targetLeft, behavior: 'smooth' });
         }
 
-        // Update tracked column index
         firstVisibleColRef.current = nearestCol;
 
-        // Sync header
         if (headerScrollRef.current) {
             headerScrollRef.current.scrollLeft = el.scrollLeft;
         }
     }, [getColumnWidth]);
 
-    // Adjust scroll position after render when viewDate changes
+    // Adjust scroll position when viewDate or scrollAlignment changes
     useLayoutEffect(() => {
         if (view === 'day') return;
 
@@ -100,14 +109,12 @@ export function useCalendarHorizontalScroll({
         const containerWidth = el.clientWidth;
         if (containerWidth <= 0) return;
 
-        // Check infinite scroll update
-        if (isInfiniteScrollingRef.current) {
+        // Handle infinite scroll adjustments
+        if (isInfiniteScrollingRef.current && previousViewDateRef.current) {
             let colAdjustment = 0;
             if (viewDate < previousViewDateRef.current) {
-                // Scrolled left → prepended a week → shift right by daysPerWeek columns
                 colAdjustment = daysPerWeek;
             } else if (viewDate > previousViewDateRef.current) {
-                // Scrolled right → appended a week → shift left by daysPerWeek columns
                 colAdjustment = -daysPerWeek;
             }
 
@@ -124,30 +131,21 @@ export function useCalendarHorizontalScroll({
 
             isInfiniteScrollingRef.current = false;
         } else {
-            // External update of viewDate (not via scroll) implies reset
-            if (viewDate !== previousViewDateRef.current) {
+            // Check if we need to center (first render OR scrollAlignment changed to 'center')
+            const needsCentering = !hasCenteredRef.current || scrollAlignment === 'center';
+
+            if (needsCentering) {
                 const colWidth = getColumnWidth(containerWidth);
-                let targetCol = 7; // Default: Start of center week (Monday)
+                let targetCol = 7;
 
                 if (scrollAlignment === 'center') {
-                    // Center the specific viewDate in the viewport
-                    // viewDate is in the center week (index 7 to 13)
-                    // Calculate 0-based index of day within the week (Mon=0, Sun=6)
-                    const dayIndex = (viewDate.getDay() + 6) % 7;
-                    const absoluteIndex = 7 + dayIndex;
-
-                    // We want absoluteIndex to be in the middle of daysToShow
-                    // ScrollLeft should be: Absolute - Floor(Viewport / 2)
-                    const centerOffset = Math.floor((daysToShow - 1) / 2);
-                    targetCol = Math.max(0, absoluteIndex - centerOffset);
-                } else {
-                    // 'left' alignment: strictly align Monday to left edge
-                    targetCol = 7;
+                    targetCol = calculateTargetColumn();
                 }
 
                 el.scrollLeft = targetCol * colWidth;
                 firstVisibleColRef.current = targetCol;
                 stableWidthRef.current = containerWidth;
+                hasCenteredRef.current = true;
 
                 if (headerScrollRef.current) {
                     headerScrollRef.current.scrollLeft = el.scrollLeft;
@@ -156,7 +154,7 @@ export function useCalendarHorizontalScroll({
         }
 
         previousViewDateRef.current = viewDate;
-    }, [viewDate, view, allDisplayedDays, daysPerWeek, getColumnWidth]);
+    }, [viewDate, view, daysPerWeek, scrollAlignment, getColumnWidth, calculateTargetColumn]);
 
     // Handle Resize: Maintain same visible columns
     useEffect(() => {
@@ -169,7 +167,6 @@ export function useCalendarHorizontalScroll({
             const newWidth = el.clientWidth;
             if (newWidth <= 0) return;
 
-            // Lock scroll updates
             isResizingRef.current = true;
             if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
             resizeTimeoutRef.current = setTimeout(() => {
@@ -177,13 +174,9 @@ export function useCalendarHorizontalScroll({
             }, 200);
 
             const colWidth = getColumnWidth(newWidth);
-            // Restore position based on tracked column index — same dates stay visible
             el.scrollLeft = firstVisibleColRef.current * colWidth;
-
-            // Mark the new width as stable so handleBodyScroll accepts it
             stableWidthRef.current = newWidth;
 
-            // Update header too
             if (headerScrollRef.current) {
                 headerScrollRef.current.scrollLeft = el.scrollLeft;
             }
@@ -198,33 +191,6 @@ export function useCalendarHorizontalScroll({
         };
     }, [view, getColumnWidth]);
 
-    // Initial center scroll
-    useEffect(() => {
-        if (view === 'day') return;
-        const el = bodyScrollRef.current;
-        if (el) {
-            // Center reliably on mount if at 0
-            if (el.scrollLeft === 0 && el.clientWidth > 0) {
-                const colWidth = getColumnWidth(el.clientWidth);
-
-                let targetCol = 7; // Center week, Monday
-                if (scrollAlignment === 'center') {
-                    const dayIndex = (viewDate.getDay() + 6) % 7;
-                    const absoluteIndex = 7 + dayIndex;
-                    const centerOffset = Math.floor((daysToShow - 1) / 2);
-                    targetCol = Math.max(0, absoluteIndex - centerOffset);
-                } else {
-                    targetCol = 7;
-                }
-
-                el.scrollLeft = targetCol * colWidth;
-                firstVisibleColRef.current = targetCol;
-                stableWidthRef.current = el.clientWidth;
-                if (headerScrollRef.current) headerScrollRef.current.scrollLeft = el.scrollLeft;
-            }
-        }
-    }, [daysPerWeek, getColumnWidth, viewDate, scrollAlignment, daysToShow, view]);
-
     // Clean up snap timer on unmount
     useEffect(() => {
         return () => {
@@ -238,7 +204,6 @@ export function useCalendarHorizontalScroll({
         const body = bodyScrollRef.current;
         if (!body) return;
 
-        // Sync header
         if (headerScrollRef.current) {
             headerScrollRef.current.scrollLeft = body.scrollLeft;
         }
@@ -251,45 +216,46 @@ export function useCalendarHorizontalScroll({
 
         const colWidth = getColumnWidth(width);
 
-        // Only update column index if the container width hasn't changed.
-        // During resize, the browser clamps scrollLeft BEFORE ResizeObserver fires,
-        // which would corrupt firstVisibleColRef with the wrong column index.
         if (Math.abs(stableWidthRef.current - width) < 1) {
             firstVisibleColRef.current = Math.round(scrollLeft / colWidth);
         } else {
-            // If mismatch, assume resize is happening and don't update column index
             stableWidthRef.current = width;
         }
 
-        // --- Debounced snap-to-column ---
-        // Clear any pending snap timer
         if (snapTimerRef.current) {
             clearTimeout(snapTimerRef.current);
             snapTimerRef.current = null;
         }
 
-        // If we're in the middle of a programmatic snap, check if we've arrived
         if (isSnappingRef.current) {
             const nearestCol = Math.round(scrollLeft / colWidth);
             const targetLeft = nearestCol * colWidth;
             if (Math.abs(scrollLeft - targetLeft) <= 2) {
                 isSnappingRef.current = false;
             }
-            return; // Don't trigger new snaps or infinite scroll during a snap animation
+            return;
         }
 
-        // Trigger infinite scroll thresholds
-        if (scrollLeft < width * 0.4) {
+        // Thresholds must scale with daysPerWeek.
+        // The virtual grid is always 21 columns (3 weeks × 7 days). For a 7-day view
+        // the total scroll width is 3× the container; for a 3-day view it is 7×.
+        // Using fixed 0.4/2.6 multipliers (correct for daysPerWeek=7) fires a false
+        // "load next week" event on initial centering whenever today lands past column 7
+        // in a narrow view (e.g. Friday in a 3-day view → column 10 → 3.33× container).
+        // Scaling by 7/daysPerWeek keeps the trigger point at ≈40% into each buffer week.
+        const leftThreshold = width * 2.8 / daysPerWeek;
+        const rightThreshold = width * 18.2 / daysPerWeek;
+
+        if (scrollLeft < leftThreshold) {
             isInfiniteScrollingRef.current = true;
             onViewDateChange(subWeeks(viewDate, 1));
-            return; // Don't schedule snap during infinite scroll
-        } else if (scrollLeft > width * 2.6) {
+            return;
+        } else if (scrollLeft > rightThreshold) {
             isInfiniteScrollingRef.current = true;
             onViewDateChange(addWeeks(viewDate, 1));
-            return; // Don't schedule snap during infinite scroll
+            return;
         }
 
-        // Schedule snap after scroll settles (150ms of no scroll events)
         snapTimerRef.current = setTimeout(() => {
             snapTimerRef.current = null;
             if (!isInfiniteScrollingRef.current && bodyScrollRef.current) {

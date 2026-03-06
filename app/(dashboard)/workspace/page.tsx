@@ -25,7 +25,7 @@ const formatDateToLocalISO = (date: Date): string => {
 export default function WorkspacePage() {
     const { t } = useLanguage();
     const { user, currentOrg } = useAuth();
-    const { preferences } = useUserPreferences();
+    const { preferences, loading: preferencesLoading } = useUserPreferences();
     const { setSelectedDate: setAISelectedDate, pendingAction } = useAI();
     const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment, refetch: refetchTasks } = useTasks();
     const {
@@ -327,7 +327,7 @@ export default function WorkspacePage() {
     };
 
     // Loading state
-    const loading = tasksLoading || blocksLoading || multiMemberLoading;
+    const loading = tasksLoading || blocksLoading || multiMemberLoading || preferencesLoading;
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
