@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('Workflow refine error:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to refine workflow' },
+            { error: 'Failed to refine workflow' },
             { status: 500 }
         );
     }

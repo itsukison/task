@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('Error saving workflow:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to save workflow' },
+            { error: 'Failed to save workflow' },
             { status: 500 }
         );
     }
@@ -85,7 +85,7 @@ export async function GET(req: Request) {
     } catch (error: any) {
         console.error('Error fetching workflows:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to fetch workflows' },
+            { error: 'Failed to fetch workflows' },
             { status: 500 }
         );
     }

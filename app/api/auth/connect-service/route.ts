@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('Browserbase connection error:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to initialize connection' },
+            { error: 'Failed to initialize connection' },
             { status: 500 }
         );
     }

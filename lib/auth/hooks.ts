@@ -10,16 +10,11 @@ export function useAuth() {
 }
 
 /**
- * Get the current user (throws if not authenticated)
+ * Get the current user (returns null during loading or if unauthenticated)
  * Use this hook in components that require authentication
  */
 export function useUser() {
-  const { user, loading } = useAuthContext();
-
-  if (!loading && !user) {
-    throw new Error('useUser must be used in an authenticated context');
-  }
-
+  const { user } = useAuthContext();
   return user;
 }
 

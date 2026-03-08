@@ -76,7 +76,7 @@ export async function PUT(
     } catch (error: any) {
         console.error('Error updating workflow:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to update workflow' },
+            { error: 'Failed to update workflow' },
             { status: 500 }
         );
     }

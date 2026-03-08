@@ -6,6 +6,7 @@ import { useRequireOrg } from '@/lib/auth/hooks';
 import { AIContextProvider, useAI } from '@/lib/ai/AIContextProvider';
 import { AIFloatingButton } from '@/components/ai/AIFloatingButton';
 import { AIChatPanel } from '@/components/ai/AIChatPanel';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -48,8 +49,10 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <AIContextProvider>
-            <DashboardContent>{children}</DashboardContent>
-        </AIContextProvider>
+        <ErrorBoundary>
+            <AIContextProvider>
+                <DashboardContent>{children}</DashboardContent>
+            </AIContextProvider>
+        </ErrorBoundary>
     );
 }

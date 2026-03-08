@@ -121,7 +121,7 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('Resume error:', error);
         return NextResponse.json(
-            { error: error.message || 'Resume failed' },
+            { error: 'Failed to resume workflow' },
             { status: 500 }
         );
     }

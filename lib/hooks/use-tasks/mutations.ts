@@ -145,6 +145,36 @@ export function useUpdateTask() {
       return result;
     },
     {
+      onMutate: async ({ id, input }: { id: string; input: UpdateTaskInput }) => {
+        const queryKey = [...queryKeys.tasks.byUser(currentOrg?.id || '', user?.id || '')];
+        await queryClient.cancelQueries({ queryKey });
+
+        const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
+
+        queryClient.setQueryData<Task[]>(queryKey, (old) =>
+          (old || []).map((task) => {
+            if (task.id !== id) return task;
+            return {
+              ...task,
+              ...(input.title !== undefined && { title: input.title }),
+              ...(input.description !== undefined && { description: input.description }),
+              ...(input.status !== undefined && { status: input.status }),
+              ...(input.expectedTime !== undefined && { expectedTime: input.expectedTime }),
+              ...(input.actualTime !== undefined && { actualTime: input.actualTime }),
+              ...(input.visibility !== undefined && { visibility: input.visibility }),
+              ...(input.scheduledDate !== undefined && { scheduledDate: input.scheduledDate }),
+            };
+          })
+        );
+
+        return { previousTasks };
+      },
+      onError: (_err: any, _vars: any, context: any) => {
+        if (context?.previousTasks) {
+          const queryKey = [...queryKeys.tasks.byUser(currentOrg?.id || '', user?.id || '')];
+          queryClient.setQueryData(queryKey, context.previousTasks);
+        }
+      },
       onSuccess: () => {
         // Invalidate tasks query
         queryClient.invalidateQueries({

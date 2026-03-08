@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('Workflow Improve API Error:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to improve workflow step' },
+            { error: 'Failed to improve workflow step' },
             { status: 500 }
         );
     }

@@ -135,9 +135,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Listen for auth state changes
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      initializeAuth(session);
+    // Verify user server-side first, then get full session for state initialization
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        initializeAuth(null);
+      } else {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          initializeAuth(session);
+        });
+      }
     });
 
     // Subscribe to auth changes
@@ -150,19 +156,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign in
   const signIn = useCallback(async (email: string, password: string) => {
-    console.log('[AuthContext] signIn called with:', email);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    console.log('[AuthContext] signInWithPassword result:', { data, error });
-
     if (error) {
-      console.error('[AuthContext] signIn error:', error);
       throw error;
     }
-    console.log('[AuthContext] signIn success, session will be updated via listener');
     // Auth state will be updated via onAuthStateChange listener
   }, []);
 

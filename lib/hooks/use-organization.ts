@@ -50,107 +50,35 @@ export function useOrganization() {
     }, [user, refreshOrganizations]);
 
     /**
-     * Join an organization using an invite code
+     * Join an organization using an invite code.
+     * Delegates all validation and atomic state changes to the server-side
+     * join_organization_with_invite RPC (SECURITY DEFINER).
      */
     const joinOrganization = useCallback(async (inviteCode: string): Promise<JoinOrgResult> => {
         if (!user) throw new Error('Must be authenticated to join organization');
 
         const normalizedCode = normalizeInviteCode(inviteCode);
 
-        // Step 1: Validate invite code and get org name in one query
-        // We join organizations here since organization_invites has a FK to organizations
-        const { data: invite, error: inviteError } = await supabase
-            .from('organization_invites')
-            .select('id, organization_id, expires_at, max_uses, used_count, organizations(id, name)')
-            .eq('invite_code', normalizedCode)
-            .single();
+        const { data, error } = await (supabase.rpc as any)('join_organization_with_invite', {
+            p_invite_code: normalizedCode,
+        });
 
-        if (inviteError || !invite) {
+        if (error) {
+            // Surface user-friendly messages from the server-side checks
+            const msg: string = error.message || '';
+            if (msg.includes('expired')) throw new Error('This invite code has expired');
+            if (msg.includes('maximum uses')) throw new Error('This invite code has reached its maximum uses');
+            if (msg.includes('Already a member')) throw new Error('You are already a member of this organization');
             throw new Error('Invalid invite code');
         }
 
-        // Extract org name from the joined data
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const orgData = invite.organizations as any;
-        const orgName = orgData?.name || 'Unknown Organization';
-
-        // Check expiration
-        if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-            throw new Error('This invite code has expired');
-        }
-
-        // Check max uses
-        if (invite.max_uses !== null && (invite.used_count ?? 0) >= invite.max_uses) {
-            throw new Error('This invite code has reached its maximum uses');
-        }
-
-        // Check if already a member
-        const { data: existingMember } = await supabase
-            .from('organization_members')
-            .select('id')
-            .eq('organization_id', invite.organization_id)
-            .eq('user_id', user.id)
-            .single();
-
-        if (existingMember) {
-            throw new Error('You are already a member of this organization');
-        }
-
-        // Check for existing request
-        const { data: existingRequest } = await supabase
-            .from('organization_join_requests')
-            .select('id, status')
-            .eq('organization_id', invite.organization_id)
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-        if (existingRequest) {
-            if (existingRequest.status === 'pending') {
-                // Already pending, just return the pending state
-                // (user might have missed the previous screen)
-            } else if (existingRequest.status === 'rejected') {
-                // Allow re-application: update status back to pending
-                const { error: updateError } = await supabase
-                    .from('organization_join_requests')
-                    .update({ status: 'pending', created_at: new Date().toISOString() })
-                    .eq('id', existingRequest.id);
-
-                if (updateError) {
-                    console.error('Error re-applying:', updateError);
-                    throw new Error('Failed to re-apply. Please try again.');
-                }
-            }
-        } else {
-            // Step 2: Create new join request
-            const { error: requestError } = await supabase
-                .from('organization_join_requests')
-                .insert({
-                    organization_id: invite.organization_id,
-                    user_id: user.id,
-                    status: 'pending',
-                });
-
-            if (requestError) {
-                console.error('Error creating join request:', requestError);
-                throw new Error(`Failed to join organization: ${requestError.message}`);
-            }
-
-            // Step 3: Increment used_count (best effort)
-            await supabase
-                .from('organization_invites')
-                .update({ used_count: (invite.used_count ?? 0) + 1 })
-                .eq('id', invite.id);
-
-            // Note: We do NOT create user_preferences yet. That happens on approval.
-        }
-
         return {
-            organizationId: invite.organization_id,
-            organizationName: orgName,
+            organizationId: data.organizationId,
+            organizationName: data.organizationName,
             role: null,
-            status: 'pending'
+            status: 'pending',
         };
-    }, [user, refreshOrganizations]);
+    }, [user]);
 
     /**
      * Generate an invite code for the current organization (leaders only)

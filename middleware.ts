@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { Database } from './lib/database.types';
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -56,9 +56,10 @@ export default async function proxy(request: NextRequest) {
     }
   );
 
+  // Use getUser() (server-verified) instead of getSession() (cookie-only) for auth gates
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
 
@@ -68,22 +69,25 @@ export default async function proxy(request: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith('/workspace') ||
     pathname.startsWith('/progress') ||
-    pathname.startsWith('/settings');
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/documents') ||
+    pathname.startsWith('/chat') ||
+    pathname.startsWith('/workflows');
 
   // If trying to access protected route without session, redirect to login
-  if (isProtectedRoute && !session) {
+  if (isProtectedRoute && !user) {
     const redirectUrl = new URL('/login', request.url);
     return NextResponse.redirect(redirectUrl);
   }
 
   // If trying to access auth routes with session, redirect to workspace
-  if (isAuthRoute && session) {
+  if (isAuthRoute && user) {
     const redirectUrl = new URL('/workspace', request.url);
     return NextResponse.redirect(redirectUrl);
   }
 
   // If trying to access onboarding without session, redirect to login
-  if (isOnboardingRoute && !session) {
+  if (isOnboardingRoute && !user) {
     const redirectUrl = new URL('/login', request.url);
     return NextResponse.redirect(redirectUrl);
   }

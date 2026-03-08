@@ -16,11 +16,6 @@ export async function POST(request: NextRequest) {
         const body: ChatRequest = await request.json();
         const { message, context, history, documentCache, sessionId } = body;
 
-        console.log('🔵 [/api/ai/chat] ─────────────────────────────────');
-        console.log('🔵 [/api/ai/chat] Message:', message);
-        console.log('🔵 [/api/ai/chat] mentionedWorkflow (from client):', context.mentionedWorkflow);
-        console.log('🔵 [/api/ai/chat] sessionId:', sessionId);
-
         // Verify auth
         const supabase = await createClient();
         const {
@@ -60,7 +55,6 @@ export async function POST(request: NextRequest) {
             const atMatches = message.match(/@([\w][\w\s]{0,60}?)(?=[,\n]|$|\s{2}|\.)/g);
             if (atMatches && atMatches.length > 0) {
                 const workflowName = atMatches[0].substring(1).trim(); // strip the @
-                console.log(`🟡 [/api/ai/chat] @mention in text: "${workflowName}" — querying DB`);
 
                 const { data: foundWorkflow } = await supabase
                     .from('workflows')
@@ -72,9 +66,6 @@ export async function POST(request: NextRequest) {
 
                 if (foundWorkflow) {
                     resolvedWorkflow = { id: foundWorkflow.id, name: foundWorkflow.name };
-                    console.log(`✅ [/api/ai/chat] Resolved via text scan: ${JSON.stringify(resolvedWorkflow)}`);
-                } else {
-                    console.warn(`⚠️ [/api/ai/chat] No workflow matched "${workflowName}" in org ${context.organizationId}`);
                 }
             }
         }
@@ -93,13 +84,8 @@ export async function POST(request: NextRequest) {
             mentionedWorkflow: resolvedWorkflow,
         };
 
-        console.log('🟢 [/api/ai/chat] Final mentionedWorkflow:', contextWithLanguage.mentionedWorkflow);
-        console.log('🟢 [/api/ai/chat] execute_workflow tool ENABLED:', !!contextWithLanguage.mentionedWorkflow);
-
         // Run AI orchestrator
         const result = await runOrchestrator(message, contextWithLanguage, history, documentCache, sessionId);
-
-        console.log('🟢 [/api/ai/chat] Orchestrator replied:', result.response?.substring(0, 120));
 
         const response: ChatResponse = {
             message: result.response,
