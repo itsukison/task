@@ -5,13 +5,13 @@ description: Instructions for checking and using Chrome WebMCP tools exposed by 
 
 # WebMCP Integration Skill
 
-The Chrono application has been upgraded to support the **Browser Model Context Protocol (WebMCP)** via the Imperative API (`navigator.modelContext.registerTool`).
+The Taskle application has been upgraded to support the **Browser Model Context Protocol (WebMCP)** via the Imperative API (`navigator.modelContext.registerTool`).
 
-As an AI Agent, when you are tasked with operating within the Chrono application workspace, you should **always prioritize using WebMCP tools** over brittle DOM scraping and interaction.
+As an AI Agent, when you are tasked with operating within the Taskle application workspace, you should **always prioritize using WebMCP tools** over brittle DOM scraping and interaction.
 
 ## Available WebMCP Tools
 
-The following tools are exposed directly by the Chrono application via WebMCP. **Do not attempt to perform these tasks via DOM manipulation if you are on the corresponding page.**
+The following tools are exposed directly by the Taskle application via WebMCP. **Do not attempt to perform these tasks via DOM manipulation if you are on the corresponding page.**
 
 **On the `/login` page:**
 *   `login`: Authenticates the user and navigates to the workspace. Requirements: `email`, `password`.
@@ -24,9 +24,9 @@ The following tools are exposed directly by the Chrono application via WebMCP. *
 *   `suggest_reschedule`: Finds alternative time slots for a currently scheduled task. Requires `task_id` and `reason`. Triggers user confirmation.
 *   `get_calendar_blocks`: Retrieves a markdown-formatted list of calendar events/blocks for the user. Allows filtering by date range.
 
-*Note: The Chrono application ONLY supports the actions listed above via WebMCP. If tasked with an operation NOT listed here (e.g., changing user settings, creating documents from scratch, or organizing the sidebar), you must inform the user that the action is not currently supported by the application's AI integration.*
+*Note: The Taskle application ONLY supports the actions listed above via WebMCP. If tasked with an operation NOT listed here (e.g., changing user settings, creating documents from scratch, or organizing the sidebar), you must inform the user that the action is not currently supported by the application's AI integration.*
 
-## How to use WebMCP in Chrono
+## How to use WebMCP in Taskle
 
 1. **Authentication:**
    - The application is hosted at: `https://chrono-zeta-seven.vercel.app/`
@@ -44,5 +44,5 @@ The following tools are exposed directly by the Chrono application via WebMCP. *
 
 ## Best Practices
 
-- Always check `navigator.modelContext` (if your automation framework supports it) upon navigating to a new page within Chrono.
+- Always check `navigator.modelContext` (if your automation framework supports it) upon navigating to a new page within Taskle.
 - Do not attempt to use DOM manipulation or key presses to trigger actions. If an action is not exposed via WebMCP, it is not currently supported.

@@ -44,7 +44,7 @@ export default function EndpointVisionPage() {
 
                         <div className="prose prose-gray max-w-none text-base leading-relaxed text-gray-700">
                             <p className="text-lg text-gray-900 mb-8 border-b border-gray-100 pb-8">
-                                Most modern websites and applications are designed for humans. Their APIs are designed for programmatic servers. Neither of these are optimal for an AI agent trying to get work done. Chrono fixes this by exposing <strong>clean, markdown-dense endpoints directly to the browser.</strong>
+                                Most modern websites and applications are designed for humans. Their APIs are designed for programmatic servers. Neither of these are optimal for an AI agent trying to get work done. Taskle fixes this by exposing <strong>clean, markdown-dense endpoints directly to the browser.</strong>
                             </p>
 
                             <h2 className="text-2xl font-semibold text-black mt-12 mb-4 tracking-tight border-b border-gray-100 pb-2">
@@ -58,7 +58,7 @@ export default function EndpointVisionPage() {
                                 WebMCP & Zero-Friction Auth
                             </h2>
                             <p className="mb-6">
-                                We bypass the traditional Developer API route entirely. Leveraging the <strong>Browser Model Context Protocol (WebMCP)</strong>, Chrono registers its internal tools directly into your active browser session.
+                                We bypass the traditional Developer API route entirely. Leveraging the <strong>Browser Model Context Protocol (WebMCP)</strong>, Taskle registers its internal tools directly into your active browser session.
                             </p>
                             <ul className="list-disc pl-6 space-y-3 mb-8">
                                 <li>
@@ -68,7 +68,7 @@ export default function EndpointVisionPage() {
                                     <strong>Markdown-Dense Payloads:</strong> Instead of bloated JSON, our internal read tools immediately serialize your workspace state (tasks, calendar blocks, documents) into highly-compressed Markdown. This gives the AI exactly what it needs to understand the context, drastically improving reasoning capabilities and saving token costs.
                                 </li>
                                 <li>
-                                    <strong>Instant Integration:</strong> For any compatible browser agent (like OpenClaw or Claude Computer Use), Chrono is instantly integrated the moment you log in.
+                                    <strong>Instant Integration:</strong> For any compatible browser agent (like OpenClaw or Claude Computer Use), Taskle is instantly integrated the moment you log in.
                                 </li>
                             </ul>
 
@@ -103,7 +103,7 @@ export default function EndpointVisionPage() {
 
                         {/* Minimal Footer */}
                         <div className="mt-16 pt-8 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-                            <p>© 2026 Chrono Inc. All rights reserved.</p>
+                            <p>© 2026 Core7 Inc. All rights reserved.</p>
                             <div className="flex gap-4">
                                 <Link href="#" className="hover:text-black transition-colors">Twitter</Link>
                                 <Link href="#" className="hover:text-black transition-colors">GitHub</Link>
@@ -148,7 +148,7 @@ function EndpointVisionPageJP() {
 
                         <div className="prose prose-gray max-w-none text-base leading-relaxed text-gray-700">
                             <p className="text-lg text-gray-900 mb-8 border-b border-gray-100 pb-8">
-                                多くのウェブサイトやアプリケーションは人間向けにデザインされています。そして、それらのAPIはサーバー向けに設計されています。どちらも、AIエージェントが作業を行うには適していません。Chronoは、<strong>ブラウザ上で直接、Markdownベースのクリーンなエンドポイントを提供する</strong>ことでこの問題を解決します。
+                                多くのウェブサイトやアプリケーションは人間向けにデザインされています。そして、それらのAPIはサーバー向けに設計されています。どちらも、AIエージェントが作業を行うには適していません。タスクルは、<strong>ブラウザ上で直接、Markdownベースのクリーンなエンドポイントを提供する</strong>ことでこの問題を解決します。
                             </p>
 
                             <h2 className="text-2xl font-semibold text-black mt-12 mb-4 tracking-tight border-b border-gray-100 pb-2">
@@ -162,17 +162,17 @@ function EndpointVisionPageJP() {
                                 WebMCPとゼロフリクション認証
                             </h2>
                             <p className="mb-6">
-                                私たちは、従来の開発者向けAPIのルートを完全にバイパスします。<strong>Browser Model Context Protocol (WebMCP)</strong>を活用することで、Chronoはブラウザのセッションに直接、内部ツールを登録します。
+                                私たちは、従来の開発者向けAPIのルートを完全にバイパスします。<strong>Browser Model Context Protocol (WebMCP)</strong>を活用することで、タスクルはブラウザのセッションに直接、内部ツールを登録します。
                             </p>
                             <ul className="list-disc pl-6 space-y-3 mb-8">
                                 <li>
                                     <strong>APIキー不要：</strong>AIエージェントは、ブラウザを操作している人間のアクセス権限をそのまま共有します。OAuthアプリの作成、キーの生成、トークン漏洩の心配は一切ありません。
                                 </li>
                                 <li>
-                                    <strong>Markdownに最適化されたペイロード：</strong>肥大化したJSONの代わりに、Chronoの読み取りツールはワークスペースの現在の状態（タスク、カレンダー、ドキュメントなど）を瞬時に短縮されたMarkdownにシリアライズします。これにより、AIはコンテキストの理解に必要な正確な情報を得られ、推論能力の向上とトークンコストの削減を実現します。
+                                    <strong>Markdownに最適化されたペイロード：</strong>肥大化したJSONの代わりに、タスクルの読み取りツールはワークスペースの現在の状態（タスク、カレンダー、ドキュメントなど）を瞬時に短縮されたMarkdownにシリアライズします。これにより、AIはコンテキストの理解に必要な正確な情報を得られ、推論能力の向上とトークンコストの削減を実現します。
                                 </li>
                                 <li>
-                                    <strong>即座に統合：</strong>OpenClawやClaude Computer Useなどの互換性のあるブラウザエージェントであれば、ログインした瞬間にChronoと統合されます。
+                                    <strong>即座に統合：</strong>OpenClawやClaude Computer Useなどの互換性のあるブラウザエージェントであれば、ログインした瞬間にタスクルと統合されます。
                                 </li>
                             </ul>
 
@@ -207,7 +207,7 @@ function EndpointVisionPageJP() {
 
                         {/* Minimal Footer */}
                         <div className="mt-16 pt-8 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-                            <p>© 2026 Chrono Inc. All rights reserved.</p>
+                            <p>© 2026 Core7 Inc. All rights reserved.</p>
                             <div className="flex gap-4">
                                 <Link href="#" className="hover:text-black transition-colors">Twitter</Link>
                                 <Link href="#" className="hover:text-black transition-colors">GitHub</Link>

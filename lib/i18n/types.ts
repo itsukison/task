@@ -2,6 +2,8 @@ export type Language = 'en' | 'ja';
 
 export interface TranslationDictionary {
     common: {
+        app_name: string;
+        welcome_to: string;
         loading: string;
         save: string;
         cancel: string;

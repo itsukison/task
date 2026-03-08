@@ -70,7 +70,7 @@ export const CalendarHeader = React.memo(function CalendarHeader({
           {content}
         </div>
       ) : (
-        <div className="flex-1 flex">
+        <div className="flex-1">
           {content}
         </div>
       )}

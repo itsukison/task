@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth/hooks';
 import { useOrganization } from '@/lib/hooks/use-organization';
+import { useLanguage } from '@/lib/i18n';
 import { OnboardingWizard, type OnboardingData } from '@/components/onboarding/OnboardingWizard';
 
 type OnboardingMode = 'create' | 'join';
@@ -18,6 +19,7 @@ export default function OnboardingPage() {
 
     const router = useRouter();
     const { user, signOut, loading: authLoading, initialized, currentOrg } = useAuth();
+    const { t } = useLanguage();
     const { createOrganization, joinOrganization } = useOrganization();
 
     // State to track if we're waiting for the org to be set in context before redirecting
@@ -136,9 +138,9 @@ export default function OnboardingPage() {
             <div className="w-full max-w-md p-8 space-y-6">
                 <div className="text-center mb-8">
                     <div className="flex items-center justify-center gap-3 mb-2">
-                        <Image src="/logo.png" alt="Chrono Logo" width={32} height={32} />
+                        <Image src="/logo.png" alt={t('common.app_name') + " Logo"} width={32} height={32} />
                         <h1 className="text-2xl font-semibold text-[#37352F]">
-                            Welcome to Chrono
+                            {t('common.welcome_to')}
                         </h1>
                     </div>
                     <p className="text-sm text-[#787774]">

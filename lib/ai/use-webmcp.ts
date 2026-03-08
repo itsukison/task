@@ -69,7 +69,7 @@ export function useWebMCPRegistration(
                 if (expectsPreview) {
                     setPendingAction(data.preview);
                     setIsOpen(true);
-                    return { message: "Action requires user confirmation in the Chrono UI." };
+                    return { message: "Action requires user confirmation in the Taskle UI." };
                 }
 
                 return data.result;

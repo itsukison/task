@@ -1,4 +1,4 @@
-# Chrono MVP – Technical Implementation Guide
+# Taskle MVP – Technical Implementation Guide
 ## AI Task Execution via Stagehand + Browserbase
 
 ---
@@ -8,7 +8,7 @@
 ```
 User (Chat UI)
     ↓ task + @workflow mention
-Chrono Backend (Next.js API Route)
+Taskle Backend (Next.js API Route)
     ↓ creates session with user's saved Context
 Browserbase (Cloud Chrome Instance)
     ↑ controlled by

@@ -540,7 +540,7 @@ function buildJapaneseSystemPrompt(context: AgentContext): string {
     const currentDate = new Date().toISOString().split('T')[0];
     const currentYear = new Date().getFullYear();
 
-    let prompt = `あなたは「Chrono」（タスク管理ワークスペースアプリ）の親切なAIアシスタントです。
+    let prompt = `あなたは「タスクル」（タスク管理ワークスペースアプリ）の親切なAIアシスタントです。
 ユーザーの使用言語は日本語です。日本語で自然に応対してください。
 
 現在の日時: ${currentDate} (${currentYear}年)

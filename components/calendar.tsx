@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useCallback, useState } from 'react';
 import { format, addDays, startOfWeek, addMinutes } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar as UiCalendar } from '@/components/ui/calendar';
 import { Task, CalendarBlock, CalendarProps, MultiMemberBlock } from '@/lib/types';
 import {
   CalendarHeader,
@@ -47,7 +49,6 @@ const Calendar = React.memo(function Calendar({
   viewDate,
   startHour = 8,
   scrollAlignment = 'center',
-  onViewChange,
   onViewDateChange,
   onPrev,
   onNext,
@@ -75,6 +76,8 @@ const Calendar = React.memo(function Calendar({
 
   const [selectionBox, setSelectionBox] = React.useState<{ startX: number; startY: number; currentX: number; currentY: number; } | null>(null);
   const isDragSelectingRef = useRef(false);
+
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Use extracted hooks
   const { hourHeight, snapInterval } = useCalendarZoom(containerRef);
@@ -407,29 +410,26 @@ const Calendar = React.memo(function Calendar({
       {/* Calendar Toolbar */}
       <div className="px-3 h-12 border-b border-[#E9E9E7] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          {/* View Toggle */}
-          {onViewChange && (
-            <div className="flex bg-[#EFEFED] p-0.5 rounded-md">
-              <button
-                onClick={() => onViewChange('week')}
-                className={`px-2 py-0.5 text-xs font-medium rounded-sm transition-all ${view === 'week'
-                  ? 'bg-white text-[#37352F] shadow-sm'
-                  : 'bg-transparent text-[#787774] hover:text-[#37352F]'
-                  }`}
-              >
-                {t('calendar.week')}
+          {/* Date Picker */}
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <button className="p-1.5 hover:bg-[#EFEFED] text-[#787774] border border-[#E9E9E7] rounded-md bg-white shadow-sm">
+                <CalendarIcon size={14} />
               </button>
-              <button
-                onClick={() => onViewChange('day')}
-                className={`px-2 py-0.5 text-xs font-medium rounded-sm transition-all ${view === 'day'
-                  ? 'bg-white text-[#37352F] shadow-sm'
-                  : 'bg-transparent text-[#787774] hover:text-[#37352F]'
-                  }`}
-              >
-                {t('calendar.day')}
-              </button>
-            </div>
-          )}
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 border border-[#E9E9E7] shadow-md" align="start">
+              <UiCalendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (!date) return;
+                  onSelectDate(date);
+                  if (onViewDateChange) onViewDateChange(date);
+                  setDatePickerOpen(false);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
 
           {/* Navigation */}
           {(onPrev || onNext || onToday) && (

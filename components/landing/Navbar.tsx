@@ -40,8 +40,8 @@ export function Navbar() {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Link href="/" className="flex items-center gap-0.5">
-                            <Image src="/logo.png" alt="Chrono Logo" width={32} height={32} />
-                            <span className="text-xl font-semibold tracking-tight">Chrono</span>
+                            <Image src="/logo.png" alt={t('common.app_name') + " Logo"} width={32} height={32} />
+                            <span className="text-xl font-semibold tracking-tight">{t('common.app_name')}</span>
                         </Link>
                     </div>
 

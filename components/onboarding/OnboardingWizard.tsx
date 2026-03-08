@@ -196,7 +196,7 @@ function UsageIntentStep({ onSelect, selected }: UsageIntentStepProps) {
     return (
         <div className="space-y-4">
             <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-[#37352F] mb-2">How will you use Chrono?</h2>
+                <h2 className="text-xl font-semibold text-[#37352F] mb-2">How will you use Taskle?</h2>
                 <p className="text-sm text-[#787774]">Choose the option that best describes your needs</p>
             </div>
 

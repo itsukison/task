@@ -124,7 +124,7 @@ export default function SignupPage() {
               </p>
             </div>
             <p className="text-xs text-[#9B9A97]">
-              Click the link to verify your account and continue to Chrono.
+              Click the link to verify your account and continue to Taskle.
             </p>
             <div className="pt-4">
               <Link

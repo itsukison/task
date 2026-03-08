@@ -20,7 +20,7 @@ export function useLoginWebMCPRegistration(
 
         navigator.modelContext.registerTool({
             name: 'login',
-            description: 'Log into the Chrono application using credentials. Use this if you are not currently authenticated but need to access the user workspace. RETURNS: A success message, and the browser will automatically navigate you to the workspace.',
+            description: 'Log into the Taskle application using credentials. Use this if you are not currently authenticated but need to access the user workspace. RETURNS: A success message, and the browser will automatically navigate you to the workspace.',
             schema: {
                 type: 'object',
                 properties: {

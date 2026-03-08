@@ -75,7 +75,7 @@ export default function BrowserbaseConnectModal({
                         <ShieldCheck className="w-5 h-5 text-[#d76c33]" />
                         <div>
                             <h3 className="font-semibold text-[#37352F] tracking-tight">Connect {serviceName}</h3>
-                            <p className="text-xs text-[#787774]">Log in once to securely authorize Chrono to execute workflows.</p>
+                            <p className="text-xs text-[#787774]">Log in once to securely authorize Taskle to execute workflows.</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">

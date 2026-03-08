@@ -65,7 +65,7 @@ export const FooterSection: React.FC = () => {
 
                 {/* Large Watermark Background (Behind the card) */}
                 <div className="absolute bottom-0 w-full flex justify-center pointer-events-none select-none overflow-hidden z-0">
-                    <span className="text-[25vw] font-bold text-gray-100/80 leading-[0.75] tracking-tighter translate-y-[25%] opacity-0 animate-[fadeIn_2s_ease-out_forwards]">Chrono</span>
+                    <span className="text-[25vw] font-bold text-gray-100/80 leading-[0.75] tracking-tighter translate-y-[25%] opacity-0 animate-[fadeIn_2s_ease-out_forwards]">Taskle</span>
                 </div>
 
                 <div className="max-w-[1440px] mx-auto px-4 md:px-6 relative z-10">
@@ -81,9 +81,9 @@ export const FooterSection: React.FC = () => {
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-0.5 mb-8">
                                             <div className="w-8 h-8 rounded flex items-center justify-center overflow-hidden">
-                                                <Image src="/logo.png" alt="Chrono Logo" width={28} height={28} className="object-cover" />
+                                                <Image src="/logo.png" alt={t('common.app_name') + " Logo"} width={28} height={28} className="object-cover" />
                                             </div>
-                                            <span className="text-xl font-bold tracking-tight">Chrono</span>
+                                            <span className="text-xl font-bold tracking-tight">{t('common.app_name')}</span>
                                         </div>
                                         <h3 className="text-3xl font-medium tracking-tight leading-snug max-w-sm text-white">
                                             {t('landing.footer.brand_desc_prefix')} <br />
