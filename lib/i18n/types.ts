@@ -186,6 +186,32 @@ export interface TranslationDictionary {
         language_description: string;
         switch_org: string;
         join_create_org: string;
+        invite_codes: string;
+        invite_generate: string;
+        invite_generate_desc: string;
+        invite_loading: string;
+        invite_empty: string;
+        invite_copy: string;
+        invite_revoke: string;
+        invite_never: string;
+        invite_expired: string;
+        invite_today: string;
+        invite_tomorrow: string;
+        invite_days: string;
+        invite_date: string;
+        invite_uses: string;
+        invite_uses_limited: string;
+        invite_error_load: string;
+        invite_error_generate: string;
+        invite_error_revoke: string;
+        ai_integration: string;
+        ai_beta: string;
+        ai_agent_view_mode: string;
+        ai_agent_view_mode_desc: string;
+        ai_view_chat: string;
+        ai_view_floating: string;
+        ai_description: string;
+        ai_download: string;
     };
     tasks: {
         status: {
