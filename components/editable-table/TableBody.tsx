@@ -64,7 +64,9 @@ export function TableBody<T extends { id: string }>({
                                 'transition-colors',
                                 isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#f7f7f5] cursor-pointer',
                                 // Mute unscheduled tasks when default sorting is active
-                                isUnscheduled && 'opacity-55 grayscale-[0.5]'
+                                isUnscheduled && 'opacity-55 grayscale-[0.5]',
+                                // Strikethrough + muted text for completed rows
+                                (row.original as any).status === 'completed' && '[&_div]:line-through [&_div]:!text-[#b0b0b0] [&_input]:line-through [&_input]:!text-[#b0b0b0] [&_span]:line-through [&_span]:!text-[#b0b0b0]'
                             )}
                             onClick={() => {
                                 if (isPending) return;  // Disable clicking on pending rows

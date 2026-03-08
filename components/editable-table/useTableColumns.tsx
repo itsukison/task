@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { ChevronUp, ChevronDown, GripVertical, Plus } from 'lucide-react';
+import { ChevronUp, ChevronDown, GripVertical, Plus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TableColumn, AssignmentStatus } from '@/lib/types';
 import { Cell } from './cells';
@@ -122,10 +122,27 @@ export function useTableColumns<T extends { id: string }>({
 
 cell: ({ row, column }) => {
     const isFirstDataCol = tableColumns.findIndex(c => String(c.id) === column.id) === 0;
+    const isCompleted = isFirstDataCol && (row.original as any).status === 'completed';
 
     return (
         <div className="relative flex items-center w-full h-full overflow-hidden">
-            {/* Text fills the full column width */}
+            {/* Completion checkbox — only in title column */}
+            {isFirstDataCol && (
+                <button
+                    className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 ml-0 mr-1 rounded-[4px] border border-[#c0c0c0] hover:border-[#7a7a7a] transition-colors bg-white"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onCellChange(
+                            row.original.id,
+                            'status',
+                            (row.original as any).status === 'completed' ? 'planned' : 'completed'
+                        );
+                    }}
+                >
+                    {isCompleted && <Check size={9} className="text-[#9e9e9e]" />}
+                </button>
+            )}
+            {/* Text */}
             <div className="w-full min-w-0">
                 <Cell
                     value={col.dataType === 'combinedTime' ? row.original : row.getValue(column.id)}
