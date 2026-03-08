@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, Calendar, ArrowRight } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
-import { useLanguage } from '@/lib/i18n';
+import { useLanguage, dateLocales } from '@/lib/i18n';
 
 interface CalendarQuickAddPopoverProps {
     initialDate: Date;
@@ -18,7 +18,7 @@ export const CalendarQuickAddPopover = ({
     onCreate,
     position
 }: CalendarQuickAddPopoverProps) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [title, setTitle] = useState('');
     const [duration, setDuration] = useState(initialTime);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -113,10 +113,10 @@ export const CalendarQuickAddPopover = ({
                 {/* Time Info */}
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Calendar size={12} className="text-gray-400" />
-                    <span>{format(initialDate, 'yyyy/MM/dd')}</span>
+                    <span>{format(initialDate, language === 'ja' ? 'PPP' : 'yyyy/MM/dd', { locale: dateLocales[language] })}</span>
                     <span className="text-gray-300">|</span>
                     <Clock size={12} className="text-gray-400" />
-                    <span>{format(initialDate, 'HH:mm')} - {format(endTime, 'HH:mm')}</span>
+                    <span>{format(initialDate, 'HH:mm', { locale: dateLocales[language] })} - {format(endTime, 'HH:mm', { locale: dateLocales[language] })}</span>
                 </div>
 
                 {/* Footer Actions */}

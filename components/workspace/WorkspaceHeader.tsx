@@ -3,7 +3,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
-import { useLanguage } from '@/lib/i18n';
+import { useLanguage, dateLocales } from '@/lib/i18n';
 
 interface WorkspaceHeaderProps {
     viewDate: Date;
@@ -28,7 +28,7 @@ export function WorkspaceHeader({
                 <div>
                     <h1 className="text-3xl font-bold text-[#37352F] mb-1 tracking-tight">{t('navigation.workspace')}</h1>
                     <p className="text-[#787774] text-sm">
-                        {t('common.for_date')} <span className="font-semibold text-accent">{format(viewDate, 'EEEE, MMMM d, yyyy', { locale: language === 'ja' ? require('date-fns/locale').ja : undefined })}</span>
+                        {t('common.for_date')} <span className="font-semibold text-accent">{format(viewDate, language === 'ja' ? 'yyyy年M月d日 (EEEE)' : 'EEEE, MMMM d, yyyy', { locale: dateLocales[language] })}</span>
                     </p>
                 </div>
 
