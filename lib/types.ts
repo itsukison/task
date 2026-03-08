@@ -333,7 +333,7 @@ export interface WorkspaceViewProps {
     onSelectDate: (date: Date) => void;
     viewDate: Date;
     onViewDateChange: (date: Date) => void;
-    daysToShow: number;
+    startHour?: number;
     onTaskClick: (task: Task) => void;
     onUpdateTask: (task: Task) => void;
     onAddTask: (initialData?: { scheduledDate?: Date | string, expectedTime?: number, title?: string, shouldOpenModal?: boolean }) => Promise<Task | void> | void;
@@ -379,7 +379,8 @@ export interface CalendarProps {
     onDeleteTask: (taskId: string) => void;
     view: 'week' | 'day';
     viewDate: Date;
-    daysToShow?: number;
+    startHour?: number;
+    daysToShow?: number;  // Kept for backward-compat with calendar-old.tsx
     // Calendar toolbar controls
     onViewChange?: (view: 'week' | 'day') => void;
     onViewDateChange?: (date: Date) => void;
@@ -403,6 +404,12 @@ export interface CalendarProps {
     previewBlock?: CalendarBlock | null;
     // Optimistic UI
     optimisticBlock?: CalendarBlock | null;
+    // Fixed day column width used in week view
+    dayColumnWidth?: number;
+    // Emits the available width for day columns (excluding time column)
+    onDayViewportWidthChange?: (width: number) => void;
+    // Width of right-side task overlay occluding visible calendar area
+    occludedRightPx?: number;
 }
 
 export interface TaskListProps {

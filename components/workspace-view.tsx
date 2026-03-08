@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { addWeeks, subWeeks, addDays, format } from 'date-fns';
 import ResizableSplitView from './resizable-split-view';
 import TaskList from './task-list';
@@ -9,6 +9,7 @@ import { TaskStatus, WorkspaceViewProps } from '@/lib/types';
 import { FilterRule } from '@/lib/utils/filterRules';
 import { SortConfig } from './editable-table';
 import { WorkspaceHeader } from './workspace/WorkspaceHeader';
+import { FIXED_COLUMN_WIDTH } from './calendar/constants';
 
 export default function WorkspaceView({
     tasks,
@@ -17,7 +18,7 @@ export default function WorkspaceView({
     onSelectDate,
     viewDate,
     onViewDateChange,
-    daysToShow,
+    startHour,
     onTaskClick,
     onUpdateTask,
     onAddTask,
@@ -53,6 +54,10 @@ export default function WorkspaceView({
 
     // Column visibility state
     const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
+    const [dayColumnWidth, setDayColumnWidth] = useState(FIXED_COLUMN_WIDTH);
+    const [isTaskPaneCollapsed, setIsTaskPaneCollapsed] = useState(false);
+    const [occludedRightPx, setOccludedRightPx] = useState(0);
+    const calendarViewportWidthRef = useRef(0);
 
     const handlePrev = useCallback(() => {
         setScrollAlignment('left');
@@ -141,6 +146,15 @@ export default function WorkspaceView({
             {/* Content Area with Split View */}
             <div className="flex-1 overflow-hidden relative">
                 <ResizableSplitView
+                    onLayoutChange={({ collapsedSide, overlayWidthPx }) => {
+                        const collapsed = collapsedSide === 'right';
+                        setIsTaskPaneCollapsed(collapsed);
+                        setOccludedRightPx(overlayWidthPx);
+                        if (collapsed && calendarViewportWidthRef.current > 0) {
+                            const calibrated = Math.floor(calendarViewportWidthRef.current / 7);
+                            setDayColumnWidth(Math.max(120, calibrated));
+                        }
+                    }}
                     left={
                         <Calendar
                             tasks={tasks}
@@ -154,7 +168,7 @@ export default function WorkspaceView({
                             onDeleteTask={onDeleteTask}
                             view={calendarView}
                             viewDate={viewDate}
-                            daysToShow={daysToShow}
+                            startHour={startHour}
                             scrollAlignment={scrollAlignment}
                             onViewChange={setCalendarView}
                             onViewDateChange={onViewDateChange}
@@ -173,6 +187,15 @@ export default function WorkspaceView({
                             selectedBlockIds={selectedBlockIds}
                             onSelectBlocks={onSelectBlocks}
                             onUpdateMultipleBlocks={onUpdateMultipleBlocks}
+                            dayColumnWidth={dayColumnWidth}
+                            occludedRightPx={occludedRightPx}
+                            onDayViewportWidthChange={(width) => {
+                                if (width <= 0) return;
+                                calendarViewportWidthRef.current = width;
+                                if (!isTaskPaneCollapsed) return;
+                                const calibrated = Math.floor(width / 7);
+                                setDayColumnWidth(Math.max(120, calibrated));
+                            }}
                         />
                     }
                     right={

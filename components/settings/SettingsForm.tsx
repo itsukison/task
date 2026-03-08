@@ -40,9 +40,8 @@ export function SettingsForm() {
     // Local state for settings
     const [theme, setTheme] = useState<Theme>('light');
     const [displayName, setDisplayName] = useState('');
-    const [workStartTime, setWorkStartTime] = useState('09:00');
+    const [workStartTime, setWorkStartTime] = useState('08:00');
     const [workEndTime, setWorkEndTime] = useState('18:00');
-    const [daysToShow, setDaysToShow] = useState<number>(5);
     const [taskVisibility, setTaskVisibility] = useState<TaskVisibility>('team');
     const [scheduleVisibility, setScheduleVisibility] = useState<ScheduleVisibility>('team');
     const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
@@ -79,7 +78,8 @@ export function SettingsForm() {
 
     useEffect(() => {
         if (preferences) {
-            setDaysToShow((preferences as any).days_to_show ?? 5);
+            setWorkStartTime((preferences as any).work_start_time ?? '08:00');
+            setWorkEndTime((preferences as any).work_end_time ?? '18:00');
         }
     }, [preferences]);
 
@@ -155,6 +155,7 @@ export function SettingsForm() {
                     <TimeInput
                         value={workStartTime}
                         onChange={setWorkStartTime}
+                        onBlur={() => updatePreferences({ work_start_time: workStartTime })}
                         disabled={saving}
                     />
                 </SettingRow>
@@ -165,25 +166,7 @@ export function SettingsForm() {
                     <TimeInput
                         value={workEndTime}
                         onChange={setWorkEndTime}
-                        disabled={saving}
-                    />
-                </SettingRow>
-                <SettingRow
-                    title={t('settings.days_to_show')}
-                    description={t('settings.days_to_show_description')}
-                >
-                    <SelectDropdown
-                        value={String(daysToShow)}
-                        options={[
-                            { value: '3', label: t('settings.days_3') },
-                            { value: '5', label: t('settings.days_5') },
-                            { value: '7', label: t('settings.days_7') },
-                        ]}
-                        onChange={async (val) => {
-                            const num = Number(val);
-                            setDaysToShow(num);
-                            await updatePreferences({ days_to_show: num });
-                        }}
+                        onBlur={() => updatePreferences({ work_end_time: workEndTime })}
                         disabled={saving}
                     />
                 </SettingRow>

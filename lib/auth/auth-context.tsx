@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/lib/database.types';
@@ -223,14 +223,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.user, state.currentOrg, fetchOrganizations]);
 
-  const value = {
+  const value = useMemo(() => ({
     ...state,
     signIn,
     signUp,
     signOut,
     switchOrganization,
     refreshOrganizations,
-  };
+  }), [state, signIn, signUp, signOut, switchOrganization, refreshOrganizations]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -11,6 +11,7 @@ interface CalendarHeaderProps {
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   daysPerWeek?: number;
   isHorizontalScroll?: boolean;
+  dayColumnWidth: number;
 }
 
 export const CalendarHeader = React.memo(function CalendarHeader({
@@ -20,13 +21,14 @@ export const CalendarHeader = React.memo(function CalendarHeader({
   scrollRef,
   daysPerWeek = 7,
   isHorizontalScroll = false,
+  dayColumnWidth,
 }: CalendarHeaderProps) {
   const { language } = useLanguage();
 
   const content = (
     <div
       className="flex"
-      style={isHorizontalScroll ? { width: `${(displayedDays.length / daysPerWeek) * 100}%` } : undefined}
+      style={isHorizontalScroll ? { width: `${displayedDays.length * dayColumnWidth}px` } : undefined}
     >
       {displayedDays.map((date) => {
         const isToday = isSameDay(date, new Date());

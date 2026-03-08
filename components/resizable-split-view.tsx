@@ -8,15 +8,22 @@ interface ResizableSplitViewProps {
     right: React.ReactNode;
     leftMinWidth?: number;
     rightMinWidth?: number;
+    onLayoutChange?: (layout: {
+        collapsedSide: 'left' | 'right' | null;
+        overlayWidthPx: number;
+        overlayWidthPercent: number;
+        containerWidth: number;
+    }) => void;
 }
 
 export default function ResizableSplitView({
     left,
     right,
     leftMinWidth = 400,
-    rightMinWidth = 400
+    rightMinWidth = 400,
+    onLayoutChange,
 }: ResizableSplitViewProps) {
-    const [leftWidth, setLeftWidth] = useState<number>(50); // Percentage
+    const [overlayWidthPercent, setOverlayWidthPercent] = useState<number>(50);
     const [isDragging, setIsDragging] = useState(false);
     const [collapsedSide, setCollapsedSide] = useState<'left' | 'right' | null>(null);
     const [isHoveringDivider, setIsHoveringDivider] = useState(false);
@@ -34,14 +41,15 @@ export default function ResizableSplitView({
         if (isDragging && containerRef.current) {
             const containerRect = containerRef.current.getBoundingClientRect();
             const relativeX = e.clientX - containerRect.left;
-            const newWidth = (relativeX / containerRect.width) * 100;
+            const newOverlayWidth = ((containerRect.width - relativeX) / containerRect.width) * 100;
 
-            // Enforce pixel-based min widths for both panes
-            const leftPx = (newWidth / 100) * containerRect.width;
-            const rightPx = containerRect.width - leftPx;
+            // Enforce pixel-based min widths for both layers (calendar remains full-size under overlay)
+            const overlayPx = (newOverlayWidth / 100) * containerRect.width;
+            const visibleCalendarPx = containerRect.width - overlayPx;
 
-            if (leftPx >= leftMinWidth && rightPx >= rightMinWidth && newWidth > 15 && newWidth < 85) {
-                setLeftWidth(newWidth);
+            if (visibleCalendarPx >= leftMinWidth && overlayPx >= rightMinWidth && newOverlayWidth > 0 && newOverlayWidth < 100) {
+                setCollapsedSide(null);
+                setOverlayWidthPercent(newOverlayWidth);
             }
         }
     }, [isDragging, leftMinWidth, rightMinWidth]);
@@ -67,10 +75,38 @@ export default function ResizableSplitView({
         setCollapsedSide(null);
     };
 
-    const computedLeftWidth = collapsedSide === 'left' ? 0 : collapsedSide === 'right' ? 100 : leftWidth;
+    const computedOverlayWidth = collapsedSide === 'left' ? 100 : collapsedSide === 'right' ? 0 : overlayWidthPercent;
+
+    useEffect(() => {
+        if (!onLayoutChange || !containerRef.current) return;
+
+        const emitLayout = () => {
+            if (!containerRef.current) return;
+            const containerWidth = containerRef.current.getBoundingClientRect().width;
+            const overlayWidthPx = (computedOverlayWidth / 100) * containerWidth;
+
+            onLayoutChange({
+                collapsedSide,
+                overlayWidthPx,
+                overlayWidthPercent: computedOverlayWidth,
+                containerWidth,
+            });
+        };
+
+        emitLayout();
+
+        const observer = new ResizeObserver(() => {
+            emitLayout();
+        });
+        observer.observe(containerRef.current);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [collapsedSide, computedOverlayWidth, onLayoutChange]);
 
     return (
-        <div ref={containerRef} className="flex h-full w-full overflow-hidden relative group/split">
+        <div ref={containerRef} className="h-full w-full overflow-hidden relative group/split">
 
             {/* Restore Button Left (When Left is Collapsed) */}
             <button
@@ -92,20 +128,29 @@ export default function ResizableSplitView({
                 <ChevronsLeft size={18} />
             </button>
 
-            {/* Left Pane */}
+            {/* Calendar Layer (always full-size) */}
             <div
-                style={{ width: `${computedLeftWidth}%` }}
-                className={`h-full overflow-hidden relative ${isDragging ? '' : 'transition-[width] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]'}`}
+                className="absolute inset-0 z-0"
             >
-                <div className="w-full h-full min-w-[400px]">
+                <div className="w-full h-full">
                     {left}
                 </div>
             </div>
 
-            {/* Resizer Handle */}
+            {/* Task Overlay Layer */}
             <div
-                className={`w-4 -ml-2 hover:cursor-col-resize flex flex-col justify-center items-center relative z-50 transition-all duration-300 ${collapsedSide ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
-                    }`}
+                style={{ width: `${computedOverlayWidth}%` }}
+                className={`absolute right-0 top-0 h-full z-20 bg-white border-l border-[#E9E9E7] overflow-hidden ${isDragging ? '' : 'transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]'}`}
+            >
+                <div className="w-full h-full min-w-[300px]">
+                    {right}
+                </div>
+            </div>
+
+            {/* Resizer Handle - anchored to overlay's left edge */}
+            <div
+                style={{ right: `${computedOverlayWidth}%` }}
+                className={`absolute top-0 h-full w-4 -mr-2 hover:cursor-col-resize flex flex-col justify-center items-center z-50 ${isDragging ? '' : 'transition-all duration-300'} ${collapsedSide ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                 onMouseDown={startResize}
                 onMouseEnter={() => setIsHoveringDivider(true)}
                 onMouseLeave={() => setIsHoveringDivider(false)}
@@ -129,16 +174,6 @@ export default function ResizableSplitView({
                     >
                         <ChevronsRight size={16} />
                     </button>
-                </div>
-            </div>
-
-            {/* Right Pane */}
-            <div
-                style={{ width: `${100 - computedLeftWidth}%` }}
-                className={`h-full overflow-hidden relative ${isDragging ? '' : 'transition-[width] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]'}`}
-            >
-                <div className="w-full h-full min-w-[300px]">
-                    {right}
                 </div>
             </div>
         </div>

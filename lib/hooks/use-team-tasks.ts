@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/hooks';
 import { Database } from '@/lib/database.types';
@@ -51,16 +51,29 @@ export function useTeamTasks({ scheduledDate }: UseTeamTasksInput = {}): UseTeam
     const [error, setError] = useState<string | null>(null);
     const [currentUserRole, setCurrentUserRole] = useState<'leader' | 'employee' | null>(null);
 
+    // Use stable primitive IDs as deps instead of object references
+    const orgId = currentOrg?.id;
+    const userId = user?.id;
+
+    // Store currentUserRole in a ref so fetchTeamTasks doesn't need it as a dep
+    const currentUserRoleRef = useRef<'leader' | 'employee' | null>(null);
+    useEffect(() => {
+        currentUserRoleRef.current = currentUserRole;
+    }, [currentUserRole]);
+
+    // Store fetchTeamTasks in a ref so the subscription doesn't re-create on every callback change
+    const fetchTeamTasksRef = useRef<() => Promise<void>>(async () => {});
+
     // Fetch current user's role in the organization
     const fetchCurrentUserRole = useCallback(async () => {
-        if (!user || !currentOrg) return;
+        if (!orgId || !userId) return;
 
         try {
             const { data, error: roleError } = await supabase
                 .from('organization_members')
                 .select('role')
-                .eq('organization_id', currentOrg.id)
-                .eq('user_id', user.id)
+                .eq('organization_id', orgId)
+                .eq('user_id', userId)
                 .single();
 
             if (roleError) throw roleError;
@@ -68,11 +81,11 @@ export function useTeamTasks({ scheduledDate }: UseTeamTasksInput = {}): UseTeam
         } catch (err) {
             console.error('Error fetching user role:', err);
         }
-    }, [user, currentOrg]);
+    }, [orgId, userId]);
 
     // Fetch all organization tasks with visibility filtering
     const fetchTeamTasks = useCallback(async () => {
-        if (!currentOrg || !user) {
+        if (!orgId || !userId) {
             setTeamTasks([]);
             setLoading(false);
             return;
@@ -94,7 +107,7 @@ export function useTeamTasks({ scheduledDate }: UseTeamTasksInput = {}): UseTeam
                         )
                     )
                 `)
-                .eq('organization_id', currentOrg.id)
+                .eq('organization_id', orgId)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: true });
 
@@ -107,11 +120,14 @@ export function useTeamTasks({ scheduledDate }: UseTeamTasksInput = {}): UseTeam
 
             if (fetchError) throw fetchError;
 
+            // Read role from ref (avoids having currentUserRole as a dep)
+            const role = currentUserRoleRef.current;
+
             // Apply visibility filtering based on user role
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const filteredData = (data || []).filter((task: any) => {
                 // Always show own tasks
-                if (task.owner_id === user.id) return true;
+                if (task.owner_id === userId) return true;
 
                 // Check visibility
                 switch (task.visibility) {
@@ -120,7 +136,7 @@ export function useTeamTasks({ scheduledDate }: UseTeamTasksInput = {}): UseTeam
                     case 'team':
                         return true;
                     case 'leaders_only':
-                        return currentUserRole === 'leader';
+                        return role === 'leader';
                     default:
                         return false;
                 }
@@ -137,37 +153,43 @@ export function useTeamTasks({ scheduledDate }: UseTeamTasksInput = {}): UseTeam
         } finally {
             setLoading(false);
         }
-    }, [currentOrg, user, scheduledDate, currentUserRole]);
+    }, [orgId, userId, scheduledDate]);
+
+    // Keep the ref in sync with the latest fetchTeamTasks callback
+    useEffect(() => {
+        fetchTeamTasksRef.current = fetchTeamTasks;
+    }, [fetchTeamTasks]);
 
     // Initial fetch of user role
     useEffect(() => {
         fetchCurrentUserRole();
     }, [fetchCurrentUserRole]);
 
-    // Fetch tasks when dependencies change (and role is loaded)
+    // Fetch tasks once the role is loaded (and whenever stable deps change)
     useEffect(() => {
         if (currentUserRole !== null) {
             fetchTeamTasks();
         }
     }, [fetchTeamTasks, currentUserRole]);
 
-    // Subscribe to real-time changes
+    // Subscribe to real-time changes — depends only on orgId (stable string)
     useEffect(() => {
-        if (!currentOrg) return;
+        if (!orgId) return;
 
         const channel = supabase
-            .channel(`team_tasks:${currentOrg.id}`)
+            .channel(`team_tasks:${orgId}`)
             .on(
                 'postgres_changes',
                 {
                     event: '*',
                     schema: 'public',
                     table: 'tasks',
-                    filter: `organization_id=eq.${currentOrg.id}`,
+                    filter: `organization_id=eq.${orgId}`,
                 },
                 () => {
-                    // Refetch on any change
-                    fetchTeamTasks();
+                    // Use ref so the subscription never needs to be torn down
+                    // just because the callback reference changed
+                    fetchTeamTasksRef.current();
                 }
             )
             .subscribe();
@@ -175,7 +197,7 @@ export function useTeamTasks({ scheduledDate }: UseTeamTasksInput = {}): UseTeam
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentOrg, fetchTeamTasks]);
+    }, [orgId]);
 
     return {
         teamTasks,

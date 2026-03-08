@@ -134,15 +134,17 @@ export function SelectDropdown<T extends string>({ value, options, onChange, dis
 interface TimeInputProps {
     value: string;
     onChange: (value: string) => void;
+    onBlur?: () => void;
     disabled?: boolean;
 }
 
-export function TimeInput({ value, onChange, disabled }: TimeInputProps) {
+export function TimeInput({ value, onChange, onBlur, disabled }: TimeInputProps) {
     return (
         <input
             type="time"
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onBlur={onBlur}
             disabled={disabled}
             className={cn(
                 "px-2 py-1 text-sm text-[#5F5E5B] bg-transparent border border-[#E9E9E7] rounded",

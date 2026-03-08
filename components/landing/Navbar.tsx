@@ -39,7 +39,7 @@ export function Navbar() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Link href="/" className="flex items-center gap-2">
+                        <Link href="/" className="flex items-center gap-0.5">
                             <Image src="/logo.png" alt="Chrono Logo" width={32} height={32} />
                             <span className="text-xl font-semibold tracking-tight">Chrono</span>
                         </Link>

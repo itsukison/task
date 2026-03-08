@@ -44,8 +44,9 @@ export default function WorkspacePage() {
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
     const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(new Set());
 
-    // Get daysToShow from user preferences
-    const daysToShow = (preferences as any)?.days_to_show ?? 5;
+    // Compute startHour from user preferences (default 8am)
+    const workStartTime: string = (preferences as any)?.work_start_time ?? '08:00';
+    const startHour = parseInt(workStartTime.split(':')[0], 10);
 
     // Multi-member schedule viewing state
     const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -92,7 +93,7 @@ export default function WorkspacePage() {
     } = useMultiMemberBlocks({
         selectedMemberIds,
         viewDate,
-        daysToShow,
+        daysToShow: 7,
     });
 
     // Generate preview objects from pending AI action
@@ -355,7 +356,7 @@ export default function WorkspacePage() {
                 onSelectDate={setSelectedDate}
                 viewDate={viewDate}
                 onViewDateChange={setViewDate}
-                daysToShow={daysToShow}
+                startHour={startHour}
                 onTaskClick={setSelectedTask}
                 onUpdateTask={handleTaskUpdate}
                 onAddTask={handleAddTask}

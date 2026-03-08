@@ -16,10 +16,10 @@ const topNavItems: { id: string; href: string; icon: any; label: string }[] = [
     { id: 'workspace', href: '/workspace', icon: Calendar, label: 'Task Tracker' },
 ];
 
-const secondaryNavItems: { id: string; href: string; icon: any; label: string }[] = [
+const secondaryNavItems: { id: string; href: string; icon: any; label: string; beta?: boolean }[] = [
     { id: 'progress', href: '/progress', icon: BarChart2, label: 'Goals & Progress' },
-    { id: 'workflows', href: '/workflows', icon: Bot, label: 'Workflows' },
-    { id: 'chat', href: '/chat', icon: Sparkles, label: 'AI Chat' },
+    { id: 'workflows', href: '/workflows', icon: Bot, label: 'Workflows', beta: true },
+    { id: 'chat', href: '/chat', icon: Sparkles, label: 'AI Chat', beta: true },
     { id: 'settings', href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -338,14 +338,21 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                 "w-full flex items-center gap-2.5 px-3 py-1 text-sm rounded-md transition-colors mb-0.5 relative group/link",
                                 isActive(item.href)
                                     ? "bg-[#EFEFED] text-[#37352F] font-medium"
-                                    : "text-[#5F5E5B] hover:bg-[#EFEFED]"
+                                    : item.beta
+                                        ? "text-[#9B9A97] cursor-not-allowed opacity-60"
+                                        : "text-[#5F5E5B] hover:bg-[#EFEFED]"
                             )}
+                            onClick={(e) => item.beta && e.preventDefault()}
                         >
                             <item.icon
                                 size={16}
                                 className={isActive(item.href) ? "text-[#37352F]" : "text-[#9B9A97]"}
                             />
                             <span className="flex-1">{t('navigation.' + item.id) === 'navigation.' + item.id ? item.label : t('navigation.' + item.id)}</span>
+
+                            {item.beta && (
+                                <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">Beta</span>
+                            )}
 
                             {/* Notification Badge for Settings */}
                             {item.id === 'settings' && pendingCount > 0 && currentOrg?.role === 'leader' && (

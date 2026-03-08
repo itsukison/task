@@ -17,6 +17,7 @@ export interface UseCalendarDragParams {
   onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
   selectedBlockIds?: Set<string>;
   onUpdateMultipleBlocks?: (deltaMinutes: number, blockIds: string[]) => void;
+  startHour?: number;
 }
 
 /**
@@ -41,6 +42,7 @@ export function useCalendarDrag({
   onUpdateBlock,
   selectedBlockIds,
   onUpdateMultipleBlocks,
+  startHour = 0,
 }: UseCalendarDragParams) {
   const dragStartDataRef = useRef<{ blockId: string, startTime: Date, isMultiDrag: boolean } | null>(null);
 
@@ -51,8 +53,8 @@ export function useCalendarDrag({
 
       const rect = e.currentTarget.getBoundingClientRect();
       const offsetY = e.clientY - rect.top;
-      const minutes = Math.floor((offsetY / hourHeight) * 60);
-      const snapped = Math.max(0, Math.min(1440 - snapInterval, Math.round(minutes / snapInterval) * snapInterval));
+      const minutes = startHour * 60 + Math.floor((offsetY / hourHeight) * 60);
+      const snapped = Math.max(startHour * 60, Math.min(1440 - snapInterval, Math.round(minutes / snapInterval) * snapInterval));
 
       let deltaMinutes = 0;
       let isMultiDrag = false;

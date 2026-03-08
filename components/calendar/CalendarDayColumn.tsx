@@ -35,6 +35,7 @@ interface CalendarDayColumnProps {
   currentUserId?: string;  // For enabling drag only on own blocks
   selectedBlockIds?: Set<string>;
   onSelectBlocks?: (blockIds: Set<string>) => void;
+  startHour?: number;
 }
 
 export const CalendarDayColumn = React.memo(function CalendarDayColumn({
@@ -61,7 +62,8 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   isMultiMemberMode = false,
   currentUserId,
   selectedBlockIds,
-  onSelectBlocks
+  onSelectBlocks,
+  startHour = 0,
 }: CalendarDayColumnProps) {
   // Resize state
   const [resizingBlockId, setResizingBlockId] = useState<string | null>(null);
@@ -194,7 +196,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
         const rect = e.currentTarget.getBoundingClientRect();
         // Adjust for scroll position if the container is scrolled
         const y = e.clientY - rect.top;
-        const minutes = Math.floor(y / (hourHeight / 60) / snapInterval) * snapInterval;
+        const minutes = startHour * 60 + Math.floor(y / (hourHeight / 60) / snapInterval) * snapInterval;
 
         const clickDate = new Date(date);
         clickDate.setHours(Math.floor(minutes / 60));
@@ -211,7 +213,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
         <div
           key={hour}
           className="h-16 border-b border-[#E9E9E7] box-border w-full absolute left-0 right-0 pointer-events-none z-0"
-          style={{ top: `${hour * hourHeight}px`, height: `${hourHeight}px` }}
+          style={{ top: `${(hour - startHour) * hourHeight}px`, height: `${hourHeight}px` }}
         >
           {Array.from({ length: Math.floor(60 / snapInterval) - 1 }, (_, i) => i + 1).map(i => {
             const minuteOffset = i * snapInterval;
@@ -232,7 +234,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       {isToday && (
         <div
           className="absolute left-0 right-0 border-t border-red-500 z-20 pointer-events-none flex items-center"
-          style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (hourHeight / 60)}px` }}
+          style={{ top: `${Math.max(0, (new Date().getHours() - startHour) * 60 + new Date().getMinutes()) * (hourHeight / 60)}px` }}
         >
           <div className="w-1.5 h-1.5 bg-red-500 rounded-full -ml-[3px]"></div>
         </div>
@@ -245,7 +247,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           {!dragPreview.isMultiDrag && isPreviewing && (
             <div
               style={{
-                top: `${dragPreview.minutes * (hourHeight / 60)}px`,
+                top: `${(dragPreview.minutes - startHour * 60) * (hourHeight / 60)}px`,
                 height: `${Math.max(draggingTask.expectedTime, 30) * (hourHeight / 60) - 1}px`,
                 left: '2px',
                 right: '2px',
@@ -283,7 +285,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
                 <div
                   key={`ghost-${block.id}`}
                   style={{
-                    top: `${newMinutes * (hourHeight / 60)}px`,
+                    top: `${(newMinutes - startHour * 60) * (hourHeight / 60)}px`,
                     height: `${Math.max(duration, 15) * (hourHeight / 60) - 1}px`,
                     left: '2px',
                     right: '2px',

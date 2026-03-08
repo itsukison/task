@@ -316,6 +316,7 @@ const Calendar = React.memo(function Calendar({
                 displayedDays={displayedDays}
                 selectedDate={selectedDate}
                 onSelectDate={onSelectDate}
+                dayColumnWidth={160}
             />
 
             {/* Scrollable Grid */}

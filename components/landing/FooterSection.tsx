@@ -79,7 +79,7 @@ export const FooterSection: React.FC = () => {
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-[80px] opacity-20 -translate-y-1/2 translate-x-1/3"></div>
 
                                     <div className="relative z-10">
-                                        <div className="flex items-center gap-2 mb-8">
+                                        <div className="flex items-center gap-0.5 mb-8">
                                             <div className="w-8 h-8 rounded flex items-center justify-center overflow-hidden">
                                                 <Image src="/logo.png" alt="Chrono Logo" width={28} height={28} className="object-cover" />
                                             </div>
