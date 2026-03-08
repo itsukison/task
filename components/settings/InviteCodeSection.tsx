@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useOrganization } from '@/lib/hooks/use-organization';
 import { SettingSection } from '@/components/ui/settings-primitives';
 import { formatInviteCode } from '@/lib/utils/invite-codes';
+import { useLanguage } from '@/lib/i18n';
 
 interface InviteCode {
     id: string;
@@ -17,6 +18,7 @@ interface InviteCode {
 }
 
 export function InviteCodeSection() {
+    const { t } = useLanguage();
     const [invites, setInvites] = useState<InviteCode[]>([]);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
@@ -38,7 +40,7 @@ export function InviteCodeSection() {
             setInvites(data || []);
         } catch (err: any) {
             console.error('Error fetching invites:', err);
-            setError('Failed to load invite codes');
+            setError(t('settings.invite_error_load'));
         } finally {
             setLoading(false);
         }
@@ -52,7 +54,7 @@ export function InviteCodeSection() {
             await fetchInvites();
         } catch (err: any) {
             console.error('Error generating invite:', err);
-            setError(err.message || 'Failed to generate invite code');
+            setError(err.message || t('settings.invite_error_generate'));
         } finally {
             setGenerating(false);
         }
@@ -65,7 +67,7 @@ export function InviteCodeSection() {
             setInvites(prev => prev.filter(i => i.id !== inviteId));
         } catch (err: any) {
             console.error('Error revoking invite:', err);
-            setError(err.message || 'Failed to revoke invite code');
+            setError(err.message || t('settings.invite_error_revoke'));
         }
     };
 
@@ -80,24 +82,24 @@ export function InviteCodeSection() {
     };
 
     const formatExpiry = (expiresAt: string | null) => {
-        if (!expiresAt) return 'Never';
+        if (!expiresAt) return t('settings.invite_never');
         const date = new Date(expiresAt);
         const now = new Date();
-        if (date < now) return 'Expired';
+        if (date < now) return t('settings.invite_expired');
 
         const diffMs = date.getTime() - now.getTime();
         const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-        if (diffDays <= 0) return 'Expires today';
-        if (diffDays === 1) return 'Expires tomorrow';
-        if (diffDays <= 7) return `Expires in ${diffDays} days`;
-        return `Expires ${date.toLocaleDateString()}`;
+        if (diffDays <= 0) return t('settings.invite_today');
+        if (diffDays === 1) return t('settings.invite_tomorrow');
+        if (diffDays <= 7) return t('settings.invite_days', { days: diffDays });
+        return t('settings.invite_date', { date: date.toLocaleDateString() });
     };
 
     const formatUses = (maxUses: number | null, usedCount: number | null) => {
         const used = usedCount ?? 0;
-        if (maxUses === null) return `${used} uses`;
-        return `${used}/${maxUses} uses`;
+        if (maxUses === null) return t('settings.invite_uses', { used });
+        return t('settings.invite_uses_limited', { used, max: maxUses });
     };
 
     const isExpired = (expiresAt: string | null) => {
@@ -106,7 +108,7 @@ export function InviteCodeSection() {
     };
 
     return (
-        <SettingSection title="Invite Codes">
+        <SettingSection title={t('settings.invite_codes')}>
             {/* Error Message */}
             {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
@@ -130,10 +132,10 @@ export function InviteCodeSection() {
                     ) : (
                         <Plus size={14} />
                     )}
-                    Generate invite code
+                    {t('settings.invite_generate')}
                 </button>
                 <p className="mt-2 text-xs text-[#787774]">
-                    Codes expire in 7 days by default and can be used unlimited times.
+                    {t('settings.invite_generate_desc')}
                 </p>
             </div>
 
@@ -141,11 +143,11 @@ export function InviteCodeSection() {
             <div className="py-2">
                 {loading ? (
                     <div className="py-4 text-center text-sm text-[#787774]">
-                        Loading invite codes...
+                        {t('settings.invite_loading')}
                     </div>
                 ) : invites.length === 0 ? (
                     <div className="py-4 text-center text-sm text-[#787774]">
-                        No invite codes yet. Generate one to invite team members.
+                        {t('settings.invite_empty')}
                     </div>
                 ) : (
                     <div className="space-y-2">
@@ -177,7 +179,7 @@ export function InviteCodeSection() {
                                         <button
                                             onClick={() => handleCopy(invite.invite_code, invite.id)}
                                             className="p-1.5 text-[#9B9A97] hover:text-[#37352F] hover:bg-[#EFEFED] rounded transition-colors"
-                                            title="Copy code"
+                                            title={t('settings.invite_copy')}
                                         >
                                             {copiedId === invite.id ? (
                                                 <Check size={14} className="text-green-500" />
@@ -188,7 +190,7 @@ export function InviteCodeSection() {
                                         <button
                                             onClick={() => handleRevoke(invite.id)}
                                             className="p-1.5 text-[#9B9A97] hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                                            title="Revoke code"
+                                            title={t('settings.invite_revoke')}
                                         >
                                             <Trash2 size={14} />
                                         </button>

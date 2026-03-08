@@ -188,19 +188,19 @@ function ColumnBadge({ columnId, count }: { columnId: string, count: number }) {
     switch (columnId) {
         case "planned":
             label = t('tasks.status.planned')
-            colorClass = "bg-gray-100 text-gray-600"
+            colorClass = "bg-[#f1f1ef] text-[#787774]"
             break
         case "in_progress":
             label = t('tasks.status.in_progress')
-            colorClass = "bg-blue-100 text-blue-600"
+            colorClass = "bg-[#faebdd] text-[#d9730d]"
             break
         case "completed":
             label = t('tasks.status.completed')
-            colorClass = "bg-green-100 text-green-600"
+            colorClass = "bg-[#edf3ec] text-[#448361]"
             break
         case "overrun":
             label = t('tasks.status.overrun')
-            colorClass = "bg-red-100 text-red-600"
+            colorClass = "bg-[#fdebec] text-[#eb5757]"
             break
     }
 

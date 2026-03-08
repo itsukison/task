@@ -10,13 +10,17 @@ import { cn } from '@/lib/utils';
 
 interface SettingSectionProps {
     title: string;
+    badge?: React.ReactNode;
     children: React.ReactNode;
 }
 
-export function SettingSection({ title, children }: SettingSectionProps) {
+export function SettingSection({ title, badge, children }: SettingSectionProps) {
     return (
         <div className="mb-8">
-            <h2 className="text-base font-semibold text-[#37352F] pb-2 border-b border-[#E9E9E7]">{title}</h2>
+            <div className="flex items-center gap-2 pb-2 border-b border-[#E9E9E7]">
+                <h2 className="text-base font-semibold text-[#37352F]">{title}</h2>
+                {badge}
+            </div>
             <div>{children}</div>
         </div>
     );

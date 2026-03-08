@@ -101,7 +101,7 @@ export function TeamOverviewTable({
                                             {member.currentTasks[0].title}
                                         </span>
                                         {member.currentTasks.length > 1 && (
-                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700">
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#faebdd] text-[#d9730d]">
                                                 +{member.currentTasks.length - 1}
                                             </span>
                                         )}
@@ -116,11 +116,11 @@ export function TeamOverviewTable({
                             </td>
                             <td className="px-6 py-4 text-center">
                                 {member.tasksLeft > 0 ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#faebdd] text-[#d9730d]">
                                         {member.tasksLeft} {t('stats.left_count')}
                                     </span>
                                 ) : member.tasksToday > 0 ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#edf3ec] text-[#448361]">
                                         {t('stats.done')}
                                     </span>
                                 ) : (

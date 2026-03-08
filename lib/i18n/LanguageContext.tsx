@@ -16,7 +16,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
     // Default to 'en' initially to avoid hydration mismatch if possible, 
     // but better to check localStorage in useEffect
-    const [language, setLanguageState] = useState<Language>('en');
+    const [language, setLanguageState] = useState<Language>('ja');
     const [isInitialized, setIsInitialized] = useState(false);
 
     const { profile, updateProfile } = useUserPreferences();

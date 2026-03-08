@@ -14,11 +14,11 @@ export function KanbanTaskContent({ task }: { task: Task }) {
     // Status Badge Color Map
     const statusColor = useMemo(() => {
         switch (task.status) {
-            case "planned": return "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            case "in_progress": return "bg-blue-100 text-blue-600 hover:bg-blue-200"
-            case "completed": return "bg-green-100 text-green-600 hover:bg-green-200"
-            case "overrun": return "bg-red-100 text-red-600 hover:bg-red-200"
-            default: return "bg-gray-100 text-gray-600"
+            case "planned": return "bg-[#f1f1ef] text-[#787774] hover:bg-[#e8e8e6]"
+            case "in_progress": return "bg-[#faebdd] text-[#d9730d] hover:bg-[#f5dec8]"
+            case "completed": return "bg-[#edf3ec] text-[#448361] hover:bg-[#dcedd9]"
+            case "overrun": return "bg-[#fdebec] text-[#eb5757] hover:bg-[#f9d7d9]"
+            default: return "bg-[#f1f1ef] text-[#787774]"
         }
     }, [task.status])
 
@@ -62,7 +62,7 @@ export function KanbanTaskContent({ task }: { task: Task }) {
                             {task.owners.slice(0, 3).map((owner) => (
                                 <Avatar key={owner.id} className="h-5 w-5 border border-white">
                                     {/*  Assume we might not have 'image' in OwnerProfile yet, falling back to initials */}
-                                    <AvatarFallback className="text-[8px] bg-orange-100 text-orange-700">
+                                    <AvatarFallback className="text-[8px] bg-[#faebdd] text-[#d9730d]">
                                         {owner.display_name?.substring(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>

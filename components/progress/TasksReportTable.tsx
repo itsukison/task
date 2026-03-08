@@ -20,10 +20,10 @@ const STATUS_PRIORITY: Record<TaskStatus, number> = {
 
 // Status display configuration
 const STATUS_CONFIG: Record<TaskStatus, { bgColor: string; textColor: string }> = {
-    planned: { bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
-    in_progress: { bgColor: 'bg-amber-100', textColor: 'text-amber-800' },
-    overrun: { bgColor: 'bg-red-100', textColor: 'text-red-800' },
-    completed: { bgColor: 'bg-green-100', textColor: 'text-green-800' },
+    planned: { bgColor: 'bg-[#f1f1ef]', textColor: 'text-[#787774]' },
+    in_progress: { bgColor: 'bg-[#faebdd]', textColor: 'text-[#d9730d]' },
+    overrun: { bgColor: 'bg-[#fdebec]', textColor: 'text-[#eb5757]' },
+    completed: { bgColor: 'bg-[#edf3ec]', textColor: 'text-[#448361]' },
 };
 
 // Get initials from display name
