@@ -76,6 +76,12 @@ export default function WorkspaceView({
         onSelectDate(today);
     }, [onSelectDate, onViewDateChange]);
 
+    const handleFocusDayFromTaskView = useCallback((date: Date) => {
+        setScrollAlignment('center');
+        onViewDateChange(date);
+        onSelectDate(date);
+    }, [onViewDateChange, onSelectDate]);
+
     const handleSortChange = useCallback((sort: SortConfig | null) => {
         setSortConfig(sort);
         setShowSortMenu(false);
@@ -222,6 +228,7 @@ export default function WorkspaceView({
                             onRejectAssignment={onRejectAssignment}
                             previewTask={previewTask}
                             onCreateSubtask={onCreateSubtask}
+                            onFocusDayFromTaskView={handleFocusDayFromTaskView}
                         />
                     }
                 />

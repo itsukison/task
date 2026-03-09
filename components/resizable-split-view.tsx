@@ -29,7 +29,8 @@ export default function ResizableSplitView({
     const [isHoveringDivider, setIsHoveringDivider] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const startResize = useCallback(() => {
+    const startResize = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
         setIsDragging(true);
     }, []);
 
@@ -106,7 +107,7 @@ export default function ResizableSplitView({
     }, [collapsedSide, computedOverlayWidth, onLayoutChange]);
 
     return (
-        <div ref={containerRef} className="h-full w-full overflow-hidden relative group/split">
+        <div ref={containerRef} className={`h-full w-full overflow-hidden relative group/split ${isDragging ? 'select-none cursor-col-resize' : ''}`}>
 
             {/* Restore Button Left (When Left is Collapsed) */}
             <button

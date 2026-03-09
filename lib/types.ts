@@ -445,6 +445,8 @@ export interface TaskListProps {
     onRejectAssignment?: (taskId: string) => void;
     // AI preview
     previewTask?: Task | null;
+    // Notify parent when user starts interacting with a different day section in expanded mode
+    onFocusDayFromTaskView?: (date: Date) => void;
 }
 
 export interface TaskModalProps {

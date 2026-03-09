@@ -115,6 +115,7 @@ export default function TaskList({
     onRejectAssignment,
     previewTask,
     onCreateSubtask,
+    onFocusDayFromTaskView,
 }: TaskListProps) {
     const { t } = useLanguage();
     const [showSortMenu, setShowSortMenu] = useState(false);
@@ -172,10 +173,15 @@ export default function TaskList({
         () => formatDateToLocalISO(selectedDate),
         [selectedDate]
     );
+    const todayKey = useMemo(
+        () => formatDateToLocalISO(new Date()),
+        []
+    );
 
     const daySectionsScrollRef = useRef<HTMLDivElement>(null);
     const daySectionsViewportRef = useRef<HTMLDivElement>(null);
     const daySectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+    const lastFocusedDayKeyRef = useRef<string | null>(null);
     const hasAutoPositionedRef = useRef(false);
     const lastAutoPositionedDateRef = useRef<string | null>(null);
     const collapsedTopFadePx = 18;
@@ -274,7 +280,7 @@ export default function TaskList({
         const currentYear = new Date().getFullYear();
 
         return dayRange.map(({ date, dateKey }) => {
-            const relativeLabel = getRelativeDayLabel(date, selectedDate);
+            const relativeLabel = getRelativeDayLabel(date, new Date(todayKey));
             const title = relativeLabel ? t(`common.${relativeLabel}`) : (date.getFullYear() === currentYear
                 ? dayTitleFormatter.format(date)
                 : dayTitleWithYearFormatter.format(date));
@@ -285,7 +291,7 @@ export default function TaskList({
                 tasks: tasksByDate.get(dateKey) ?? [],
             };
         });
-    }, [dayRange, sortedFilteredTasks, previewTask, blockStartTimeByTaskId, dayTitleFormatter, dayTitleWithYearFormatter, selectedDate, t]);
+    }, [dayRange, sortedFilteredTasks, previewTask, blockStartTimeByTaskId, dayTitleFormatter, dayTitleWithYearFormatter, todayKey, t]);
 
     const selectedDayTaskCount = useMemo(() => {
         const selectedSection = daySections.find(section => section.dateKey === selectedDateKey);
@@ -601,6 +607,14 @@ export default function TaskList({
                                         }
                                     }}
                                     className="pt-1 pb-2 last:mb-0"
+                                    onMouseDownCapture={() => {
+                                        if (!isExpanded || !onFocusDayFromTaskView) return;
+                                        if (section.dateKey === selectedDateKey) return;
+                                        if (lastFocusedDayKeyRef.current === section.dateKey) return;
+
+                                        lastFocusedDayKeyRef.current = section.dateKey;
+                                        onFocusDayFromTaskView(section.date);
+                                    }}
                                 >
                                     <div className="px-2 pb-0 text-[11px] font-medium text-[#787774]">
                                         {section.title}
