@@ -472,6 +472,21 @@ export interface TranslationDictionary {
         error_name_required: string;
         error_generic_signin: string;
         error_generic_signup: string;
+        already_have_account_title: string;
+        already_have_account_subtitle: string;
+        signin_with_email_btn: string;
+        use_different_email_btn: string;
+        check_email_title: string;
+        check_email_subtitle: string;
+        verify_account_instruction: string;
+        back_to_login: string;
+        verification_failed_title: string;
+        verification_failed_subtitle: string;
+        verification_failed_instruction_title: string;
+        verification_failed_instruction_1: string;
+        verification_failed_instruction_2: string;
+        verification_failed_instruction_3: string;
+        return_to_login: string;
     };
     integrations: {
         title: string;

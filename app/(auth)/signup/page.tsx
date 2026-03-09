@@ -81,9 +81,9 @@ export default function SignupPage() {
             <Mail className="w-8 h-8 text-[#37352F]" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-[#37352F]">You already have an account</h2>
+            <h2 className="text-xl font-semibold text-[#37352F]">{t('auth.already_have_account_title')}</h2>
             <p className="text-sm text-[#787774]">
-              It looks like <span className="font-medium text-[#37352F]">{email}</span> is already registered.
+              {t('auth.already_have_account_subtitle', { email })}
             </p>
           </div>
           <div className="pt-2">
@@ -91,7 +91,7 @@ export default function SignupPage() {
               href="/login"
               className="block w-full bg-[#f35513] text-white font-medium py-2 rounded-sm hover:bg-[#e04e11] transition-colors"
             >
-              Sign in with this email
+              {t('auth.signin_with_email_btn')}
             </Link>
           </div>
           <div>
@@ -99,7 +99,7 @@ export default function SignupPage() {
               onClick={() => setExistingUser(false)}
               className="text-sm text-[#787774] hover:text-[#37352F] transition-colors"
             >
-              Use a different email
+              {t('auth.use_different_email_btn')}
             </button>
           </div>
         </div>
@@ -117,21 +117,21 @@ export default function SignupPage() {
               <Mail className="w-8 h-8 text-[#37352F]" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-[#37352F]">Check your email</h2>
+              <h2 className="text-xl font-semibold text-[#37352F]">{t('auth.check_email_title')}</h2>
               <p className="text-sm text-[#787774] leading-relaxed">
-                We sent a confirmation link to<br />
+                {t('auth.check_email_subtitle')}<br />
                 <span className="font-medium text-[#37352F]">{email}</span>
               </p>
             </div>
             <p className="text-xs text-[#9B9A97]">
-              Click the link to verify your account and continue to Taskle.
+              {t('auth.verify_account_instruction')}
             </p>
             <div className="pt-4">
               <Link
                 href="/login"
                 className="text-sm text-[#787774] hover:text-[#37352F] transition-colors"
               >
-                Back to login
+                {t('auth.back_to_login')}
               </Link>
             </div>
           </div>
