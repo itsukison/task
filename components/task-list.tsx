@@ -125,8 +125,26 @@ export default function TaskList({
     const [collapsedViewportHeight, setCollapsedViewportHeight] = useState(420);
     // Fetch organization members for people picker
     const { members: orgMembers } = useOrganizationMembers();
-    // Get custom columns from user preferences
-    const { customColumns, addCustomColumn, removeCustomColumn } = useUserPreferences();
+    // Get custom columns and preferences from user preferences
+    const {
+        preferences,
+        updatePreferences,
+        customColumns,
+        addCustomColumn,
+        removeCustomColumn
+    } = useUserPreferences();
+
+    // Sync isExpanded with user preferences
+    useEffect(() => {
+        if (preferences?.tasks_collapsed !== undefined && preferences?.tasks_collapsed !== null) {
+            setIsExpanded(!preferences.tasks_collapsed);
+        }
+    }, [preferences?.tasks_collapsed]);
+
+    const handleToggleExpand = async (expanded: boolean) => {
+        setIsExpanded(expanded);
+        await updatePreferences({ tasks_collapsed: !expanded });
+    };
 
     // Use refs to stabilize handleCellChange and prevent column regeneration/cell remounting
     const tasksRef = useRef(tasks);
@@ -631,10 +649,10 @@ export default function TaskList({
                                 >
                                     <button
                                         type="button"
-                                        onClick={() => setIsExpanded(true)}
+                                        onClick={() => handleToggleExpand(true)}
                                         className="flex items-center gap-1 text-xs text-[#787774] hover:text-[#37352F] transition-colors"
                                     >
-                                        <span>Expand</span>
+                                        <span>{t('common.expand')}</span>
                                         <ChevronDown size={14} />
                                     </button>
                                 </div>
@@ -644,10 +662,10 @@ export default function TaskList({
                             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/95 to-transparent flex items-end justify-center pb-2">
                                 <button
                                     type="button"
-                                    onClick={() => setIsExpanded(false)}
+                                    onClick={() => handleToggleExpand(false)}
                                     className="flex items-center gap-1 text-xs text-[#787774] hover:text-[#37352F] transition-colors"
                                 >
-                                    <span>Collapse</span>
+                                    <span>{t('common.collapse')}</span>
                                     <ChevronUp size={14} />
                                 </button>
                             </div>

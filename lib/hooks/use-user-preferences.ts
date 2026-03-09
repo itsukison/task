@@ -23,10 +23,13 @@ interface UpdateProfileData {
 }
 
 interface UpdatePreferencesData {
-    work_start_time?: string;
-    work_end_time?: string;
-    calendar_tasks_split_ratio?: number;
-    days_to_show?: number;
+    work_start_time?: string | null;
+    work_end_time?: string | null;
+    calendar_tasks_split_ratio?: number | null;
+    days_to_show?: number | null;
+    tasks_collapsed?: boolean | null;
+    calendar_collapsed?: boolean | null;
+    custom_columns?: any;
 }
 
 export function useUserPreferences() {

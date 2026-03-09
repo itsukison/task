@@ -5,6 +5,9 @@ export interface TranslationDictionary {
         app_name: string;
         welcome_to: string;
         loading: string;
+        expand: string;
+        collapse: string;
+        add: string;
         save: string;
         cancel: string;
         delete: string;
