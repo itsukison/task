@@ -55,6 +55,9 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             reset_all_filters: 'Reset all filters',
             select_value: 'Select...',
             download: 'Download',
+            yesterday: 'Yesterday',
+            today: 'Today',
+            tomorrow: 'Tomorrow',
         },
         filter_operators: {
             contains: 'contains',
@@ -222,6 +225,7 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
                 in_progress: 'In Progress',
                 overrun: 'Overrun',
                 completed: 'Completed',
+                not_completed: 'Not completed',
             },
             new_task: 'New Task',
             title: 'Title',
@@ -618,6 +622,9 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             reset_all_filters: 'すべてリセット',
             select_value: '選択...',
             download: 'ダウンロード',
+            yesterday: '昨日',
+            today: '今日',
+            tomorrow: '明日',
         },
         filter_operators: {
             contains: '含む',
@@ -785,6 +792,7 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
                 in_progress: '進行中',
                 overrun: '遅延',
                 completed: '完了',
+                not_completed: '未完了',
             },
             new_task: '新規タスク',
             title: 'タイトル',
@@ -806,7 +814,7 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             week: '週',
             day: '日',
             no_events: '予定なし',
-            reset_zoom: 'ズームリセット',
+            reset_zoom: 'リセット',
         },
         kanban: {
             no_tasks: 'タスクなし',
@@ -1129,4 +1137,3 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
         },
     },
 };
-

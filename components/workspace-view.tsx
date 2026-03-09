@@ -53,7 +53,7 @@ export default function WorkspaceView({
     const [showSortMenu, setShowSortMenu] = useState(false);
 
     // Column visibility state
-    const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
+    const [hiddenColumns, setHiddenColumns] = useState<string[]>(['status']);
     const [dayColumnWidth, setDayColumnWidth] = useState(FIXED_COLUMN_WIDTH);
     const [isTaskPaneCollapsed, setIsTaskPaneCollapsed] = useState(false);
     const [occludedRightPx, setOccludedRightPx] = useState(0);

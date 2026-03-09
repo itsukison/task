@@ -364,7 +364,7 @@ export default function WorkspacePage() {
     };
 
     // Loading state
-    const loading = tasksLoading || blocksLoading || multiMemberLoading || preferencesLoading;
+    const loading = tasksLoading || blocksLoading || preferencesLoading;
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">

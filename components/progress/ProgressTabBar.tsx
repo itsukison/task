@@ -26,6 +26,7 @@ const getTabs = (t: any): { id: ProgressTab; label: string; icon: React.ReactNod
         id: 'kanban',
         label: t('kanban.tabs.kanban'),
         icon: <div className="rotate-90"><BarChart3 size={14} /></div>, // Temporary icon or use Kanban icon if available
+        disabled: true,
     },
 ];
 
@@ -59,7 +60,7 @@ export function ProgressTabBar({ activeTab, onTabChange }: ProgressTabBarProps) 
                             <span>{tab.label}</span>
                             {isDisabled && (
                                 <span className="ml-1 text-[10px] text-[#9B9A97] bg-[#F7F7F5] px-1.5 py-0.5 rounded">
-                                    Soon
+                                    Beta
                                 </span>
                             )}
                             {/* Active indicator */}

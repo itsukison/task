@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Task, TaskStatus, OwnerProfile } from '@/lib/types';
+import { Task, OwnerProfile } from '@/lib/types';
 import { useLanguage } from '@/lib/i18n';
 
 interface TasksReportTableProps {
@@ -10,21 +10,6 @@ interface TasksReportTableProps {
     onTaskClick?: (taskId: string) => void;
 }
 
-// Status priority for sorting (lower = higher priority, appears first)
-const STATUS_PRIORITY: Record<TaskStatus, number> = {
-    planned: 0,
-    in_progress: 1,
-    overrun: 2,
-    completed: 3,
-};
-
-// Status display configuration
-const STATUS_CONFIG: Record<TaskStatus, { bgColor: string; textColor: string }> = {
-    planned: { bgColor: 'bg-[#f1f1ef]', textColor: 'text-[#787774]' },
-    in_progress: { bgColor: 'bg-[#faebdd]', textColor: 'text-[#d9730d]' },
-    overrun: { bgColor: 'bg-[#fdebec]', textColor: 'text-[#eb5757]' },
-    completed: { bgColor: 'bg-[#edf3ec]', textColor: 'text-[#448361]' },
-};
 
 // Get initials from display name
 function getInitials(name: string): string {
@@ -83,14 +68,12 @@ export function TasksReportTable({
 }: TasksReportTableProps) {
     const { t } = useLanguage();
 
-    // Sort tasks by status priority, then by owner count (descending)
+    // Sort tasks: not-completed first, completed last; secondary sort by owner count (descending)
     const sortedTasks = useMemo(() => {
         return [...tasks].sort((a, b) => {
-            // Primary sort: status priority
-            const statusDiff = STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status];
-            if (statusDiff !== 0) return statusDiff;
-
-            // Secondary sort: owner count (descending - more owners first)
+            const aCompleted = a.status === 'completed' ? 1 : 0;
+            const bCompleted = b.status === 'completed' ? 1 : 0;
+            if (aCompleted !== bCompleted) return aCompleted - bCompleted;
             return b.owners.length - a.owners.length;
         });
     }, [tasks]);
@@ -131,7 +114,7 @@ export function TasksReportTable({
                 </thead>
                 <tbody className="divide-y divide-[#E9E9E7]">
                     {sortedTasks.map((task) => {
-                        const statusConfig = STATUS_CONFIG[task.status];
+                        const isCompleted = task.status === 'completed';
 
                         return (
                             <tr
@@ -152,9 +135,9 @@ export function TasksReportTable({
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <span
-                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.bgColor} ${statusConfig.textColor}`}
+                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isCompleted ? 'bg-[#edf3ec] text-[#448361]' : 'bg-[#f1f1ef] text-[#787774]'}`}
                                     >
-                                        {t('tasks.status.' + task.status)}
+                                        {isCompleted ? t('tasks.status.completed') : t('tasks.status.not_completed')}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">

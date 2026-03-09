@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo, useState, useRef, useCallback } from 'react';
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { EditableTable, TableColumn, ColumnOption, SortConfig } from './editable-table';
 import { Task, TaskStatus, TaskListProps, PeopleOption, AssignmentStatus } from '@/lib/types';
 import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
@@ -11,6 +11,7 @@ import { AdvancedFilterMenu } from './task-list/AdvancedFilterMenu';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { evaluateFilterRules } from '@/lib/utils/filterRules';
 import { useUserPreferences } from '@/lib/hooks/use-user-preferences';
+import { addDays } from 'date-fns';
 
 const getSortFields = (t: any) => [
     { id: 'title', label: t('headers.task_name') },
@@ -25,6 +26,21 @@ const formatDateToLocalISO = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+};
+
+const getRelativeDayLabel = (target: Date, reference: Date): 'yesterday' | 'today' | 'tomorrow' | null => {
+    const targetMidnight = new Date(target);
+    targetMidnight.setHours(0, 0, 0, 0);
+
+    const referenceMidnight = new Date(reference);
+    referenceMidnight.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((targetMidnight.getTime() - referenceMidnight.getTime()) / (24 * 60 * 60 * 1000));
+
+    if (diffDays === -1) return 'yesterday';
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return 'tomorrow';
+    return null;
 };
 
 // Status options with colors matching Notion-style badges
@@ -105,6 +121,8 @@ export default function TaskList({
     const [showFilterMenu, setShowFilterMenu] = useState(false);
     const [showHiddenColumnsMenu, setShowHiddenColumnsMenu] = useState(false);
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [collapsedViewportHeight, setCollapsedViewportHeight] = useState(420);
     // Fetch organization members for people picker
     const { members: orgMembers } = useOrganizationMembers();
     // Get custom columns from user preferences
@@ -125,23 +143,69 @@ export default function TaskList({
         startTime?: string; // ISO string from calendar block
     };
 
-    // Filter tasks based on search, status, and date
-    // Task list shows tasks matching the selected date
-    const filteredTasks = useMemo((): TaskWithExtras[] => {
+    type DaySection = {
+        date: Date;
+        dateKey: string;
+        title: string;
+        tasks: TaskWithExtras[];
+    };
+
+    const selectedDateKey = useMemo(
+        () => formatDateToLocalISO(selectedDate),
+        [selectedDate]
+    );
+
+    const daySectionsScrollRef = useRef<HTMLDivElement>(null);
+    const daySectionsViewportRef = useRef<HTMLDivElement>(null);
+    const daySectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+    const hasAutoPositionedRef = useRef(false);
+    const lastAutoPositionedDateRef = useRef<string | null>(null);
+    const collapsedTopFadePx = 18;
+    const collapsedBottomFadePx = 132;
+
+    const dayRange = useMemo(() => {
+        return Array.from({ length: 61 }, (_, index) => {
+            const date = addDays(selectedDate, index - 30);
+            return {
+                date,
+                dateKey: formatDateToLocalISO(date),
+            };
+        });
+    }, [selectedDate]);
+
+    const dayTitleFormatter = useMemo(() => {
+        return new Intl.DateTimeFormat(undefined, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+        });
+    }, []);
+    const dayTitleWithYearFormatter = useMemo(() => {
+        return new Intl.DateTimeFormat(undefined, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    }, []);
+
+    const blockStartTimeByTaskId = useMemo(() => {
+        const blockMap = new Map<string, string>();
+        calendarBlocks.forEach((block) => {
+            if (!blockMap.has(block.taskId)) {
+                blockMap.set(block.taskId, block.startTime);
+            }
+        });
+        return blockMap;
+    }, [calendarBlocks]);
+
+    const sortedFilteredTasks = useMemo((): TaskWithExtras[] => {
         let result = [...tasks] as TaskWithExtras[];
 
-        // Filter by selected date
-        if (selectedDate) {
-            const selectedDateISO = formatDateToLocalISO(selectedDate);
-            result = result.filter(t => t.scheduledDate === selectedDateISO);
-        }
-
-        // Filter by status rules
         if (filterRules && filterRules.length > 0) {
             result = result.filter(t => evaluateFilterRules(t, filterRules));
         }
 
-        // Filter by search query
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             result = result.filter(t =>
@@ -150,62 +214,97 @@ export default function TaskList({
             );
         }
 
-        // Enrich with startTime from calendarBlocks
-        // We only do this efficiently if calendarBlocks are available
-        const tasksWithTime = result.map(t => {
-            const block = calendarBlocks.find(b => b.taskId === t.id);
-            return {
-                ...t,
-                ownerIds: t.owners.map(o => o.id),
-                startTime: block?.startTime
-            };
-        });
+        const enrichedTasks = result.map(t => ({
+            ...t,
+            ownerIds: t.owners.map(o => o.id),
+            startTime: blockStartTimeByTaskId.get(t.id),
+        }));
 
-        // Apply default sorting if no external sort config is present
         if (!sortConfig) {
-            tasksWithTime.sort((a, b) => {
-                // 1. Assigned (has startTime) comes first
+            enrichedTasks.sort((a, b) => {
                 if (a.startTime && !b.startTime) return -1;
                 if (!a.startTime && b.startTime) return 1;
-
-                // 2. If both assigned, sort by startTime asc
                 if (a.startTime && b.startTime) {
                     return a.startTime.localeCompare(b.startTime);
                 }
-
-                // 3. If both unassigned, keep original order (or maybe creation date?)
-                // Defaulting to creation date desc for unassigned could be nice, or just stable
                 return 0;
             });
         }
 
-        // Add preview task if it exists (at the top)
-        if (previewTask) {
-            const matchesDateFilter = !selectedDate ||
-                previewTask.scheduledDate === formatDateToLocalISO(selectedDate);
+        return enrichedTasks;
+    }, [tasks, filterRules, searchQuery, sortConfig, blockStartTimeByTaskId]);
 
-            if (matchesDateFilter) {
-                const previewWithExtras: TaskWithExtras = {
-                    ...previewTask,
-                    ownerIds: previewTask.owners.map(o => o.id),
-                    startTime: undefined // Preview usually implies pending creation/scheduling? Or if it has time, we should check.
-                    // Assuming preview doesn't have a block yet unless optimistically created.
-                };
-                return [previewWithExtras, ...tasksWithTime];
-            }
+    const daySections = useMemo((): DaySection[] => {
+        const tasksByDate = new Map<string, TaskWithExtras[]>();
+        sortedFilteredTasks.forEach(task => {
+            if (!task.scheduledDate) return;
+            const bucket = tasksByDate.get(task.scheduledDate) ?? [];
+            bucket.push(task);
+            tasksByDate.set(task.scheduledDate, bucket);
+        });
+
+        if (previewTask?.scheduledDate) {
+            const previewWithExtras: TaskWithExtras = {
+                ...previewTask,
+                ownerIds: previewTask.owners.map(o => o.id),
+                startTime: blockStartTimeByTaskId.get(previewTask.id),
+            };
+            const previewBucket = tasksByDate.get(previewTask.scheduledDate) ?? [];
+            tasksByDate.set(previewTask.scheduledDate, [previewWithExtras, ...previewBucket]);
         }
 
-        return tasksWithTime;
-    }, [tasks, filterRules, searchQuery, selectedDate, previewTask, sortConfig, calendarBlocks]);
+        const currentYear = new Date().getFullYear();
+
+        return dayRange.map(({ date, dateKey }) => {
+            const relativeLabel = getRelativeDayLabel(date, selectedDate);
+            const title = relativeLabel ? t(`common.${relativeLabel}`) : (date.getFullYear() === currentYear
+                ? dayTitleFormatter.format(date)
+                : dayTitleWithYearFormatter.format(date));
+            return {
+                date,
+                dateKey,
+                title,
+                tasks: tasksByDate.get(dateKey) ?? [],
+            };
+        });
+    }, [dayRange, sortedFilteredTasks, previewTask, blockStartTimeByTaskId, dayTitleFormatter, dayTitleWithYearFormatter, selectedDate, t]);
+
+    const selectedDayTaskCount = useMemo(() => {
+        const selectedSection = daySections.find(section => section.dateKey === selectedDateKey);
+        return selectedSection?.tasks.length ?? 0;
+    }, [daySections, selectedDateKey]);
+
+    useEffect(() => {
+        if (isExpanded) return;
+
+        const container = daySectionsScrollRef.current;
+        const viewport = daySectionsViewportRef.current;
+        const target = daySectionRefs.current.get(selectedDateKey);
+        if (!container || !target) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const targetOffsetTop = targetRect.top - containerRect.top + container.scrollTop;
+        const measuredTargetHeight = target.offsetHeight;
+        const availableHeight = viewport?.clientHeight ?? 0;
+        const desiredHeight = measuredTargetHeight + collapsedTopFadePx + collapsedBottomFadePx;
+        const nextCollapsedHeight = Math.max(280, Math.min(desiredHeight, availableHeight > 0 ? availableHeight : desiredHeight));
+        const shouldSmooth = hasAutoPositionedRef.current && lastAutoPositionedDateRef.current !== selectedDateKey;
+
+        setCollapsedViewportHeight(nextCollapsedHeight);
+        container.scrollTo({
+            top: Math.max(0, targetOffsetTop - collapsedTopFadePx),
+            behavior: shouldSmooth ? 'smooth' : 'auto',
+        });
+
+        hasAutoPositionedRef.current = true;
+        lastAutoPositionedDateRef.current = selectedDateKey;
+    }, [selectedDateKey, selectedDayTaskCount, isExpanded, collapsedTopFadePx, collapsedBottomFadePx]);
 
     // Check if a task is assigned (has start time) for the separator
     const isAssigned = useCallback((task: TaskWithExtras) => {
-        // We need to check against the enriched data really, but here we can just lookup in calendarBlocks again
-        // Or if EditableTable passes the enriched row, checking `startTime` would work if we cast it.
-        // But types say T is Task.
-        // Let's do a lookup.
-        return calendarBlocks.some(b => b.taskId === task.id);
-    }, [calendarBlocks]);
+        return !!task.startTime;
+    }, []);
 
     // Handle cell value changes
     // Stabilized with useCallback and refs to prevent table re-renders that close dropdowns
@@ -464,34 +563,97 @@ export default function TaskList({
             )}
 
             <div className="flex-1 overflow-auto pt-2 pl-1 pr-2">
-                <EditableTable<TaskWithExtras>
-                    data={filteredTasks}
-                    columns={columns}
-                    onCellChange={handleCellChange}
-                    onAddRow={onAddTask}
-                    onRowClick={handleRowClick}
-                    onOpenRow={(rowId) => {
-                        const task = tasks.find(t => t.id === rowId);
-                        if (task) onTaskClick(task);
-                    }}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onDeleteRow={onDeleteTask}
-                    onDuplicateRow={onDuplicateTask}
-                    sorting={sortConfig}
-                    onSortChange={onSortChange}
-                    hiddenColumns={hiddenColumns}
-                    onHideColumn={onHideColumn}
-                    isPendingRow={isPendingTask}
-                    onAcceptRow={onAcceptAssignment}
-                    onRejectRow={onRejectAssignment}
-                    getOwnerStatuses={getOwnerStatuses}
-                    customColumns={customColumns}
-                    onAddCustomColumn={handleAddCustomColumn}
-                    onRemoveCustomColumn={removeCustomColumn}
-                    onCreateSubtask={onCreateSubtask}
-                    isAssigned={isAssigned}
-                />
+                <div ref={daySectionsViewportRef} className="h-full min-h-0 flex flex-col">
+                    <div
+                        className="relative w-full"
+                        style={{ height: isExpanded ? '100%' : `${collapsedViewportHeight}px` }}
+                    >
+                        <div
+                            ref={daySectionsScrollRef}
+                            className={`h-full pr-1 ${isExpanded ? 'overflow-y-auto' : 'overflow-y-hidden'}`}
+                        >
+                            {daySections.map(section => (
+                                <section
+                                    key={section.dateKey}
+                                    ref={(el) => {
+                                        if (el) {
+                                            daySectionRefs.current.set(section.dateKey, el);
+                                        } else {
+                                            daySectionRefs.current.delete(section.dateKey);
+                                        }
+                                    }}
+                                    className="pt-1 pb-2 last:mb-0"
+                                >
+                                    <div className="px-2 pb-0 text-[11px] font-medium text-[#787774]">
+                                        {section.title}
+                                    </div>
+                                    <EditableTable<TaskWithExtras>
+                                        data={section.tasks}
+                                        columns={columns}
+                                        onCellChange={handleCellChange}
+                                        onAddRow={() => { onAddTask({ scheduledDate: section.dateKey }); }}
+                                        onRowClick={handleRowClick}
+                                        onOpenRow={(rowId) => {
+                                            const task = tasks.find(t => t.id === rowId);
+                                            if (task) onTaskClick(task);
+                                        }}
+                                        onDragStart={handleDragStart}
+                                        onDragEnd={handleDragEnd}
+                                        onDeleteRow={onDeleteTask}
+                                        onDuplicateRow={onDuplicateTask}
+                                        sorting={sortConfig}
+                                        onSortChange={onSortChange}
+                                        hiddenColumns={hiddenColumns}
+                                        onHideColumn={onHideColumn}
+                                        isPendingRow={isPendingTask}
+                                        onAcceptRow={onAcceptAssignment}
+                                        onRejectRow={onRejectAssignment}
+                                        getOwnerStatuses={getOwnerStatuses}
+                                        customColumns={customColumns}
+                                        onAddCustomColumn={handleAddCustomColumn}
+                                        onRemoveCustomColumn={removeCustomColumn}
+                                        onCreateSubtask={onCreateSubtask}
+                                        isAssigned={isAssigned}
+                                    />
+                                </section>
+                            ))}
+                        </div>
+
+                        {!isExpanded && (
+                            <>
+                                <div
+                                    className="pointer-events-none absolute top-0 left-0 right-0 bg-gradient-to-b from-white via-white to-transparent"
+                                    style={{ height: `${collapsedTopFadePx}px` }}
+                                />
+                                <div
+                                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent flex items-start justify-center"
+                                    style={{ height: `${collapsedBottomFadePx}px`, paddingTop: '60px' }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsExpanded(true)}
+                                        className="flex items-center gap-1 text-xs text-[#787774] hover:text-[#37352F] transition-colors"
+                                    >
+                                        <span>Expand</span>
+                                        <ChevronDown size={14} />
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                        {isExpanded && (
+                            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/95 to-transparent flex items-end justify-center pb-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsExpanded(false)}
+                                    className="flex items-center gap-1 text-xs text-[#787774] hover:text-[#37352F] transition-colors"
+                                >
+                                    <span>Collapse</span>
+                                    <ChevronUp size={14} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );

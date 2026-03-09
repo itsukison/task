@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { startOfWeek, addDays } from 'date-fns';
+import { startOfWeek, addDays, addWeeks, subWeeks } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/hooks';
-import { MultiMemberBlock, CalendarBlock } from '@/lib/types';
+import { MultiMemberBlock } from '@/lib/types';
 import { Database } from '@/lib/database.types';
 
 // Database row types
@@ -85,39 +85,10 @@ export function useMultiMemberBlocks({
     const [multiMemberBlocks, setMultiMemberBlocks] = useState<MultiMemberBlock[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [currentUserRole, setCurrentUserRole] = useState<'leader' | 'employee' | null>(null);
-
-    // Fetch current user's role
-    const fetchCurrentUserRole = useCallback(async () => {
-        if (!user || !currentOrg) return;
-
-        try {
-            const { data, error: roleError } = await supabase
-                .from('organization_members')
-                .select('role')
-                .eq('organization_id', currentOrg.id)
-                .eq('user_id', user.id)
-                .single();
-
-            if (roleError) throw roleError;
-            setCurrentUserRole(data.role);
-        } catch (err) {
-            console.error('Error fetching user role:', err);
-        }
-    }, [user, currentOrg]);
 
     // Fetch calendar blocks for selected members
     const fetchMultiMemberBlocks = useCallback(async () => {
-        console.log('🔍 fetchMultiMemberBlocks called with:', {
-            currentOrg: currentOrg?.id,
-            user: user?.id,
-            selectedMemberIds,
-            viewDate: viewDate.toISOString(),
-            daysToShow,
-        });
-
         if (!currentOrg || !user || selectedMemberIds.length === 0) {
-            console.log('⚠️ Early return - missing required data');
             setMultiMemberBlocks([]);
             setLoading(false);
             return;
@@ -126,119 +97,82 @@ export function useMultiMemberBlocks({
         try {
             setError(null);
 
-            // Calculate week range - always fetch full week (Mon-Sun)
-            const weekStart = startOfWeek(viewDate, { weekStartsOn: 1 }); // Monday
-            const weekEnd = addDays(weekStart, 6); // Always Sunday
+            // Calculate 3-week range (prev + current + next) to match calendar's allDisplayedDays
+            const currentWeekStart = startOfWeek(viewDate, { weekStartsOn: 1 });
+            const fetchStart = subWeeks(currentWeekStart, 1); // Mon of previous week
+            const fetchEnd = addDays(addWeeks(currentWeekStart, 1), 6); // Sun of next week
 
-            weekStart.setHours(0, 0, 0, 0);
-            weekEnd.setHours(23, 59, 59, 999);
+            fetchStart.setHours(0, 0, 0, 0);
+            fetchEnd.setHours(23, 59, 59, 999);
 
-            console.log('📅 Week range:', {
-                weekStart: weekStart.toISOString(),
-                weekEnd: weekEnd.toISOString(),
-                daysToShow,
-            });
-
-            // Step 1: Fetch blocks owned by selected members (without task join to avoid RLS issues)
-            console.log('🔄 Step 1: Fetching owned calendar blocks...');
+            // Step 1: Fetch blocks owned by selected members
             const { data: ownedBlocks, error: ownedError } = await supabase
                 .from('calendar_blocks')
                 .select('*')
                 .eq('organization_id', currentOrg.id)
                 .in('owner_id', selectedMemberIds)
-                .gte('start_time', weekStart.toISOString())
-                .lte('start_time', weekEnd.toISOString())
+                .gte('start_time', fetchStart.toISOString())
+                .lte('start_time', fetchEnd.toISOString())
                 .order('start_time', { ascending: true });
 
-            if (ownedError) {
-                console.error('❌ Error fetching owned blocks:', ownedError);
-                throw ownedError;
-            }
-
-            console.log('✅ Step 1 complete:', { ownedBlocksCount: ownedBlocks?.length });
+            if (ownedError) throw ownedError;
 
             // Step 2: Fetch task assignments for selected members
-            console.log('🔄 Step 2: Fetching task assignments...');
             const { data: taskAssignments, error: assignmentError } = await supabase
                 .from('task_owners')
                 .select('task_id, user_id, status')
                 .in('user_id', selectedMemberIds)
                 .eq('organization_id', currentOrg.id);
 
-            if (assignmentError) {
-                console.error('❌ Error fetching assignments:', assignmentError);
-                throw assignmentError;
-            }
-
-            console.log('✅ Step 2 complete:', { assignmentsCount: taskAssignments?.length });
+            if (assignmentError) throw assignmentError;
 
             // Step 3: Fetch blocks from OTHER users for tasks where selected members are assigned
             const assignedTaskIds = [...new Set((taskAssignments || []).map(a => a.task_id))];
             let assignedBlocks: typeof ownedBlocks = [];
 
             if (assignedTaskIds.length > 0) {
-                console.log('🔄 Step 3: Fetching blocks for assigned tasks...');
                 const { data: otherBlocks, error: otherError } = await supabase
                     .from('calendar_blocks')
                     .select('*')
                     .eq('organization_id', currentOrg.id)
-                    .not('owner_id', 'in', `(${selectedMemberIds.join(',')})`)  // NOT owned by selected members
-                    .in('task_id', assignedTaskIds)  // But for tasks they're assigned to
-                    .gte('start_time', weekStart.toISOString())
-                    .lte('start_time', weekEnd.toISOString())
+                    .not('owner_id', 'in', `(${selectedMemberIds.join(',')})`)
+                    .in('task_id', assignedTaskIds)
+                    .gte('start_time', fetchStart.toISOString())
+                    .lte('start_time', fetchEnd.toISOString())
                     .order('start_time', { ascending: true });
 
-                if (otherError) {
-                    console.error('❌ Error fetching assigned blocks:', otherError);
-                    throw otherError;
-                }
-
+                if (otherError) throw otherError;
                 assignedBlocks = otherBlocks || [];
-                console.log('✅ Step 3 complete:', { assignedBlocksCount: assignedBlocks.length });
             }
 
             // Combine owned and assigned blocks
+            // DB RLS already enforces visibility — no client-side filter needed
             const allBlocks = [...(ownedBlocks || []), ...assignedBlocks];
-            console.log('📦 Combined blocks:', { totalCount: allBlocks.length });
 
-            // Step 3.5: Fetch tasks for all blocks separately (bypasses RLS issues with joins)
+            // Step 3.5: Fetch tasks for all blocks
             const blockTaskIds = [...new Set(allBlocks.map(b => b.task_id))];
-            console.log('🔄 Step 3.5: Fetching tasks for blocks...');
             const { data: tasksData, error: tasksError } = await supabase
                 .from('tasks')
                 .select('id, title, status, expected_time_minutes, visibility')
                 .in('id', blockTaskIds);
 
-            if (tasksError) {
-                console.error('❌ Error fetching tasks:', tasksError);
-                throw tasksError;
-            }
+            if (tasksError) throw tasksError;
 
-            console.log('✅ Step 3.5 complete:', { tasksCount: tasksData?.length });
-
-            // Create tasks map for quick lookup
             const tasksMap = new Map(
                 (tasksData || []).map(task => [task.id, task])
             );
 
             // Step 4: Fetch user profiles for block owners
             const allOwnerIds = [...new Set(allBlocks.map(b => b.owner_id))];
-            console.log('🔄 Step 4: Fetching user profiles...');
             const { data: profilesData, error: profilesError } = await supabase
                 .from('user_profiles')
                 .select('id, display_name, email, default_schedule_visibility')
                 .in('id', allOwnerIds);
 
-            if (profilesError) {
-                console.error('❌ Error fetching user profiles:', profilesError);
-                throw profilesError;
-            }
-
-            console.log('✅ Step 4 complete:', { profilesCount: profilesData?.length });
+            if (profilesError) throw profilesError;
 
             // Step 5: Fetch all task owners for the tasks in blocks
             const allTaskIds = [...new Set(allBlocks.map(b => b.task_id))];
-            console.log('🔄 Step 5: Fetching task owners...');
             const { data: taskOwnersData, error: taskOwnersError } = await supabase
                 .from('task_owners')
                 .select(`
@@ -253,19 +187,13 @@ export function useMultiMemberBlocks({
                 `)
                 .in('task_id', allTaskIds);
 
-            if (taskOwnersError) {
-                console.error('❌ Error fetching task owners:', taskOwnersError);
-                throw taskOwnersError;
-            }
-
-            console.log('✅ Step 5 complete:', { taskOwnersCount: taskOwnersData?.length });
+            if (taskOwnersError) throw taskOwnersError;
 
             // Create lookup maps
             const profilesMap = new Map(
                 (profilesData || []).map(profile => [profile.id, profile])
             );
 
-            // Create task owners map: taskId -> array of owners
             const taskOwnersMap = new Map<string, Array<{ id: string; display_name: string; email: string; status: 'pending' | 'confirmed' }>>();
             (taskOwnersData || []).forEach((to: any) => {
                 if (!taskOwnersMap.has(to.task_id)) {
@@ -281,60 +209,20 @@ export function useMultiMemberBlocks({
                 }
             });
 
-            // Filter blocks based on visibility rules
-            console.log('🔍 Filtering blocks with currentUserRole:', currentUserRole);
-            const filteredData = allBlocks.filter((block) => {
-                const profile = profilesMap.get(block.owner_id);
-                const visibility = profile?.default_schedule_visibility;
-                const isOwner = block.owner_id === user.id;
-
-                console.log('📋 Filtering block:', {
-                    blockId: block.id,
-                    ownerId: block.owner_id,
-                    isOwner,
-                    profileFound: !!profile,
-                    visibility,
-                    currentUserRole,
-                });
-
-                // Always show own blocks
-                if (isOwner) {
-                    console.log('✅ Passed: Own block');
-                    return true;
-                }
-
-                // Check visibility rules
-                if (visibility === 'private') {
-                    console.log('❌ Rejected: Private');
-                    return false;
-                }
-                if (visibility === 'team') {
-                    console.log('✅ Passed: Team visible');
-                    return true;
-                }
-                if (visibility === 'leaders_only') {
-                    const canSee = currentUserRole === 'leader';
-                    console.log(canSee ? '✅ Passed: Leaders only, user is leader' : '❌ Rejected: Leaders only, user is not leader');
-                    return canSee;
-                }
-
-                console.log('❌ Rejected: No visibility match (visibility:', visibility, ')');
-                return false;
-            });
-            console.log('🎯 Filtered results:', filteredData.length, 'blocks');
-
-            // Create a color map for users
+            // Build color map: selectedMemberIds get priority order, then any other owners
+            const allOwnerIdsSorted = [...new Set(allBlocks.map(b => b.owner_id))];
+            const colorOrderIds = [
+                ...selectedMemberIds,
+                ...allOwnerIdsSorted.filter(id => !selectedMemberIds.includes(id)),
+            ];
             const userColorMap = new Map<string, number>();
-            selectedMemberIds.forEach((id, index) => {
-                userColorMap.set(id, index);
-            });
+            colorOrderIds.forEach((id, index) => userColorMap.set(id, index));
 
             // Transform to MultiMemberBlock
-            const transformedBlocks = filteredData.map((row) => {
-                const colorIndex = userColorMap.get(row.owner_id) || 0;
+            const transformedBlocks = allBlocks.map((row) => {
+                const colorIndex = userColorMap.get(row.owner_id) ?? 0;
                 const profile = profilesMap.get(row.owner_id);
 
-                // Manually attach the user profile data for the transform function
                 const rowWithProfile = {
                     ...row,
                     user_profiles: profile ? {
@@ -347,48 +235,20 @@ export function useMultiMemberBlocks({
                 return dbToMultiMemberBlock(rowWithProfile, colorIndex, taskOwnersMap, tasksMap);
             });
 
-            console.log('✅ Successfully transformed blocks:', {
-                totalBlocks: transformedBlocks.length,
-                blocks: transformedBlocks.map(b => ({
-                    id: b.id,
-                    ownerName: b.ownerName,
-                    ownerColor: b.ownerColor,
-                    startTime: b.startTime,
-                    taskOwners: b.task?.owners?.map(o => o.display_name),
-                })),
-            });
-
             setMultiMemberBlocks(transformedBlocks);
         } catch (err: unknown) {
-            console.error('❌ Catch block - Error type:', typeof err);
-            console.error('❌ Catch block - Error instanceof Error:', err instanceof Error);
-            console.error('❌ Catch block - Error:', err);
-            console.error('❌ Catch block - Error stringified:', JSON.stringify(err, null, 2));
-
-            if (err instanceof Error) {
-                console.error('❌ Error message:', err.message);
-                console.error('❌ Error stack:', err.stack);
-            }
-
             const message = err instanceof Error ? err.message : 'Failed to fetch multi-member blocks';
             setError(message);
             console.error('Error fetching multi-member blocks:', err);
         } finally {
             setLoading(false);
         }
-    }, [currentOrg, user, selectedMemberIds, viewDate, daysToShow, currentUserRole]);
-
-    // Initial fetch of user role
-    useEffect(() => {
-        fetchCurrentUserRole();
-    }, [fetchCurrentUserRole]);
+    }, [currentOrg, user, selectedMemberIds, viewDate, daysToShow]);
 
     // Fetch blocks when dependencies change
     useEffect(() => {
-        if (currentUserRole !== null) {
-            fetchMultiMemberBlocks();
-        }
-    }, [fetchMultiMemberBlocks, currentUserRole]);
+        fetchMultiMemberBlocks();
+    }, [fetchMultiMemberBlocks]);
 
     // Subscribe to real-time changes
     useEffect(() => {

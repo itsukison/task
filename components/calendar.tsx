@@ -222,7 +222,11 @@ const Calendar = React.memo(function Calendar({
 
     let blocks: (CalendarBlock | MultiMemberBlock)[];
     if (!isOnlySelfSelected && selectedMemberIds.length > 0) {
-      blocks = multiMemberBlocks;
+      // Merge own calendarBlocks as fallback so own blocks remain visible
+      // while multiMemberBlocks is still loading (deduped by block ID)
+      const multiBlockIds = new Set(multiMemberBlocks.map(b => b.id));
+      const ownBlocksFallback = calendarBlocks.filter(b => !multiBlockIds.has(b.id));
+      blocks = [...multiMemberBlocks, ...ownBlocksFallback];
     } else {
       // Use regular calendar blocks when only viewing own schedule
       blocks = calendarBlocks;

@@ -54,6 +54,9 @@ export interface TranslationDictionary {
         reset_all_filters: string;
         select_value: string;
         download: string;
+        yesterday: string;
+        today: string;
+        tomorrow: string;
     };
     filter_operators: {
         contains: string;
@@ -223,6 +226,7 @@ export interface TranslationDictionary {
             in_progress: string;
             overrun: string;
             completed: string;
+            not_completed: string;
         };
         new_task: string;
         title: string;
