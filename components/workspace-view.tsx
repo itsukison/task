@@ -19,6 +19,7 @@ export default function WorkspaceView({
     viewDate,
     onViewDateChange,
     startHour,
+    endHour,
     onTaskClick,
     onUpdateTask,
     onAddTask,
@@ -166,6 +167,7 @@ export default function WorkspaceView({
                             view="week"
                             viewDate={viewDate}
                             startHour={startHour}
+                            endHour={endHour}
                             scrollAlignment={scrollAlignment}
                             onViewDateChange={onViewDateChange}
                             onPrev={handlePrev}

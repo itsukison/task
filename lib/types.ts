@@ -334,6 +334,7 @@ export interface WorkspaceViewProps {
     viewDate: Date;
     onViewDateChange: (date: Date) => void;
     startHour?: number;
+    endHour?: number;
     onTaskClick: (task: Task) => void;
     onUpdateTask: (task: Task) => void;
     onAddTask: (initialData?: { scheduledDate?: Date | string, expectedTime?: number, title?: string, shouldOpenModal?: boolean }) => Promise<Task | void> | void;
@@ -380,6 +381,7 @@ export interface CalendarProps {
     view: 'week' | 'day';
     viewDate: Date;
     startHour?: number;
+    endHour?: number;
     daysToShow?: number;  // Kept for backward-compat with calendar-old.tsx
     // Calendar toolbar controls
     onViewChange?: (view: 'week' | 'day') => void;

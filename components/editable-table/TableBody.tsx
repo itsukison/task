@@ -31,8 +31,6 @@ export function TableBody<T extends { id: string }>({
     isPendingRow,
     onAcceptRow,
     onRejectRow,
-    isAssigned,
-    enableSeparator,
 }: TableBodyProps<T>) {
     const handleDragStart = (e: React.DragEvent, row: Row<T>) => {
         onDragStart?.(row.original.id);
@@ -47,11 +45,8 @@ export function TableBody<T extends { id: string }>({
 
     return (
         <div>
-            {rows.map((row, index) => {
+            {rows.map((row) => {
                 const isPending = isPendingRow?.(row.original) ?? false;
-
-                // Check if we need a separate visual style for unscheduled tasks
-                const isUnscheduled = enableSeparator && isAssigned && !isAssigned(row.original);
 
                 return (
                     <React.Fragment key={row.id}>
@@ -63,8 +58,6 @@ export function TableBody<T extends { id: string }>({
                                 'flex group border-b border-[#e0e0e0]',
                                 'transition-colors',
                                 isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#f7f7f5] cursor-pointer',
-                                // Mute unscheduled tasks when default sorting is active
-                                isUnscheduled && 'opacity-55 grayscale-[0.5]',
                                 // Strikethrough + muted text for completed rows
                                 (row.original as any).status === 'completed' && '[&_div]:line-through [&_div]:!text-[#b0b0b0] [&_input]:line-through [&_input]:!text-[#b0b0b0] [&_span]:line-through [&_span]:!text-[#b0b0b0]'
                             )}

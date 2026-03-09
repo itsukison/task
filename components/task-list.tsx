@@ -199,7 +199,7 @@ export default function TaskList({
     }, [tasks, filterRules, searchQuery, selectedDate, previewTask, sortConfig, calendarBlocks]);
 
     // Check if a task is assigned (has start time) for the separator
-    const isAssigned = useCallback((task: Task) => {
+    const isAssigned = useCallback((task: TaskWithExtras) => {
         // We need to check against the enriched data really, but here we can just lookup in calendarBlocks again
         // Or if EditableTable passes the enriched row, checking `startTime` would work if we cast it.
         // But types say T is Task.
@@ -237,7 +237,7 @@ export default function TaskList({
     }, []);
 
     // Handle row click
-    const handleRowClick = (row: Task) => {
+    const handleRowClick = (row: TaskWithExtras) => {
         // Disable clicking on preview task
         if (row.id === 'preview-task-temp') return;
         onTaskClick(row);
@@ -464,7 +464,7 @@ export default function TaskList({
             )}
 
             <div className="flex-1 overflow-auto pt-2 pl-1 pr-2">
-                <EditableTable<Task>
+                <EditableTable<TaskWithExtras>
                     data={filteredTasks}
                     columns={columns}
                     onCellChange={handleCellChange}

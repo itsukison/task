@@ -6,7 +6,7 @@ import { CellProps } from '../types';
 /**
  * Text input cell with inline editing
  */
-export function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter }: CellProps) {
+export function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter, secondaryText }: CellProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [localValue, setLocalValue] = useState(String(value ?? ''));
     const inputRef = useRef<HTMLInputElement>(null);
@@ -81,11 +81,17 @@ export function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter 
 
     return (
         <div
-            className="w-full h-full px-2 py-1.5 cursor-text text-[#424242] text-sm truncate"
+            className="w-full h-full px-2 py-1.5 cursor-text text-[#424242] text-sm leading-tight"
             onClick={() => setIsEditing(true)}
         >
-            {localValue || <span className="text-gray-300 italic">Empty</span>}
+            <div className="truncate">
+                {localValue || <span className="text-gray-300 italic">Empty</span>}
+            </div>
+            {secondaryText && (
+                <div className="mt-0.5 truncate text-[11px] text-[#787774] leading-tight">
+                    {secondaryText}
+                </div>
+            )}
         </div>
     );
 }
-

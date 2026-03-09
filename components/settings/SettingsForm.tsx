@@ -40,8 +40,8 @@ export function SettingsForm() {
     // Local state for settings
     const [theme, setTheme] = useState<Theme>('light');
     const [displayName, setDisplayName] = useState('');
-    const [workStartTime, setWorkStartTime] = useState('08:00');
-    const [workEndTime, setWorkEndTime] = useState('18:00');
+    const [workStartTime, setWorkStartTime] = useState('00:00');
+    const [workEndTime, setWorkEndTime] = useState('23:59');
     const [taskVisibility, setTaskVisibility] = useState<TaskVisibility>('team');
     const [scheduleVisibility, setScheduleVisibility] = useState<ScheduleVisibility>('team');
     const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);

@@ -44,9 +44,13 @@ export default function WorkspacePage() {
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
     const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(new Set());
 
-    // Compute startHour from user preferences (default 8am)
-    const workStartTime: string = (preferences as any)?.work_start_time ?? '08:00';
+    // Compute startHour/endHour from user preferences (default full day)
+    const workStartTime: string = (preferences as any)?.work_start_time ?? '00:00';
     const startHour = parseInt(workStartTime.split(':')[0], 10);
+    const workEndRaw: string | null = (preferences as any)?.work_end_time ?? null;
+    const endHour = workEndRaw
+        ? (() => { const [h, m] = workEndRaw.split(':').map(Number); return m > 0 ? h + 1 : h; })()
+        : 24;
 
     // Multi-member schedule viewing state
     const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -125,6 +129,9 @@ export default function WorkspacePage() {
 
     const handleTaskUpdate = async (updatedTask: Task & { ownerIds?: string[] }) => {
         try {
+            const previousTask = tasks.find(task => task.id === updatedTask.id);
+            const expectedTimeChanged = previousTask?.expectedTime !== updatedTask.expectedTime;
+
             await updateTask(updatedTask.id, {
                 title: updatedTask.title,
                 description: updatedTask.description,
@@ -134,6 +141,35 @@ export default function WorkspacePage() {
                 visibility: updatedTask.visibility,
                 ownerIds: updatedTask.ownerIds,
             });
+
+            if (expectedTimeChanged && user) {
+                const blocksToSync = calendarBlocks.filter(block => {
+                    if (block.taskId !== updatedTask.id) return false;
+                    if (block.ownerId !== user.id) return false;
+                    if (block.id.startsWith('optimistic-') || block.id === 'preview-block-temp') return false;
+                    // Only sync blocks the current user can modify.
+                    return block.assignmentStatus !== 'pending';
+                });
+
+                if (blocksToSync.length > 0) {
+                    await Promise.all(
+                        blocksToSync.map(async (block) => {
+                            const startTime = new Date(block.startTime);
+                            const currentDurationMinutes = Math.round(
+                                (new Date(block.endTime).getTime() - startTime.getTime()) / 60000
+                            );
+
+                            if (currentDurationMinutes === updatedTask.expectedTime) {
+                                return;
+                            }
+
+                            const endTime = addMinutes(startTime, updatedTask.expectedTime);
+                            await updateCalendarBlock(block.id, { startTime, endTime });
+                        })
+                    );
+                }
+            }
+
             if (selectedTask?.id === updatedTask.id) setSelectedTask(updatedTask);
         } catch (err) {
             console.error('Failed to update task:', err);
@@ -357,6 +393,7 @@ export default function WorkspacePage() {
                 viewDate={viewDate}
                 onViewDateChange={setViewDate}
                 startHour={startHour}
+                endHour={endHour}
                 onTaskClick={setSelectedTask}
                 onUpdateTask={handleTaskUpdate}
                 onAddTask={handleAddTask}
@@ -390,4 +427,3 @@ export default function WorkspacePage() {
         </>
     );
 }
-

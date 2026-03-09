@@ -14,6 +14,7 @@ export interface CellProps {
     rowId: string;
     columnId: string;
     dataType: DataType;
+    secondaryText?: string;
     options?: ColumnOption[];
     peopleOptions?: PeopleOption[];
     ownerStatuses?: Record<string, AssignmentStatus>;  // Map of owner ID to assignment status

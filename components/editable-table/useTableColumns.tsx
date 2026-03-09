@@ -10,6 +10,21 @@ import { DataTypeIcon } from './utils';
 import { AddColumnMenu } from './AddColumnMenu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
+const formatTimeRange = (startTime: unknown, expectedTime: unknown): string | undefined => {
+    if (typeof startTime !== 'string') return undefined;
+
+    const startDate = new Date(startTime);
+    if (Number.isNaN(startDate.getTime())) return undefined;
+
+    const durationMinutes = typeof expectedTime === 'number' ? expectedTime : Number(expectedTime);
+    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) return undefined;
+
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60_000);
+    const formatPart = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+    return `${formatPart(startDate)}–${formatPart(endDate)}`;
+};
+
 interface UseTableColumnsProps<T> {
     tableColumns: TableColumn<T>[];
     onCellChange: (rowId: string, columnId: string, value: unknown) => void;
@@ -123,6 +138,9 @@ export function useTableColumns<T extends { id: string }>({
 cell: ({ row, column }) => {
     const isFirstDataCol = tableColumns.findIndex(c => String(c.id) === column.id) === 0;
     const isCompleted = isFirstDataCol && (row.original as any).status === 'completed';
+    const scheduleTimeRange = isFirstDataCol
+        ? formatTimeRange((row.original as any).startTime, (row.original as any).expectedTime)
+        : undefined;
 
     return (
         <div className="relative flex items-center w-full h-full overflow-hidden">
@@ -143,12 +161,13 @@ cell: ({ row, column }) => {
                 </button>
             )}
             {/* Text */}
-            <div className="w-full min-w-0">
+            <div className={cn('w-full min-w-0', isFirstDataCol && onOpenRow && 'pr-14')}>
                 <Cell
                     value={col.dataType === 'combinedTime' ? row.original : row.getValue(column.id)}
                     rowId={row.original.id}
                     columnId={column.id}
                     dataType={col.dataType}
+                    secondaryText={col.dataType === 'text' && isFirstDataCol ? scheduleTimeRange : undefined}
                     options={col.options}
                     peopleOptions={col.peopleOptions}
                     ownerStatuses={col.dataType === 'people' && getOwnerStatuses ? getOwnerStatuses(row.original) : undefined}

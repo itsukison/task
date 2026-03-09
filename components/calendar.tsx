@@ -47,7 +47,8 @@ const Calendar = React.memo(function Calendar({
   onDeleteTask,
   view,
   viewDate,
-  startHour = 8,
+  startHour = 0,
+  endHour = 24,
   scrollAlignment = 'center',
   onViewDateChange,
   onPrev,
@@ -97,8 +98,8 @@ const Calendar = React.memo(function Calendar({
     occludedRightPx,
   });
 
-  // Visible hours array driven by startHour (always show to midnight)
-  const visibleHours = Array.from({ length: 24 - startHour }, (_, i) => startHour + i);
+  // Visible hours array driven by startHour and endHour
+  const visibleHours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
 
   const { dragPreview, setDragPreview, contextMenu, setContextMenu, quickAdd, setQuickAdd, dragSource, setDragSource } =
     useCalendarState();
