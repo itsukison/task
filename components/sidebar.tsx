@@ -11,9 +11,9 @@ import { useJoinRequests } from '@/lib/hooks/use-join-requests';
 import { OrgSwitcherModal } from '@/components/organization/OrgSwitcherModal';
 import { useLanguage } from '@/lib/i18n';
 
-const topNavItems: { id: string; href: string; icon: any; label: string }[] = [
-    { id: 'documents', href: '/documents', icon: FileText, label: 'Documents' },
+const topNavItems: { id: string; href: string; icon: any; label: string; beta?: boolean }[] = [
     { id: 'workspace', href: '/workspace', icon: Calendar, label: 'Task Tracker' },
+    { id: 'documents', href: '/documents', icon: FileText, label: 'Documents', beta: true },
 ];
 
 const secondaryNavItems: { id: string; href: string; icon: any; label: string; beta?: boolean }[] = [
@@ -302,11 +302,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
                 {/* Quick Actions (Top Section) */}
                 <div className="px-2 py-1 flex flex-col gap-0.5 mb-2">
-                    <div className="flex items-center gap-2 px-3 py-1 text-sm text-[#9B9A97] rounded-md cursor-not-allowed opacity-60 mb-1 mt-1">
-                        <Search size={16} />
-                        <span className="flex-1">{t('navigation.search')}</span>
-                        <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">{t('navigation.soon')}</span>
-                    </div>
+                    <div className="text-xs font-semibold text-[#9B9A97] px-3 py-2 mb-1">{t('navigation.general')}</div>
                     {topNavItems.map((item) => (
                         <Link
                             key={item.id}
@@ -315,14 +311,20 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                                 "w-full flex items-center gap-2.5 px-3 py-1 text-sm rounded-md transition-colors mb-0.5 relative group/link",
                                 isActive(item.href)
                                     ? "bg-[#EFEFED] text-[#37352F] font-medium"
-                                    : "text-[#5F5E5B] hover:bg-[#EFEFED]"
+                                    : item.beta
+                                        ? "text-[#9B9A97] cursor-not-allowed opacity-60"
+                                        : "text-[#5F5E5B] hover:bg-[#EFEFED]"
                             )}
+                            onClick={(e) => item.beta && e.preventDefault()}
                         >
                             <item.icon
                                 size={16}
                                 className={isActive(item.href) ? "text-[#37352F]" : "text-[#9B9A97]"}
                             />
                             <span className="flex-1">{t('navigation.' + item.id) === 'navigation.' + item.id ? item.label : t('navigation.' + item.id)}</span>
+                            {item.beta && (
+                                <span className="text-[10px] border border-[#E9E9E7] px-1.5 py-0.5 rounded text-[#9B9A97]">Beta</span>
+                            )}
                         </Link>
                     ))}
                 </div>

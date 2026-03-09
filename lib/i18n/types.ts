@@ -84,6 +84,8 @@ export interface TranslationDictionary {
         new_page: string;
         soon: string;
         workflows: string;
+        beta: string;
+        general: string;
     };
     documents: {
         title: string;
@@ -525,5 +527,41 @@ export interface TranslationDictionary {
         status_in_progress: string;
         status_overrun: string;
         status_completed: string;
+    };
+    onboarding: {
+        profile_title: string;
+        profile_subtitle: string;
+        display_name_label: string;
+        display_name_placeholder: string;
+        job_title_label: string;
+        optional_label: string;
+        job_title_placeholder: string;
+        continue_btn: string;
+        usage_title: string;
+        usage_subtitle: string;
+        usage_work_title: string;
+        usage_work_desc: string;
+        usage_personal_title: string;
+        usage_personal_desc: string;
+        usage_edu_title: string;
+        usage_edu_desc: string;
+        setup_workspace_title: string;
+        setup_workspace_subtitle: string;
+        create_org_tab: string;
+        join_org_tab: string;
+        org_name_label: string;
+        org_name_placeholder: string;
+        leader_notice: string;
+        creating_btn: string;
+        create_org_btn: string;
+        invite_code_label: string;
+        invite_code_placeholder: string;
+        invite_code_error: string;
+        invite_code_help: string;
+        joining_btn: string;
+        join_org_btn: string;
+        request_sent_title: string;
+        request_pending_desc: string;
+        status_pending: string;
     };
 }

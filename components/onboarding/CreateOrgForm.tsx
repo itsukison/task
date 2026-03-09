@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useLanguage } from '@/lib/i18n';
 
 interface CreateOrgFormProps {
     loading: boolean;
@@ -8,6 +9,7 @@ interface CreateOrgFormProps {
 }
 
 export function CreateOrgForm({ loading, onSubmit }: CreateOrgFormProps) {
+    const { t } = useLanguage();
     const [orgName, setOrgName] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +22,7 @@ export function CreateOrgForm({ loading, onSubmit }: CreateOrgFormProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
                 <label htmlFor="orgName" className="block text-sm font-medium text-[#37352F] mb-1">
-                    Organization Name
+                    {t('onboarding.org_name_label')}
                 </label>
                 <input
                     id="orgName"
@@ -29,12 +31,12 @@ export function CreateOrgForm({ loading, onSubmit }: CreateOrgFormProps) {
                     onChange={(e) => setOrgName(e.target.value)}
                     required
                     className="w-full px-3 py-2 border border-[#E9E9E7] rounded focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-[#37352F]"
-                    placeholder="My Team"
+                    placeholder={t('onboarding.org_name_placeholder')}
                     disabled={loading}
                     autoFocus
                 />
                 <p className="mt-1 text-xs text-[#787774]">
-                    You'll be the leader of this organization
+                    {t('onboarding.leader_notice')}
                 </p>
             </div>
 
@@ -43,7 +45,7 @@ export function CreateOrgForm({ loading, onSubmit }: CreateOrgFormProps) {
                 disabled={loading || !orgName.trim()}
                 className="w-full py-2 px-4 bg-accent hover:bg-accent-dark text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {loading ? 'Creating...' : 'Create Organization'}
+                {loading ? t('onboarding.creating_btn') : t('onboarding.create_org_btn')}
             </button>
         </form>
     );

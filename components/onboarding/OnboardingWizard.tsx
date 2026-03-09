@@ -6,6 +6,7 @@ import { Briefcase, User, GraduationCap } from 'lucide-react';
 import { CreateOrgForm } from './CreateOrgForm';
 import { JoinOrgForm } from './JoinOrgForm';
 import { PendingRequestCard } from './PendingRequestCard';
+import { useLanguage } from '@/lib/i18n';
 
 export type OnboardingStep = 'profile' | 'usage-intent' | 'organization';
 
@@ -34,6 +35,7 @@ export function OnboardingWizard({
     setOrgError,
     pendingRequest
 }: OnboardingWizardProps) {
+    const { t } = useLanguage();
     const [currentStep, setCurrentStep] = useState<OnboardingStep>('profile');
     // Organization step state
     const [orgMode, setOrgMode] = useState<'create' | 'join'>('create');
@@ -110,8 +112,8 @@ export function OnboardingWizard({
                     ) : (
                         <>
                             <div className="text-center mb-6">
-                                <h2 className="text-xl font-semibold text-[#37352F] mb-2">Setup your workspace</h2>
-                                <p className="text-sm text-[#787774]">Create a new organization or join an existing one</p>
+                                <h2 className="text-xl font-semibold text-[#37352F] mb-2">{t('onboarding.setup_workspace_title')}</h2>
+                                <p className="text-sm text-[#787774]">{t('onboarding.setup_workspace_subtitle')}</p>
                             </div>
 
                             {/* Mode Toggle */}
@@ -124,7 +126,7 @@ export function OnboardingWizard({
                                         : 'text-[#787774] hover:text-[#37352F]'
                                         }`}
                                 >
-                                    Create Organization
+                                    {t('onboarding.create_org_tab')}
                                 </button>
                                 <button
                                     type="button"
@@ -134,7 +136,7 @@ export function OnboardingWizard({
                                         : 'text-[#787774] hover:text-[#37352F]'
                                         }`}
                                 >
-                                    Join with Code
+                                    {t('onboarding.join_org_tab')}
                                 </button>
                             </div>
 
@@ -172,32 +174,33 @@ interface UsageIntentStepProps {
 }
 
 function UsageIntentStep({ onSelect, selected }: UsageIntentStepProps) {
+    const { t } = useLanguage();
     const options = [
         {
             value: 'work' as const,
             icon: <Briefcase className="w-6 h-6" />,
-            title: 'Work',
-            description: 'Manage projects and team collaboration'
+            title: t('onboarding.usage_work_title'),
+            description: t('onboarding.usage_work_desc')
         },
         {
             value: 'personal' as const,
             icon: <User className="w-6 h-6" />,
-            title: 'Personal',
-            description: 'Track personal goals and tasks'
+            title: t('onboarding.usage_personal_title'),
+            description: t('onboarding.usage_personal_desc')
         },
         {
             value: 'education' as const,
             icon: <GraduationCap className="w-6 h-6" />,
-            title: 'Education',
-            description: 'Organize courses and study schedules'
+            title: t('onboarding.usage_edu_title'),
+            description: t('onboarding.usage_edu_desc')
         }
     ];
 
     return (
         <div className="space-y-4">
             <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-[#37352F] mb-2">How will you use Taskle?</h2>
-                <p className="text-sm text-[#787774]">Choose the option that best describes your needs</p>
+                <h2 className="text-xl font-semibold text-[#37352F] mb-2">{t('onboarding.usage_title')}</h2>
+                <p className="text-sm text-[#787774]">{t('onboarding.usage_subtitle')}</p>
             </div>
 
             <div className="space-y-3">
@@ -235,6 +238,7 @@ interface ProfileStepProps {
 }
 
 function ProfileStep({ initialName, initialJob, onSubmit }: ProfileStepProps) {
+    const { t } = useLanguage();
     const [displayName, setDisplayName] = useState(initialName);
     const [jobTitle, setJobTitle] = useState(initialJob);
 
@@ -247,20 +251,20 @@ function ProfileStep({ initialName, initialJob, onSubmit }: ProfileStepProps) {
     return (
         <div className="space-y-6">
             <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-[#37352F] mb-2">Tell us about yourself</h2>
-                <p className="text-sm text-[#787774]">Help us personalize your experience</p>
+                <h2 className="text-xl font-semibold text-[#37352F] mb-2">{t('onboarding.profile_title')}</h2>
+                <p className="text-sm text-[#787774]">{t('onboarding.profile_subtitle')}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-[#37352F]">
-                        Display Name
+                        {t('onboarding.display_name_label')}
                     </label>
                     <input
                         type="text"
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Your name"
+                        placeholder={t('onboarding.display_name_placeholder')}
                         required
                         className="w-full px-3 py-2 text-sm border border-[#E9E9E7] rounded-lg hover:border-[#C8C7C5] focus:border-[#2383E2] focus:outline-none transition-colors"
                     />
@@ -268,13 +272,13 @@ function ProfileStep({ initialName, initialJob, onSubmit }: ProfileStepProps) {
 
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-[#37352F]">
-                        Job Title <span className="text-[#9B9A97] font-normal">(optional)</span>
+                        {t('onboarding.job_title_label')} <span className="text-[#9B9A97] font-normal">{t('onboarding.optional_label')}</span>
                     </label>
                     <input
                         type="text"
                         value={jobTitle}
                         onChange={(e) => setJobTitle(e.target.value)}
-                        placeholder="e.g. Product Manager"
+                        placeholder={t('onboarding.job_title_placeholder')}
                         className="w-full px-3 py-2 text-sm border border-[#E9E9E7] rounded-lg hover:border-[#C8C7C5] focus:border-[#2383E2] focus:outline-none transition-colors"
                     />
                 </div>
@@ -285,7 +289,7 @@ function ProfileStep({ initialName, initialJob, onSubmit }: ProfileStepProps) {
                         disabled={!displayName.trim()}
                         className="w-full px-4 py-2.5 bg-accent text-white font-medium rounded-lg hover:bg-[#FF7F3D] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
-                        Continue
+                        {t('onboarding.continue_btn')}
                     </button>
                 </div>
             </form>
