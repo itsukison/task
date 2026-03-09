@@ -176,7 +176,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
         data: {
           display_name: displayName || '',
-          language: localStorage.getItem('taskos-language') || 'ja',
         }
       },
     });
