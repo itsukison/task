@@ -180,6 +180,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
 
+    // DEBUG: log full signup response to isolate email delivery issue
+    console.log('[signUp debug]', {
+      error,
+      userId: data?.user?.id,
+      email: data?.user?.email,
+      identities: data?.user?.identities,
+      identitiesCount: data?.user?.identities?.length,
+      confirmationSentAt: data?.user?.confirmation_sent_at,
+      emailConfirmedAt: data?.user?.email_confirmed_at,
+      hasSession: !!data?.session,
+    });
+
     // Return full response to allow caller to detect email verification state
     return { data, error };
   }, []);
