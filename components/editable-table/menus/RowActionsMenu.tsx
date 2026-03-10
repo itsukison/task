@@ -2,14 +2,14 @@
 
 import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Copy, Link, Trash2 } from 'lucide-react';
+import { Copy, Link, ListPlus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RowActionsMenuProps } from '../types';
 
 /**
  * Row context menu for duplicate/delete/copy actions
  */
-export function RowActionsMenu({ rowId, position, onDuplicate, onDelete, onCopyLink, onClose }: RowActionsMenuProps) {
+export function RowActionsMenu({ rowId, position, onDuplicate, onDelete, onCopyLink, onClose, onAddSubtask }: RowActionsMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -23,6 +23,11 @@ export function RowActionsMenu({ rowId, position, onDuplicate, onDelete, onCopyL
     }, [onClose]);
 
     const menuItems = [
+        ...(onAddSubtask ? [{
+            icon: <ListPlus size={16} />,
+            label: 'Add subtask',
+            onClick: () => { onAddSubtask(); onClose(); },
+        }] : []),
         {
             icon: <Copy size={16} />,
             label: 'Duplicate',

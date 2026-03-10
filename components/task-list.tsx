@@ -115,6 +115,7 @@ export default function TaskList({
     onRejectAssignment,
     previewTask,
     onCreateSubtask,
+    onAddSubtask,
     onFocusDayFromTaskView,
 }: TaskListProps) {
     const { t } = useLanguage();
@@ -146,6 +147,27 @@ export default function TaskList({
         setIsExpanded(expanded);
         await updatePreferences({ tasks_collapsed: !expanded });
     };
+
+    // Expand/collapse state for subtask rows — ephemeral, resets on page reload
+    const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
+
+    const toggleSubtasks = useCallback((parentId: string) => {
+        setExpandedParentIds(prev => {
+            const next = new Set(prev);
+            if (next.has(parentId)) {
+                next.delete(parentId);
+            } else {
+                next.add(parentId);
+            }
+            return next;
+        });
+    }, []);
+
+    const handleAddSubtask = useCallback(async (parentId: string, dateKey: string) => {
+        // Expand the parent so the new subtask is visible
+        setExpandedParentIds(prev => new Set([...prev, parentId]));
+        return await onAddSubtask?.(parentId, dateKey);
+    }, [onAddSubtask]);
 
     // Use refs to stabilize handleCellChange and prevent column regeneration/cell remounting
     const tasksRef = useRef(tasks);
@@ -223,8 +245,40 @@ export default function TaskList({
         return blockMap;
     }, [calendarBlocks]);
 
+    // All tasks as TaskWithExtras — used to build subtask lookup maps
+    const allTasksWithExtras = useMemo((): TaskWithExtras[] => {
+        return tasks.map(t => ({
+            ...t,
+            ownerIds: t.owners.map(o => o.id),
+            startTime: blockStartTimeByTaskId.get(t.id),
+        }));
+    }, [tasks, blockStartTimeByTaskId]);
+
+    // Subtasks grouped by parent ID (from all tasks, not just top-level)
+    const subtasksByParentId = useMemo((): Map<string, TaskWithExtras[]> => {
+        const map = new Map<string, TaskWithExtras[]>();
+        allTasksWithExtras.forEach(t => {
+            if (t.parentTaskId) {
+                const list = map.get(t.parentTaskId) ?? [];
+                list.push(t);
+                map.set(t.parentTaskId, list);
+            }
+        });
+        return map;
+    }, [allTasksWithExtras]);
+
+    // Count of subtasks per parent task — passed to table for chevron rendering
+    const subtaskCountMap = useMemo((): Map<string, number> => {
+        const map = new Map<string, number>();
+        subtasksByParentId.forEach((children, parentId) => {
+            map.set(parentId, children.length);
+        });
+        return map;
+    }, [subtasksByParentId]);
+
     const sortedFilteredTasks = useMemo((): TaskWithExtras[] => {
-        let result = [...tasks] as TaskWithExtras[];
+        // Only top-level tasks (no parentTaskId) participate in day sections
+        let result = [...tasks].filter(t => !t.parentTaskId) as TaskWithExtras[];
 
         if (filterRules && filterRules.length > 0) {
             result = result.filter(t => evaluateFilterRules(t, filterRules));
@@ -284,14 +338,27 @@ export default function TaskList({
             const title = relativeLabel ? t(`common.${relativeLabel}`) : (date.getFullYear() === currentYear
                 ? dayTitleFormatter.format(date)
                 : dayTitleWithYearFormatter.format(date));
+
+            const topLevelTasks = tasksByDate.get(dateKey) ?? [];
+
+            // Interleave subtasks after their expanded parents
+            const interleaved: TaskWithExtras[] = [];
+            topLevelTasks.forEach(task => {
+                interleaved.push(task);
+                if (expandedParentIds.has(task.id)) {
+                    const children = subtasksByParentId.get(task.id) ?? [];
+                    interleaved.push(...children);
+                }
+            });
+
             return {
                 date,
                 dateKey,
                 title,
-                tasks: tasksByDate.get(dateKey) ?? [],
+                tasks: interleaved,
             };
         });
-    }, [dayRange, sortedFilteredTasks, previewTask, blockStartTimeByTaskId, dayTitleFormatter, dayTitleWithYearFormatter, todayKey, t]);
+    }, [dayRange, sortedFilteredTasks, previewTask, blockStartTimeByTaskId, dayTitleFormatter, dayTitleWithYearFormatter, todayKey, t, expandedParentIds, subtasksByParentId]);
 
     const selectedDayTaskCount = useMemo(() => {
         const selectedSection = daySections.find(section => section.dateKey === selectedDateKey);
@@ -646,6 +713,13 @@ export default function TaskList({
                                         onRemoveCustomColumn={removeCustomColumn}
                                         onCreateSubtask={onCreateSubtask}
                                         isAssigned={isAssigned}
+                                        onAddSubtask={onAddSubtask
+                                            ? (parentId) => handleAddSubtask(parentId, section.dateKey)
+                                            : undefined
+                                        }
+                                        onToggleSubtasks={toggleSubtasks}
+                                        expandedSubtaskParentIds={expandedParentIds}
+                                        subtaskCountMap={subtaskCountMap}
                                     />
                                 </section>
                             ))}

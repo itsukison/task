@@ -242,7 +242,7 @@ export default function WorkspacePage() {
         }
     };
 
-    // Create a subtask with title and link to parent task
+    // Create a subtask with title and link to parent task (legacy, used by subtask column cell)
     const handleCreateSubtask = async (parentTaskId: string, title: string) => {
         try {
             await createTask({
@@ -251,8 +251,27 @@ export default function WorkspacePage() {
                 status: 'planned',
                 expectedTime: 30,
                 scheduledDate: formatDateToLocalISO(selectedDate),
-                parentTaskId, // Link to parent task
-            } as any);
+                parentTaskId,
+            });
+        } catch (err) {
+            console.error('Failed to create subtask:', err);
+        }
+    };
+
+    // Create an inline subtask row from the + button — returns the new task for focus
+    const handleAddSubtask = async (parentTaskId: string, scheduledDate: string) => {
+        try {
+            const result = await createTask({
+                title: '',
+                description: '',
+                status: 'planned',
+                expectedTime: 30,
+                scheduledDate,
+                parentTaskId,
+            });
+            // result is the raw RPC response array; extract first row for focus tracking
+            const created = Array.isArray(result) ? result[0] : result;
+            return created ?? undefined;
         } catch (err) {
             console.error('Failed to create subtask:', err);
         }
@@ -412,6 +431,7 @@ export default function WorkspacePage() {
                 previewTask={previewTask}
                 previewBlock={previewBlock}
                 onCreateSubtask={handleCreateSubtask}
+                onAddSubtask={handleAddSubtask}
                 selectedBlockIds={selectedBlockIds}
                 onSelectBlocks={setSelectedBlockIds}
                 onUpdateMultipleBlocks={handleUpdateMultipleBlocks}

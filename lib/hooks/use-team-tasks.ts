@@ -24,6 +24,7 @@ function dbToTask(row: DbTask & { task_owners?: Array<{ user_profiles: OwnerProf
         ownerId: row.owner_id,
         organizationId: row.organization_id,
         scheduledDate: row.scheduled_date,
+        parentTaskId: (row as any).parent_task_id ?? null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };

@@ -172,6 +172,7 @@ export interface Task {
     ownerId: string;  // Deprecated, kept for backward compatibility with single-owner queries
     organizationId: string;
     scheduledDate: string | null;  // ISO date string (maps from scheduled_date)
+    parentTaskId: string | null;   // Parent task ID for subtasks (maps from parent_task_id)
     createdAt: string;
     updatedAt: string;
 }
@@ -305,8 +306,13 @@ export interface EditableTableProps<T extends { id: string }> {
     customColumns?: any[];
     onAddCustomColumn?: (type: 'subtask' | 'document') => void;
     onRemoveCustomColumn?: (columnId: string) => void;
-    // Subtask creation callback
+    // Subtask creation callback (legacy, for subtask column cell)
     onCreateSubtask?: (parentTaskId: string, title: string) => void;
+    // Inline subtask row actions
+    onAddSubtask?: (parentId: string) => Promise<Task | void>;
+    onToggleSubtasks?: (parentId: string) => void;
+    expandedSubtaskParentIds?: Set<string>;
+    subtaskCountMap?: Map<string, number>;
     // Row separator logic (Assigned vs Unassigned)
     isAssigned?: (row: T) => boolean;
 }
@@ -339,8 +345,10 @@ export interface WorkspaceViewProps {
     onUpdateTask: (task: Task) => void;
     onAddTask: (initialData?: { scheduledDate?: Date | string, expectedTime?: number, title?: string, shouldOpenModal?: boolean }) => Promise<Task | void> | void;
     onDeleteTask: (taskId: string) => void;
-    // Subtask creation callback
+    // Subtask creation callback (legacy)
     onCreateSubtask?: (parentTaskId: string, title: string) => void;
+    // Inline subtask row creation
+    onAddSubtask?: (parentTaskId: string, scheduledDate: string) => Promise<Task | void>;
     draggingTask: Task | null;
     onDragStart: (taskId: string | null) => void;
     // Calendar block CRUD callbacks
@@ -432,8 +440,10 @@ export interface TaskListProps {
     onSortChange?: (sort: SortConfig | null) => void;
     hiddenColumns?: string[];
     onHideColumn?: (columnId: string) => void;
-    // Subtask creation callback
+    // Subtask creation callback (legacy, used by subtask column cell)
     onCreateSubtask?: (parentTaskId: string, title: string) => void;
+    // Inline subtask row creation from the + button / row menu
+    onAddSubtask?: (parentTaskId: string, scheduledDate: string) => Promise<Task | void>;
     onShowColumn?: (columnId: string) => void;
     // Date filtering props
     calendarBlocks?: CalendarBlock[];

@@ -45,6 +45,10 @@ export default function EditableTable<T extends { id: string }>({
     onAddCustomColumn,
     onRemoveCustomColumn,
     onCreateSubtask,
+    onAddSubtask: onAddSubtaskProp,
+    onToggleSubtasks,
+    expandedSubtaskParentIds,
+    subtaskCountMap,
     ...props
 }: EditableTableProps<T>) {
     const [internalSorting, setInternalSorting] = useState<SortingState>([]);
@@ -106,6 +110,13 @@ export default function EditableTable<T extends { id: string }>({
         }
     }, [onAddRow]);
 
+    const handleAddSubtask = useCallback(async (parentId: string) => {
+        const newTask = await onAddSubtaskProp?.(parentId);
+        if (newTask && typeof newTask === 'object' && 'id' in newTask) {
+            setFocusRowId(String((newTask as any).id));
+        }
+    }, [onAddSubtaskProp]);
+
     const columns = useTableColumns({
         tableColumns,
         onCellChange,
@@ -120,6 +131,10 @@ export default function EditableTable<T extends { id: string }>({
         onAddCustomColumn,
         onRemoveCustomColumn,
         onCreateSubtask,
+        onAddSubtask: onAddSubtaskProp ? handleAddSubtask : undefined,
+        onToggleSubtasks,
+        expandedSubtaskParentIds,
+        subtaskCountMap,
         focusRowId,
         onEnter: handleAddRow,
     });
@@ -182,6 +197,12 @@ export default function EditableTable<T extends { id: string }>({
                             navigator.clipboard.writeText(`${window.location.href}?task=${activeRowMenu.rowId}`);
                         }}
                         onClose={() => setActiveRowMenu(null)}
+                        onAddSubtask={
+                            // Only show "Add subtask" for top-level tasks
+                            onAddSubtaskProp && !((data.find(d => d.id === activeRowMenu.rowId) as any)?.parentTaskId)
+                                ? () => handleAddSubtask(activeRowMenu.rowId)
+                                : undefined
+                        }
                     />
                 )}
 

@@ -28,6 +28,7 @@ export function createPreviewTask(
         ownerId: userId,
         organizationId,
         scheduledDate: pendingAction.data.scheduledDate || fallbackScheduledDate || null,
+        parentTaskId: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
     };
@@ -69,6 +70,7 @@ export function createPreviewCalendarBlock(
                 ownerId: userId,
                 organizationId: organizationId,
                 scheduledDate: null,
+                parentTaskId: null,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             },

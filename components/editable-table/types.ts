@@ -52,4 +52,5 @@ export interface RowActionsMenuProps {
     onDelete: () => void;
     onCopyLink: () => void;
     onClose: () => void;
+    onAddSubtask?: () => void;
 }

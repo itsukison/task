@@ -489,6 +489,8 @@ export interface TranslationDictionary {
         check_email_subtitle: string;
         verify_account_instruction: string;
         back_to_login: string;
+        google_signin_btn: string;
+        or_divider: string;
         verification_failed_title: string;
         verification_failed_subtitle: string;
         verification_failed_instruction_title: string;

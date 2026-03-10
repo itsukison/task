@@ -270,6 +270,7 @@ const Calendar = React.memo(function Calendar({
           ownerId: user.id,
           organizationId: currentOrg.id,
           scheduledDate: format(startTime, 'yyyy-MM-dd'),
+          parentTaskId: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }

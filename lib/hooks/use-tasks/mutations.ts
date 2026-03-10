@@ -16,6 +16,7 @@ export interface CreateTaskInput {
   expectedTime: number;
   visibility?: TaskVisibility;
   scheduledDate?: string | null;
+  parentTaskId?: string | null;
 }
 
 export interface UpdateTaskInput {
@@ -46,7 +47,7 @@ export function useCreateTask() {
       }
 
       // Call atomic RPC function
-      return await (supabase.rpc as any)('create_task_with_owner', {
+      const result = await (supabase.rpc as any)('create_task_with_owner', {
         p_org_id: currentOrg.id,
         p_user_id: user.id,
         p_title: input.title,
@@ -56,6 +57,20 @@ export function useCreateTask() {
         p_visibility: input.visibility || profile?.default_task_visibility || 'team',
         p_scheduled_date: input.scheduledDate || null,
       });
+
+      if (result.error) throw result.error;
+
+      // Set parent_task_id if this is a subtask
+      const newTaskId = result.data?.[0]?.id;
+      if (input.parentTaskId && newTaskId) {
+        const updateResult = await supabase
+          .from('tasks')
+          .update({ parent_task_id: input.parentTaskId })
+          .eq('id', newTaskId);
+        if (updateResult.error) throw updateResult.error;
+      }
+
+      return result;
     },
     {
       onSuccess: () => {

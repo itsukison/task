@@ -44,6 +44,7 @@ function dbToTask(row: DbTask & { task_owners?: TaskOwnerJoin[] }): Task {
         ownerId: row.owner_id, // Deprecated but kept for backward compatibility
         organizationId: row.organization_id,
         scheduledDate: row.scheduled_date,
+        parentTaskId: (row as any).parent_task_id ?? null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -57,6 +58,7 @@ export interface CreateTaskInput {
     expectedTime: number;
     visibility?: TaskVisibility;
     scheduledDate?: string | null;  // ISO date string (YYYY-MM-DD)
+    parentTaskId?: string | null;
 }
 
 // Input for updating a task
@@ -213,7 +215,8 @@ export function useTasks(): UseTasksReturn {
             expected_time_minutes: input.expectedTime,
             visibility: input.visibility ?? profile?.default_task_visibility ?? 'team',
             scheduled_date: input.scheduledDate ?? null,
-        };
+            ...(input.parentTaskId ? { parent_task_id: input.parentTaskId } : {}),
+        } as TaskInsert;
 
         const { data, error: insertError } = await supabase
             .from('tasks')

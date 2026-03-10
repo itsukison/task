@@ -57,6 +57,7 @@ function dbToMultiMemberBlock(
             ownerId: row.owner_id,
             organizationId: row.organization_id,
             scheduledDate: null,
+            parentTaskId: null,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
         } : undefined,

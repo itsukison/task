@@ -159,7 +159,7 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
     };
 
     return (
-        <div className="relative w-full h-full group flex items-center justify-between gap-2 px-2 py-1.5">
+        <div className="relative w-full h-full group flex items-center justify-start gap-2 px-2 py-1.5">
             {/* Timer button - visible on hover or when running */}
             <button
                 className={cn(

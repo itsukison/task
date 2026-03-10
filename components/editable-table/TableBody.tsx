@@ -47,6 +47,7 @@ export function TableBody<T extends { id: string }>({
         <div>
             {rows.map((row) => {
                 const isPending = isPendingRow?.(row.original) ?? false;
+                const isSubtask = !!(row.original as any).parentTaskId;
 
                 return (
                     <React.Fragment key={row.id}>
@@ -57,6 +58,7 @@ export function TableBody<T extends { id: string }>({
                             className={cn(
                                 'flex group border-b border-[#e0e0e0]',
                                 'transition-colors',
+                                isSubtask && 'bg-[#fafafa]',
                                 isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#f7f7f5] cursor-pointer',
                                 // Strikethrough + muted text for completed rows
                                 (row.original as any).status === 'completed' && '[&_div]:line-through [&_div]:!text-[#b0b0b0] [&_input]:line-through [&_input]:!text-[#b0b0b0] [&_span]:line-through [&_span]:!text-[#b0b0b0]'

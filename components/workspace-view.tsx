@@ -39,6 +39,7 @@ export default function WorkspaceView({
     previewBlock,
     optimisticBlock,
     onCreateSubtask,
+    onAddSubtask,
     selectedBlockIds,
     onSelectBlocks,
     onUpdateMultipleBlocks,
@@ -228,6 +229,7 @@ export default function WorkspaceView({
                             onRejectAssignment={onRejectAssignment}
                             previewTask={previewTask}
                             onCreateSubtask={onCreateSubtask}
+                            onAddSubtask={onAddSubtask}
                             onFocusDayFromTaskView={handleFocusDayFromTaskView}
                         />
                     }

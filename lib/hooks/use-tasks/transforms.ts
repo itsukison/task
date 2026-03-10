@@ -18,6 +18,7 @@ export interface RpcTaskData {
   created_at: string;
   updated_at: string;
   scheduled_date: string | null;
+  parent_task_id?: string | null;
   task_owners: Array<{
     id: string;
     display_name: string;
@@ -53,6 +54,7 @@ export function rpcToTask(row: RpcTaskData): Task {
     ownerId: row.owner_id, // Deprecated but kept for backward compatibility
     organizationId: row.organization_id,
     scheduledDate: row.scheduled_date,
+    parentTaskId: row.parent_task_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

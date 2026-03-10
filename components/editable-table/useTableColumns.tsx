@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { ChevronUp, ChevronDown, GripVertical, Plus, Check } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronRight, GripVertical, Plus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TableColumn, AssignmentStatus } from '@/lib/types';
 import { Cell } from './cells';
@@ -49,6 +49,11 @@ interface UseTableColumnsProps<T> {
     onAddCustomColumn?: (type: 'subtask' | 'document') => void;
     onRemoveCustomColumn?: (columnId: string) => void;
     onCreateSubtask?: (parentTaskId: string, title: string) => void;
+    // Inline subtask row actions
+    onAddSubtask?: (parentId: string) => void;
+    onToggleSubtasks?: (parentId: string) => void;
+    expandedSubtaskParentIds?: Set<string>;
+    subtaskCountMap?: Map<string, number>;
     // Row focus management
     focusRowId?: string | null;
     onEnter?: () => void;
@@ -68,6 +73,10 @@ export function useTableColumns<T extends { id: string }>({
     onAddCustomColumn,
     onRemoveCustomColumn,
     onCreateSubtask,
+    onAddSubtask,
+    onToggleSubtasks,
+    expandedSubtaskParentIds,
+    subtaskCountMap,
     focusRowId,
     onEnter,
 }: UseTableColumnsProps<T>) {
@@ -76,15 +85,29 @@ export function useTableColumns<T extends { id: string }>({
         const dragColumn: ColumnDef<T> = {
             id: 'drag',
             header: () => null,
-            cell: ({ row }) => (
-                <div
-                    className="flex items-center justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                    onClick={(e) => handleRowActionClick(e, row.original.id)}
-                >
-                    <GripVertical size={14} className="text-[#9e9e9e] hover:text-[#37352F]" />
-                </div>
-            ),
-            size: 28,
+            cell: ({ row }) => {
+                const isSubtask = !!(row.original as any).parentTaskId;
+                return (
+                    <div className="flex items-center justify-end h-full gap-0 opacity-0 group-hover:opacity-100 transition-opacity pr-0.5">
+                        <div
+                            className="flex items-center justify-center w-5 h-full cursor-pointer"
+                            onClick={(e) => handleRowActionClick(e, row.original.id)}
+                        >
+                            <GripVertical size={14} className="text-[#9e9e9e] hover:text-[#37352F]" />
+                        </div>
+                        {/* + button — only on top-level tasks */}
+                        {!isSubtask && onAddSubtask && (
+                            <div
+                                className="flex items-center justify-center w-5 h-full cursor-pointer"
+                                onClick={(e) => { e.stopPropagation(); onAddSubtask(row.original.id); }}
+                            >
+                                <Plus size={12} className="text-[#9e9e9e] hover:text-[#37352F]" />
+                            </div>
+                        )}
+                    </div>
+                );
+            },
+            size: 44,
             enableResizing: false,
         };
 
@@ -141,9 +164,28 @@ cell: ({ row, column }) => {
     const scheduleTimeRange = isFirstDataCol
         ? formatTimeRange((row.original as any).startTime, (row.original as any).expectedTime)
         : undefined;
+    const isSubtask = !!(row.original as any).parentTaskId;
+    const hasSubtasks = isFirstDataCol && !isSubtask && (subtaskCountMap?.get(row.original.id) ?? 0) > 0;
+    const isExpanded = isFirstDataCol && (expandedSubtaskParentIds?.has(row.original.id) ?? false);
 
     return (
-        <div className="relative flex items-center w-full h-full overflow-hidden">
+        <div
+            className="relative flex items-center w-full h-full overflow-hidden"
+            style={isSubtask ? { paddingLeft: '36px' } : undefined}
+        >
+            {/* Chevron toggle — visible whenever task has subtasks */}
+            {hasSubtasks && (
+                <button
+                    className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-2 text-[#9e9e9e] hover:text-[#37352F] transition-colors"
+                    onClick={(e) => { e.stopPropagation(); onToggleSubtasks?.(row.original.id); }}
+                >
+                    {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                </button>
+            )}
+            {/* Spacer for alignment when subtaskCountMap is active but task has no subtasks */}
+            {isFirstDataCol && !hasSubtasks && !isSubtask && subtaskCountMap !== undefined && (
+                <span className="flex-shrink-0 w-3.5 mr-2" />
+            )}
             {/* Completion checkbox — only in title column */}
             {isFirstDataCol && (
                 <button
@@ -321,5 +363,5 @@ cell: ({ row, column }) => {
         };
 
         return [dragColumn, ...dataColumns, addColumn];
-    }, [tableColumns, onCellChange, activeHeaderMenu, onHideColumn, onOpenRow, setActiveHeaderMenu, handleSort, handleRowActionClick, getOwnerStatuses, customColumns, onAddCustomColumn, onRemoveCustomColumn, onCreateSubtask]);
+    }, [tableColumns, onCellChange, activeHeaderMenu, onHideColumn, onOpenRow, setActiveHeaderMenu, handleSort, handleRowActionClick, getOwnerStatuses, customColumns, onAddCustomColumn, onRemoveCustomColumn, onCreateSubtask, onAddSubtask, onToggleSubtasks, expandedSubtaskParentIds, subtaskCountMap]);
 }
