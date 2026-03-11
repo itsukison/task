@@ -208,20 +208,28 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
                 {editingField === 'expected' ? (
                     <Popover open={true} onOpenChange={(open) => !open && setEditingField(null)}>
                         <PopoverTrigger asChild>
-                            <input
-                                ref={expectedInputRef}
-                                type="number"
-                                value={localExpected}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value) || 0;
-                                    setLocalExpected(val);
-                                    localExpectedRef.current = val;
-                                }}
-                                onBlur={handleExpectedBlur}
-                                onKeyDown={(e) => handleKeyDown(e, 'expected')}
-                                className="w-12 bg-transparent border-none outline-none text-[#37352F]"
-                                autoFocus
-                            />
+                                <input
+                                    ref={expectedInputRef}
+                                    type="text"
+                                    value={localExpected}
+                                    onChange={(e) => {
+                                        // Allow clearing input
+                                        if (e.target.value === '') {
+                                            setLocalExpected(0);
+                                            localExpectedRef.current = 0;
+                                            return;
+                                        }
+                                        const val = parseInt(e.target.value, 10);
+                                        if (!isNaN(val)) {
+                                            setLocalExpected(val);
+                                            localExpectedRef.current = val;
+                                        }
+                                    }}
+                                    onBlur={handleExpectedBlur}
+                                    onKeyDown={(e) => handleKeyDown(e, 'expected')}
+                                    className="w-12 bg-transparent border-none outline-none text-[#37352F]"
+                                    autoFocus
+                                />
                         </PopoverTrigger>
                         <PopoverContent
                             className="w-32 p-1 border shadow-lg rounded-md bg-white z-50"

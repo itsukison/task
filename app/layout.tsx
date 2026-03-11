@@ -21,10 +21,19 @@ export async function generateMetadata(): Promise<Metadata> {
   const languageCookie = (await cookieStore).get('taskos-language');
   const isJapanese = languageCookie?.value === 'ja';
   
-  const title = isJapanese ? "タスクル" : "Taskle";
+  const title = isJapanese 
+    ? {
+        default: "タスクル | チームのタスクをカレンダーに落とし込む",
+        template: "%s | タスクル"
+      }
+    : {
+        default: "Taskle | Put your team's work on the clock",
+        template: "%s | Taskle"
+      };
+
   const description = isJapanese 
-    ? "AI時代のために設計されたワークスペース" 
-    : "The workspace designed for the AI era";
+    ? "営業チームや中小企業など、非エンジニア向けに設計されたシンプルなタスク管理ツール。タイムボクシングを活用し、全員の進捗を見える化します。" 
+    : "The workspace designed for the AI era. Simple task management for non-engineers, with timeboxing and progress tracking.";
 
   return {
     title,

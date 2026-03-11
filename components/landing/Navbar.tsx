@@ -27,6 +27,7 @@ export function Navbar() {
         { label: t('landing.nav.features'), href: '/#features' },
         { label: t('landing.nav.how_it_works'), href: '/#process' },
         { label: t('landing.nav.testimonials'), href: '/#testimonials' },
+        { label: t('landing.nav.blog'), href: '/blog' },
     ];
 
     return (

@@ -395,6 +395,7 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
                 features: 'Features',
                 how_it_works: 'How It Works',
                 testimonials: 'Testimonials',
+                blog: 'Blog',
                 login: 'Log In',
                 get_started: 'Start for Free',
             },
@@ -571,6 +572,11 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             request_sent_title: 'Request Sent to {orgName}',
             request_pending_desc: 'Please wait for an administrator to approve your request. You will be notified when you are accepted.',
             status_pending: 'Status: Pending Approval',
+        },
+        blog_index: {
+            title: 'Taskle Blog',
+            subtitle: 'News, guides, and thoughts on how to work better together.',
+            read_more: 'Read article',
         },
     },
     ja: {
@@ -968,6 +974,7 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
                 features: '機能',
                 how_it_works: '仕組み',
                 testimonials: 'お客様の声',
+                blog: 'ブログ',
                 login: 'ログイン',
                 get_started: '無料で始める',
             },
@@ -1144,6 +1151,11 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             request_sent_title: '{orgName} へリクエストを送信しました',
             request_pending_desc: '管理者がリクエストを承認するまでお待ちください。承認されると通知が届きます。',
             status_pending: 'ステータス：承認待ち',
+        },
+        blog_index: {
+            title: 'タスクル ブログ',
+            subtitle: 'チームワークをより良くするためのニュース、ガイド、考察。',
+            read_more: '記事を読む',
         },
     },
 };

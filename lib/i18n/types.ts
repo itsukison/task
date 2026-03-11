@@ -426,6 +426,7 @@ export interface TranslationDictionary {
             features: string;
             how_it_works: string;
             testimonials: string;
+            blog: string;
             login: string;
             get_started: string;
         };
@@ -572,5 +573,10 @@ export interface TranslationDictionary {
         request_sent_title: string;
         request_pending_desc: string;
         status_pending: string;
+    };
+    blog_index: {
+        title: string;
+        subtitle: string;
+        read_more: string;
     };
 }

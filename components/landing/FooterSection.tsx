@@ -133,7 +133,7 @@ export const FooterSection: React.FC = () => {
                                             <h4 className="text-sm font-semibold text-gray-900 mb-6">{t('landing.footer.company_title')}</h4>
                                             <ul className="space-y-4">
                                                 {[
-                                                    { label: t('landing.footer.company_items.blog'), href: '#' },
+                                                    { label: t('landing.footer.company_items.blog'), href: '/blog' },
                                                     { label: t('landing.footer.company_items.about'), href: '#' },
                                                     { label: t('landing.footer.company_items.contact'), href: '#' },
                                                     { label: t('landing.footer.company_items.terms'), href: '#' },
