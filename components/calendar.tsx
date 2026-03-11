@@ -14,7 +14,6 @@ import {
   MemberSelector,
 } from './calendar/';
 import { CalendarQuickAddPopover } from './calendar/CalendarQuickAddPopover';
-import { SelectionBox } from '@/components/documents/SelectionBox';
 import { getBlocksWithLayout, BlockLayoutInfo } from './calendar/overlap-layout';
 import { useOrganizationMembers } from '@/lib/hooks/use-organization-members';
 import { useAuth } from '@/lib/auth/hooks';
@@ -75,8 +74,13 @@ const Calendar = React.memo(function Calendar({
   const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [selectionBox, setSelectionBox] = React.useState<{ startX: number; startY: number; currentX: number; currentY: number; } | null>(null);
+  // Lasso selection — only a boolean in React state so children never re-render during drag.
+  // Coordinates live in a ref; the visual box is updated via direct DOM mutation.
+  const [isLassoActive, setIsLassoActive] = React.useState(false);
+  const selectionBoxRef = useRef<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const selectionBoxDivRef = useRef<HTMLDivElement>(null);
   const isDragSelectingRef = useRef(false);
+  const selectionRafRef = useRef<number | null>(null);
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
@@ -282,6 +286,30 @@ const Calendar = React.memo(function Calendar({
     return blocks;
   }, [calendarBlocks, multiMemberBlocks, selectedMemberIds, user?.id, previewBlock, optimisticBlock, quickAdd, currentOrg]);
 
+  // Stable string key: changes only when a block is created, deleted, or time-shifted.
+  // Does NOT change on task title/status edits — prevents redundant O(n²) layout runs.
+  const blockLayoutKey = useMemo(
+    () => allBlocks.map(b => `${b.id}:${b.startTime}:${b.endTime}`).join('|'),
+    [allBlocks]
+  );
+
+  // Pre-compute overlap layout per day, memoized against blockLayoutKey
+  const blocksWithLayoutByDay = useMemo(() => {
+    const byDay = new Map<string, Array<typeof allBlocks[number]>>();
+    allBlocks.forEach(b => {
+      const day = format(new Date(b.startTime), 'yyyy-MM-dd');
+      const list = byDay.get(day) ?? [];
+      list.push(b);
+      byDay.set(day, list);
+    });
+    const result = new Map<string, ReturnType<typeof getBlocksWithLayout>>();
+    byDay.forEach((dayBlocks, day) => result.set(day, getBlocksWithLayout(dayBlocks)));
+    return result;
+  // blockLayoutKey is derived from allBlocks — using it instead of allBlocks directly
+  // skips layout recomputation when only non-layout fields (title, status) change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockLayoutKey]);
+
   // Selection Handlers
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -296,13 +324,9 @@ const Calendar = React.memo(function Calendar({
     const startX = e.clientX - rect.left;
     const startY = e.clientY - rect.top;
 
-    setSelectionBox({
-      startX,
-      startY,
-      currentX: startX,
-      currentY: startY,
-    });
+    selectionBoxRef.current = { startX, startY, currentX: startX, currentY: startY };
     isDragSelectingRef.current = true;
+    setIsLassoActive(true); // one React state update — mounts the selection box div
 
     if (!e.shiftKey && !e.metaKey && !e.ctrlKey && onSelectBlocks) {
       onSelectBlocks(new Set());
@@ -310,49 +334,63 @@ const Calendar = React.memo(function Calendar({
   }, [bodyScrollRef, onSelectBlocks]);
 
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragSelectingRef.current || !selectionBox || !bodyScrollRef.current) return;
+    if (!isDragSelectingRef.current || !selectionBoxRef.current || !bodyScrollRef.current) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
+    const box = selectionBoxRef.current;
+    box.currentX = e.clientX - rect.left;
+    box.currentY = e.clientY - rect.top;
 
-    const newBox = { ...selectionBox, currentX, currentY };
-    setSelectionBox(newBox);
+    // Update the selection box visually via direct DOM mutation — zero React re-renders
+    const el = selectionBoxDivRef.current;
+    if (el) {
+      const left = Math.min(box.startX, box.currentX);
+      const top = Math.min(box.startY, box.currentY);
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
+      el.style.width = `${Math.abs(box.currentX - box.startX)}px`;
+      el.style.height = `${Math.abs(box.currentY - box.startY)}px`;
+    }
 
     if (!onSelectBlocks) return;
 
-    const left = Math.min(newBox.startX, newBox.currentX);
-    const right = Math.max(newBox.startX, newBox.currentX);
-    const top = Math.min(newBox.startY, newBox.currentY);
-    const bottom = Math.max(newBox.startY, newBox.currentY);
+    // Throttle block hit-testing to one update per animation frame
+    const left = Math.min(box.startX, box.currentX);
+    const right = Math.max(box.startX, box.currentX);
+    const top = Math.min(box.startY, box.currentY);
+    const bottom = Math.max(box.startY, box.currentY);
 
-    const colWidth = dayColumnWidth;
-    const newSelected = new Set<string>();
+    if (selectionRafRef.current !== null) return;
+    selectionRafRef.current = requestAnimationFrame(() => {
+      selectionRafRef.current = null;
 
-    allBlocks.forEach(block => {
-      const dateStr = format(new Date(block.startTime), 'yyyy-MM-dd');
-      const dayIndex = displayedDays.findIndex(d => format(d, 'yyyy-MM-dd') === dateStr);
-      if (dayIndex < 0) return;
+      const colWidth = dayColumnWidth;
+      const newSelected = new Set<string>();
 
-      const start = new Date(block.startTime);
-      const end = new Date(block.endTime);
-      const duration = (end.getTime() - start.getTime()) / 60000;
+      allBlocks.forEach(block => {
+        const dateStr = format(new Date(block.startTime), 'yyyy-MM-dd');
+        const dayIndex = displayedDays.findIndex(d => format(d, 'yyyy-MM-dd') === dateStr);
+        if (dayIndex < 0) return;
 
-      const blockTop = ((start.getHours() - startHour) * 60 + start.getMinutes()) * (hourHeight / 60);
-      const blockBottom = blockTop + duration * (hourHeight / 60);
+        const start = new Date(block.startTime);
+        const end = new Date(block.endTime);
+        const duration = (end.getTime() - start.getTime()) / 60000;
 
-      const actualColWidth = view === 'week' ? colWidth : rect.width;
-      const blockLeft = dayIndex * actualColWidth;
-      const blockRight = blockLeft + actualColWidth;
+        const blockTop = ((start.getHours() - startHour) * 60 + start.getMinutes()) * (hourHeight / 60);
+        const blockBottom = blockTop + duration * (hourHeight / 60);
 
-      // Simple rect intersection
-      if (!(blockRight < left || blockLeft > right || blockBottom < top || blockTop > bottom)) {
-        newSelected.add(block.id);
-      }
+        const actualColWidth = view === 'week' ? colWidth : rect.width;
+        const blockLeft = dayIndex * actualColWidth;
+        const blockRight = blockLeft + actualColWidth;
+
+        if (!(blockRight < left || blockLeft > right || blockBottom < top || blockTop > bottom)) {
+          newSelected.add(block.id);
+        }
+      });
+
+      onSelectBlocks(newSelected);
     });
-
-    onSelectBlocks(newSelected);
-  }, [selectionBox, view, allBlocks, displayedDays, hourHeight, startHour, onSelectBlocks, dayColumnWidth]);
+  }, [view, allBlocks, displayedDays, hourHeight, startHour, onSelectBlocks, dayColumnWidth]);
 
   React.useEffect(() => {
     if (!onDayViewportWidthChange || !bodyScrollRef.current) return;
@@ -373,7 +411,12 @@ const Calendar = React.memo(function Calendar({
 
   const handleCanvasMouseUp = useCallback(() => {
     isDragSelectingRef.current = false;
-    setSelectionBox(null);
+    selectionBoxRef.current = null;
+    if (selectionRafRef.current !== null) {
+      cancelAnimationFrame(selectionRafRef.current);
+      selectionRafRef.current = null;
+    }
+    setIsLassoActive(false); // one React state update — unmounts the selection box div
   }, []);
 
   return (
@@ -531,21 +574,16 @@ const Calendar = React.memo(function Calendar({
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseUp}
             >
-              {selectionBox && (
-                <SelectionBox
-                  startX={selectionBox.startX}
-                  startY={selectionBox.startY}
-                  currentX={selectionBox.currentX}
-                  currentY={selectionBox.currentY}
+              {isLassoActive && (
+                <div
+                  ref={selectionBoxDivRef}
+                  className="absolute border-2 border-[var(--color-accent)] bg-[var(--color-accent)]/10 pointer-events-none z-50 rounded"
+                  style={{ left: 0, top: 0, width: 0, height: 0 }}
                 />
               )}
               {displayedDays.map((date) => {
                 const dateStr = format(date, 'yyyy-MM-dd');
-                const dayBlocks = allBlocks.filter((b) => {
-                  const blockDate = format(new Date(b.startTime), 'yyyy-MM-dd');
-                  return blockDate === dateStr;
-                });
-                const blocksWithLayout = getBlocksWithLayout(dayBlocks);
+                const blocksWithLayout = blocksWithLayoutByDay.get(dateStr) ?? [];
 
                 return (
                   <CalendarDayColumn

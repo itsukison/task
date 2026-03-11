@@ -9,12 +9,13 @@ import { CellProps } from '../types';
  * Timer-enabled number cell for tracking actual time
  * Displays number value with play/pause button on hover
  */
-export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps) {
+export const TimerNumberCell = React.memo(function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps) {
     const [isRunning, setIsRunning] = useState(false);
     const [localValue, setLocalValue] = useState<number>(typeof value === 'number' ? value : 0);
     const [isEditing, setIsEditing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const timerRef = useRef<number | null>(null);
+    const localValueRef = useRef(localValue);
 
     // Sync local value when props change (unless running, where local state rules)
     useEffect(() => {
@@ -22,6 +23,9 @@ export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps)
             setLocalValue(typeof value === 'number' ? value : 0);
         }
     }, [value, isRunning]);
+
+    // Keep ref in sync so the interval closure can read current value
+    useEffect(() => { localValueRef.current = localValue; }, [localValue]);
 
     // Initialize from local storage
     useEffect(() => {
@@ -51,34 +55,31 @@ export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps)
         }
     }, [rowId, columnId]);
 
-    // Timer interval
+    // Timer interval — only restarts when isRunning/rowId/columnId change, not on every tick
     useEffect(() => {
-        if (isRunning) {
-            timerRef.current = window.setInterval(() => {
-                const timerKey = `timer_${rowId}_${columnId}`;
-                const savedState = localStorage.getItem(timerKey);
-
-                if (savedState) {
-                    const { startTime, startBaseValue } = JSON.parse(savedState);
-                    const elapsedMinutes = Math.floor((Date.now() - startTime) / 60000);
-                    const newValue = startBaseValue + elapsedMinutes;
-
-                    // Only update if the value actually changed to prevent flickering
-                    if (newValue !== localValue) {
-                        setLocalValue(newValue);
-                        // Update database
-                        onChange(rowId, columnId, newValue);
-                    }
-                }
-            }, 10000); // Check every 10 seconds to reduce flickering
-        }
-
-        return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
+        if (!isRunning) return;
+        timerRef.current = window.setInterval(() => {
+            const timerKey = `timer_${rowId}_${columnId}`;
+            const savedState = localStorage.getItem(timerKey);
+            if (!savedState) return;
+            const { startTime, startBaseValue } = JSON.parse(savedState);
+            const newValue = startBaseValue + Math.floor((Date.now() - startTime) / 60000);
+            if (newValue !== localValueRef.current) {
+                localValueRef.current = newValue;
+                setLocalValue(newValue);
+                // DB write deferred to pause
             }
-        };
-    }, [isRunning, rowId, columnId, onChange, localValue]);
+        }, 10000);
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }, [isRunning, rowId, columnId]);
+
+    // Flush to DB on tab close while running
+    useEffect(() => {
+        if (!isRunning) return;
+        const flush = () => onChange(rowId, columnId, localValueRef.current);
+        window.addEventListener('beforeunload', flush);
+        return () => window.removeEventListener('beforeunload', flush);
+    }, [isRunning, rowId, columnId, onChange]);
 
     const handlePlayPause = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -120,7 +121,6 @@ export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps)
         }
     };
 
-    // UI helper: format number or placeholder
     const displayValue = localValue;
 
     return (
@@ -138,7 +138,7 @@ export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps)
                 />
             ) : (
                 <div
-                    className="w-full h-full px-2 py-1.5 text-sm cursor-text flex items-center justify-start gap-2"
+                    className="w-full h-full px-1.5 py-1.5 text-sm cursor-text flex items-center justify-start gap-1"
                     onClick={() => !isRunning && setIsEditing(true)}
                 >
                     {/* Timer button - visible on hover or when running, aligned to left */}
@@ -166,4 +166,4 @@ export function TimerNumberCell({ value, rowId, columnId, onChange }: CellProps)
             )}
         </div>
     );
-}
+});

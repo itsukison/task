@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
  * Displays: [Timer Button] actual / estimated min
  * Timer controls actual time, both values are inline editable
  */
-export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps) {
+function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) {
     // Value is expected to be the row object with actualTime and expectedTime
     const row = value as any;
     // Data might come as camelCase (transformed) or snake_case (raw DB)
@@ -22,13 +22,13 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
     const [localActual, setLocalActual] = useState(actualTime);
     const [localExpected, setLocalExpected] = useState(expectedTime);
     const localExpectedRef = useRef(localExpected);
+    const localActualRef = useRef(localActual);
     const isSelectingRef = useRef(false);
     const [editingField, setEditingField] = useState<'actual' | 'expected' | null>(null);
 
-    // Keep ref in sync for the blur handler closure
-    useEffect(() => {
-        localExpectedRef.current = localExpected;
-    }, [localExpected]);
+    // Keep refs in sync for closure access
+    useEffect(() => { localExpectedRef.current = localExpected; }, [localExpected]);
+    useEffect(() => { localActualRef.current = localActual; }, [localActual]);
     const actualInputRef = useRef<HTMLInputElement>(null);
     const expectedInputRef = useRef<HTMLInputElement>(null);
     const timerRef = useRef<number | null>(null);
@@ -67,32 +67,31 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
         }
     }, [rowId]);
 
-    // Timer interval
+    // Timer interval — only restarts when isRunning or rowId changes, not on every tick
     useEffect(() => {
-        if (isRunning) {
-            timerRef.current = window.setInterval(() => {
-                const timerKey = `timer_${rowId}_actualTime`;
-                const savedState = localStorage.getItem(timerKey);
-
-                if (savedState) {
-                    const { startTime, startBaseValue } = JSON.parse(savedState);
-                    const elapsedMinutes = Math.floor((Date.now() - startTime) / 60000);
-                    const newValue = startBaseValue + elapsedMinutes;
-
-                    if (newValue !== localActual) {
-                        setLocalActual(newValue);
-                        onChange(rowId, 'actualTime', newValue);
-                    }
-                }
-            }, 10000); // Check every 10 seconds
-        }
-
-        return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
+        if (!isRunning) return;
+        timerRef.current = window.setInterval(() => {
+            const timerKey = `timer_${rowId}_actualTime`;
+            const savedState = localStorage.getItem(timerKey);
+            if (!savedState) return;
+            const { startTime, startBaseValue } = JSON.parse(savedState);
+            const newValue = startBaseValue + Math.floor((Date.now() - startTime) / 60000);
+            if (newValue !== localActualRef.current) {
+                localActualRef.current = newValue;
+                setLocalActual(newValue);
+                // DB write deferred to pause
             }
-        };
-    }, [isRunning, rowId, onChange, localActual]);
+        }, 10000);
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }, [isRunning, rowId]);
+
+    // Flush to DB on tab close while running
+    useEffect(() => {
+        if (!isRunning) return;
+        const flush = () => onChange(rowId, 'actualTime', localActualRef.current);
+        window.addEventListener('beforeunload', flush);
+        return () => window.removeEventListener('beforeunload', flush);
+    }, [isRunning, rowId, onChange]);
 
     const handlePlayPause = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -159,20 +158,20 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
     };
 
     return (
-        <div className="relative w-full h-full group flex items-center justify-start gap-2 px-2 py-1.5">
+        <div className="relative w-full h-full group flex items-center justify-start gap-0.5 px-1 py-1.5">
             {/* Timer button - visible on hover or when running */}
             <button
                 className={cn(
-                    'flex items-center justify-center w-6 h-6 rounded transition-opacity flex-shrink-0',
+                    'flex items-center justify-center w-4 h-4 rounded transition-opacity flex-shrink-0',
                     isRunning ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 )}
                 onClick={handlePlayPause}
                 title={isRunning ? 'Pause timer' : 'Start timer'}
             >
                 {isRunning ? (
-                    <Pause size={12} className="text-accent fill-current" />
+                    <Pause size={10} className="text-accent fill-current" />
                 ) : (
-                    <Play size={12} className="text-[#9e9e9e]" />
+                    <Play size={10} className="text-[#9e9e9e]" />
                 )}
             </button>
 
@@ -257,3 +256,14 @@ export function CombinedTimeCell({ value, rowId, columnId, onChange }: CellProps
         </div>
     );
 }
+
+export const CombinedTimeCell = React.memo(
+    CombinedTimeCellInner,
+    (prev, next) => {
+        const p = prev.value as any, n = next.value as any;
+        return prev.rowId === next.rowId &&
+            p?.actualTime === n?.actualTime &&
+            p?.expectedTime === n?.expectedTime &&
+            prev.onChange === next.onChange;
+    }
+);

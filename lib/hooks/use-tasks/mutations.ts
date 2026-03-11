@@ -73,11 +73,47 @@ export function useCreateTask() {
       return result;
     },
     {
-      onSuccess: () => {
-        // Invalidate tasks query
-        queryClient.invalidateQueries({
-          queryKey: [...queryKeys.tasks.byUser(currentOrg?.id || '', user?.id || '')]
-        });
+      onMutate: async (input: CreateTaskInput) => {
+        const queryKey = [...queryKeys.tasks.byUser(currentOrg?.id || '', user?.id || '')];
+        await queryClient.cancelQueries({ queryKey });
+        const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
+
+        const tempId = `temp_${Date.now()}`;
+        const tempTask: Task = {
+          id: tempId,
+          title: input.title,
+          description: input.description ?? null,
+          status: input.status || 'planned',
+          expectedTime: input.expectedTime,
+          actualTime: 0,
+          visibility: input.visibility || (profile as any)?.default_task_visibility || 'team',
+          owners: user && profile ? [{ id: user.id, display_name: (profile as any).display_name || '', email: user.email || '', status: 'confirmed' as const }] : [],
+          ownerId: user?.id || '',
+          organizationId: currentOrg?.id || '',
+          scheduledDate: input.scheduledDate ?? null,
+          parentTaskId: input.parentTaskId ?? null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        queryClient.setQueryData<Task[]>(queryKey, (old) => [tempTask, ...(old || [])]);
+        return { previousTasks, tempId };
+      },
+      onSuccess: (result: any, _vars: any, context: any) => {
+        const queryKey = [...queryKeys.tasks.byUser(currentOrg?.id || '', user?.id || '')];
+        const realRow = result?.data?.[0];
+        if (realRow && context?.tempId) {
+          queryClient.setQueryData<Task[]>(queryKey, (old) =>
+            (old || []).map(t => t.id === context.tempId ? rpcToTask(realRow as RpcTaskData) : t)
+          );
+        }
+        queryClient.invalidateQueries({ queryKey });
+      },
+      onError: (_err: any, _vars: any, context: any) => {
+        if (context?.previousTasks) {
+          const queryKey = [...queryKeys.tasks.byUser(currentOrg?.id || '', user?.id || '')];
+          queryClient.setQueryData(queryKey, context.previousTasks);
+        }
       },
     }
   );

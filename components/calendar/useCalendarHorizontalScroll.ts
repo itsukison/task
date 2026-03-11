@@ -27,12 +27,8 @@ export function useCalendarHorizontalScroll({
     const isInfiniteScrollingRef = useRef(false);
     const previousViewDateRef = useRef<Date | null>(null);
 
-    // Track first visible column index (integer) for snap & resize stability
+    // Track first visible column index (integer) for resize stability
     const firstVisibleColRef = useRef(7);
-
-    // Snap state
-    const isSnappingRef = useRef(false);
-    const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Resize state
     const isResizingRef = useRef(false);
@@ -61,23 +57,6 @@ export function useCalendarHorizontalScroll({
 
         return days;
     }, [viewDate, view]);
-
-    // Helper: snap scroll position to nearest column boundary
-    const snapToNearestColumn = useCallback((el: HTMLDivElement) => {
-        const nearestCol = Math.round(el.scrollLeft / dayColumnWidth);
-        const targetLeft = nearestCol * dayColumnWidth;
-
-        if (Math.abs(el.scrollLeft - targetLeft) > 2) {
-            isSnappingRef.current = true;
-            el.scrollTo({ left: targetLeft, behavior: 'smooth' });
-        }
-
-        firstVisibleColRef.current = nearestCol;
-
-        if (headerScrollRef.current) {
-            headerScrollRef.current.scrollLeft = el.scrollLeft;
-        }
-    }, [dayColumnWidth]);
 
     // Adjust scroll position when viewDate or scrollAlignment changes
     useLayoutEffect(() => {
@@ -151,13 +130,8 @@ export function useCalendarHorizontalScroll({
         const handleResize = () => {
             if (!el) return;
 
-            // Suppress snap logic during and briefly after resize
+            // Suppress scroll-triggered week changes during and briefly after resize
             isResizingRef.current = true;
-            isSnappingRef.current = false;
-            if (snapTimerRef.current) {
-                clearTimeout(snapTimerRef.current);
-                snapTimerRef.current = null;
-            }
             if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
             resizeTimeoutRef.current = setTimeout(() => {
                 isResizingRef.current = false;
@@ -176,7 +150,6 @@ export function useCalendarHorizontalScroll({
     // Clean up timers on unmount
     useEffect(() => {
         return () => {
-            if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
             if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
         };
     }, []);
@@ -195,20 +168,6 @@ export function useCalendarHorizontalScroll({
 
         firstVisibleColRef.current = scrollLeft / dayColumnWidth;
 
-        if (snapTimerRef.current) {
-            clearTimeout(snapTimerRef.current);
-            snapTimerRef.current = null;
-        }
-
-        if (isSnappingRef.current) {
-            const nearestCol = Math.round(scrollLeft / dayColumnWidth);
-            const targetLeft = nearestCol * dayColumnWidth;
-            if (Math.abs(scrollLeft - targetLeft) <= 2) {
-                isSnappingRef.current = false;
-            }
-            return;
-        }
-
         const maxScrollLeft = Math.max(0, body.scrollWidth - body.clientWidth);
         const edgeBuffer = Math.max(dayColumnWidth * 0.75, body.clientWidth * 0.15);
         const leftThreshold = edgeBuffer;
@@ -223,14 +182,7 @@ export function useCalendarHorizontalScroll({
             onViewDateChange(addWeeks(viewDate, 1));
             return;
         }
-
-        snapTimerRef.current = setTimeout(() => {
-            snapTimerRef.current = null;
-            if (!isInfiniteScrollingRef.current && bodyScrollRef.current) {
-                snapToNearestColumn(bodyScrollRef.current);
-            }
-        }, 150);
-    }, [viewDate, onViewDateChange, snapToNearestColumn, dayColumnWidth]);
+    }, [viewDate, onViewDateChange, dayColumnWidth]);
 
     return {
         allDisplayedDays,

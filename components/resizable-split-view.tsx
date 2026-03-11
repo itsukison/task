@@ -24,37 +24,64 @@ export default function ResizableSplitView({
     onLayoutChange,
 }: ResizableSplitViewProps) {
     const [overlayWidthPercent, setOverlayWidthPercent] = useState<number>(50);
-    const [isDragging, setIsDragging] = useState(false);
     const [collapsedSide, setCollapsedSide] = useState<'left' | 'right' | null>(null);
-    const [isHoveringDivider, setIsHoveringDivider] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
+    const handleRef = useRef<HTMLDivElement>(null);
+
+    // Ref-based drag flag — avoids re-rendering children on every drag start/stop
+    const isDraggingRef = useRef(false);
+    // Tracks current width during drag so stopResize can commit to state once
+    const liveWidthRef = useRef(overlayWidthPercent);
+
+    // Apply position directly to DOM — no React re-render per pixel
+    const applyWidth = useCallback((pct: number) => {
+        liveWidthRef.current = pct;
+        if (overlayRef.current) overlayRef.current.style.width = `${pct}%`;
+        if (handleRef.current) handleRef.current.style.right = `${pct}%`;
+    }, []);
 
     const startResize = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
-        setIsDragging(true);
+        isDraggingRef.current = true;
+        // Suppress CSS transition during drag for 1:1 mouse tracking
+        if (overlayRef.current) overlayRef.current.style.transition = 'none';
+        if (handleRef.current) handleRef.current.style.transition = 'none';
+        // Apply cursor globally so it persists while pointer moves over children
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
     }, []);
 
     const stopResize = useCallback(() => {
-        setIsDragging(false);
+        if (!isDraggingRef.current) return;
+        isDraggingRef.current = false;
+        // Restore transitions and cursor
+        if (overlayRef.current) overlayRef.current.style.transition = '';
+        if (handleRef.current) handleRef.current.style.transition = '';
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        // Commit final position to React state exactly once
+        setOverlayWidthPercent(liveWidthRef.current);
     }, []);
 
     const resize = useCallback((e: MouseEvent) => {
-        if (isDragging && containerRef.current) {
-            const containerRect = containerRef.current.getBoundingClientRect();
-            const relativeX = e.clientX - containerRect.left;
-            const newOverlayWidth = ((containerRect.width - relativeX) / containerRect.width) * 100;
+        if (!isDraggingRef.current || !containerRef.current) return;
 
-            // Enforce pixel-based min widths for both layers (calendar remains full-size under overlay)
-            const overlayPx = (newOverlayWidth / 100) * containerRect.width;
-            const visibleCalendarPx = containerRect.width - overlayPx;
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const relativeX = e.clientX - containerRect.left;
+        const newOverlayWidth = ((containerRect.width - relativeX) / containerRect.width) * 100;
 
-            if (visibleCalendarPx >= leftMinWidth && overlayPx >= rightMinWidth && newOverlayWidth > 0 && newOverlayWidth < 100) {
-                setCollapsedSide(null);
-                setOverlayWidthPercent(newOverlayWidth);
-            }
+        const overlayPx = (newOverlayWidth / 100) * containerRect.width;
+        const visibleCalendarPx = containerRect.width - overlayPx;
+
+        if (visibleCalendarPx >= leftMinWidth && overlayPx >= rightMinWidth && newOverlayWidth > 0 && newOverlayWidth < 100) {
+            applyWidth(newOverlayWidth);
         }
-    }, [isDragging, leftMinWidth, rightMinWidth]);
+    // leftMinWidth and rightMinWidth are stable props — safe to omit from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [applyWidth]);
 
+    // Register listeners once — resize/stopResize are now stable
     useEffect(() => {
         window.addEventListener('mousemove', resize);
         window.addEventListener('mouseup', stopResize);
@@ -107,7 +134,7 @@ export default function ResizableSplitView({
     }, [collapsedSide, computedOverlayWidth, onLayoutChange]);
 
     return (
-        <div ref={containerRef} className={`h-full w-full overflow-hidden relative group/split ${isDragging ? 'select-none cursor-col-resize' : ''}`}>
+        <div ref={containerRef} className="h-full w-full overflow-hidden relative group/split">
 
             {/* Restore Button Left (When Left is Collapsed) */}
             <button
@@ -130,37 +157,35 @@ export default function ResizableSplitView({
             </button>
 
             {/* Calendar Layer (always full-size) */}
-            <div
-                className="absolute inset-0 z-0"
-            >
+            <div className="absolute inset-0 z-0">
                 <div className="w-full h-full">
                     {left}
                 </div>
             </div>
 
-            {/* Task Overlay Layer */}
+            {/* Task Overlay Layer — width mutated directly during drag, React state on release */}
             <div
+                ref={overlayRef}
                 style={{ width: `${computedOverlayWidth}%` }}
-                className={`absolute right-0 top-0 h-full z-20 bg-white border-l border-[#E9E9E7] overflow-hidden ${isDragging ? '' : 'transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]'}`}
+                className="absolute right-0 top-0 h-full z-20 bg-white border-l border-[#E9E9E7] overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
             >
                 <div className="w-full h-full min-w-[300px]">
                     {right}
                 </div>
             </div>
 
-            {/* Resizer Handle - anchored to overlay's left edge */}
+            {/* Resizer Handle — right position mutated directly during drag */}
             <div
+                ref={handleRef}
                 style={{ right: `${computedOverlayWidth}%` }}
-                className={`absolute top-0 h-full w-4 -mr-2 hover:cursor-col-resize flex flex-col justify-center items-center z-50 ${isDragging ? '' : 'transition-all duration-300'} ${collapsedSide ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                className={`absolute top-0 h-full w-4 -mr-2 hover:cursor-col-resize flex flex-col justify-center items-center z-50 group/divider transition-all duration-300 ${collapsedSide ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                 onMouseDown={startResize}
-                onMouseEnter={() => setIsHoveringDivider(true)}
-                onMouseLeave={() => setIsHoveringDivider(false)}
             >
-                {/* Divider Line */}
-                <div className={`w-[2px] h-full transition-colors duration-300 ${isDragging || isHoveringDivider ? 'bg-accent' : 'bg-[#E9E9E7]'}`}></div>
+                {/* Divider Line — color driven by CSS group-hover, no React state needed */}
+                <div className="w-[2px] h-full transition-colors duration-300 bg-[#E9E9E7] group-hover/divider:bg-accent"></div>
 
                 {/* Collapse Buttons */}
-                <div className={`absolute top-0 left-1/2 -translate-x-1/2 flex items-center justify-center gap-0 transition-opacity duration-200 ${isHoveringDivider ? 'opacity-100' : 'opacity-0'}`}>
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 flex items-center justify-center gap-0 transition-opacity duration-200 opacity-0 group-hover/divider:opacity-100">
                     <button
                         className="text-gray-400 hover:text-accent transition-colors p-0.5"
                         onClick={(e) => { e.stopPropagation(); handleCollapseLeft(); }}

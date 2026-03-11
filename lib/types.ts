@@ -282,7 +282,7 @@ export interface EditableTableProps<T extends { id: string }> {
     data: T[];
     columns: TableColumn<T>[];
     onCellChange: (rowId: string, columnId: string, value: unknown) => void;
-    onAddRow: () => Promise<T | void> | T | void;
+    onAddRow: () => Promise<{ id: string } | void> | { id: string } | void;
     onRowClick?: (row: T) => void;
     onOpenRow?: (rowId: string) => void;
     onDragStart?: (rowId: string) => void;

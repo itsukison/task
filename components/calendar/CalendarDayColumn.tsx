@@ -73,59 +73,68 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   const [optimisticResizeBlock, setOptimisticResizeBlock] = useState<{ blockId: string, height: number } | null>(null);
   const resizeRef = useRef<{ startY: number, startHeight: number, expectedTime: number, startTime: Date, taskId: string } | null>(null);
 
-  // Global resize handlers
+  // Refs for values used inside resize handlers — prevents listener re-registration on every render
+  const tasksRef = useRef(tasks);
+  const onUpdateTaskRef = useRef(onUpdateTask);
+  const onUpdateBlockRef = useRef(onUpdateBlock);
+  const hourHeightRef = useRef(hourHeight);
+  const snapIntervalRef = useRef(snapInterval);
+  const resizeHeightRef = useRef(resizeHeight);
+  useEffect(() => {
+    tasksRef.current = tasks;
+    onUpdateTaskRef.current = onUpdateTask;
+    onUpdateBlockRef.current = onUpdateBlock;
+    hourHeightRef.current = hourHeight;
+    snapIntervalRef.current = snapInterval;
+    resizeHeightRef.current = resizeHeight;
+  }); // no dep array — cheap sync on every render
+
+  // Global resize handlers — dep array is [resizingBlockId] only; all other values read via refs
   useEffect(() => {
     if (!resizingBlockId) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizeRef.current) return;
 
+      const hh = hourHeightRef.current;
+      const snap = snapIntervalRef.current;
       const deltaY = e.clientY - resizeRef.current.startY;
-      // 15 mins = 16px (64px per hour) at default
-      // Snap to 15 mins
-      const rawCurrentHeight = Math.max(resizeRef.current.startHeight + deltaY, 15); // min 15px visual
+      const rawCurrentHeight = Math.max(resizeRef.current.startHeight + deltaY, 15);
 
-      // Calculate minutes for snapping
-      const minutes = Math.round((rawCurrentHeight / (hourHeight / 60)) / snapInterval) * snapInterval;
-      const snappedHeight = minutes * (hourHeight / 60);
+      const minutes = Math.round((rawCurrentHeight / (hh / 60)) / snap) * snap;
+      const snappedHeight = minutes * (hh / 60);
 
-      setResizeHeight(Math.max(snappedHeight, Math.max(16, (snapInterval * (hourHeight / 60))))); // Min one snap interval
+      setResizeHeight(Math.max(snappedHeight, Math.max(16, snap * (hh / 60))));
     };
 
     const handleMouseUp = () => {
-      if (resizingBlockId && resizeRef.current && onUpdateBlock) {
-        const currentHeight = resizeHeight ?? resizeRef.current.startHeight;
-        const durationMinutes = Math.round(currentHeight / (hourHeight / 60));
+      const hh = hourHeightRef.current;
+      if (resizingBlockId && resizeRef.current && onUpdateBlockRef.current) {
+        const currentHeight = resizeHeightRef.current ?? resizeRef.current.startHeight;
+        const durationMinutes = Math.round(currentHeight / (hh / 60));
 
         const endTime = new Date(resizeRef.current.startTime);
         endTime.setMinutes(endTime.getMinutes() + durationMinutes);
 
-        // Update calendar block duration
-        onUpdateBlock(resizingBlockId, resizeRef.current.startTime, endTime);
+        onUpdateBlockRef.current(resizingBlockId, resizeRef.current.startTime, endTime);
 
-        // Update task expectedTime if it changed
-        if (onUpdateTask && durationMinutes !== resizeRef.current.expectedTime) {
-          const task = tasks.find(t => t.id === resizeRef.current?.taskId);
+        if (onUpdateTaskRef.current && durationMinutes !== resizeRef.current.expectedTime) {
+          const task = tasksRef.current.find(t => t.id === resizeRef.current?.taskId);
           if (task) {
-            onUpdateTask({
-              ...task,
-              expectedTime: durationMinutes
-            });
+            onUpdateTaskRef.current({ ...task, expectedTime: durationMinutes });
           }
         }
 
-        // Flag that we just resized to prevent modal from opening
         setJustResized(true);
         setTimeout(() => setJustResized(false), 100);
       }
 
-      // Store optimistic resize state to keep block at new height
-      if (resizeHeight !== null && resizingBlockId) {
-        setOptimisticResizeBlock({ blockId: resizingBlockId, height: resizeHeight });
+      const finalHeight = resizeHeightRef.current;
+      if (finalHeight !== null && resizingBlockId) {
+        setOptimisticResizeBlock({ blockId: resizingBlockId, height: finalHeight });
       }
 
       setResizingBlockId(null);
-      // Clear optimistic state after data propagates
       setTimeout(() => {
         setResizeHeight(null);
         setOptimisticResizeBlock(null);
@@ -141,7 +150,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizingBlockId, resizeHeight, onUpdateBlock, onUpdateTask, tasks, hourHeight]); // Added dependencies for useEffect
+  }, [resizingBlockId]); // resizeHeight removed — read via resizeHeightRef to prevent listener churn during resize
 
   const handleResizeStart = (e: React.MouseEvent, block: CalendarBlock | MultiMemberBlock, task: Task) => {
     e.stopPropagation();
@@ -314,7 +323,9 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           // Use embedded task from block (for multi-member mode) or fallback to tasks array
           const task = block.task || tasks.find(t => t.id === block.taskId);
           if (!task) {
-            console.warn('⚠️ Block has no task data:', { blockId: block.id, taskId: block.taskId, startTime: block.startTime, hasEmbeddedTask: !!block.task });
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('⚠️ Block has no task data:', { blockId: block.id, taskId: block.taskId, startTime: block.startTime, hasEmbeddedTask: !!block.task });
+            }
             return null;
           }
 

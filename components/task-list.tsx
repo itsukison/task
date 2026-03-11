@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { EditableTable, TableColumn, ColumnOption, SortConfig } from './editable-table';
 import { Task, TaskStatus, TaskListProps, PeopleOption, AssignmentStatus } from '@/lib/types';
@@ -61,27 +62,27 @@ function getTaskColumns(orgMembers: PeopleOption[], customColumns: any[], t: any
             width: 280,
             minWidth: 150,
         },
-        {
-            id: 'status',
-            label: t('headers.status'),
-            dataType: 'select',
-            width: 140,
-            minWidth: 100,
-            options: STATUS_OPTIONS,
-        },
+        // {
+        //     id: 'status',
+        //     label: t('headers.status'),
+        //     dataType: 'select',
+        //     width: 140,
+        //     minWidth: 100,
+        //     options: STATUS_OPTIONS,
+        // },
         {
             id: 'time',
             label: t('headers.time'),
             dataType: 'combinedTime',
             width: 150,
-            minWidth: 120,
+            minWidth: 110,
         },
         {
             id: 'ownerIds',  // Array of user IDs
             label: t('headers.owner'),
             dataType: 'people',
             width: 200,
-            minWidth: 150,
+            minWidth: 80,
             peopleOptions: orgMembers,
         },
     ];
@@ -124,7 +125,10 @@ export default function TaskList({
     const [showHiddenColumnsMenu, setShowHiddenColumnsMenu] = useState(false);
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
-    const [collapsedViewportHeight, setCollapsedViewportHeight] = useState(420);
+    
+    // Decouple task list viewport from external date to prevent shifting on internal clicks
+    const [anchorDate, setAnchorDate] = useState<Date>(selectedDate);
+    const [scrollToDateKey, setScrollToDateKey] = useState<string | null>(null);
     // Fetch organization members for people picker
     const { members: orgMembers } = useOrganizationMembers();
     // Get custom columns and preferences from user preferences
@@ -202,22 +206,20 @@ export default function TaskList({
 
     const daySectionsScrollRef = useRef<HTMLDivElement>(null);
     const daySectionsViewportRef = useRef<HTMLDivElement>(null);
-    const daySectionRefs = useRef<Map<string, HTMLElement>>(new Map());
     const lastFocusedDayKeyRef = useRef<string | null>(null);
-    const hasAutoPositionedRef = useRef(false);
-    const lastAutoPositionedDateRef = useRef<string | null>(null);
-    const collapsedTopFadePx = 18;
-    const collapsedBottomFadePx = 132;
+    const collapsedTopFadePx = 8;
+    const collapsedBottomFadePx = 80;
+    const collapsedContentGapPx = 20;
 
     const dayRange = useMemo(() => {
         return Array.from({ length: 61 }, (_, index) => {
-            const date = addDays(selectedDate, index - 30);
+            const date = addDays(anchorDate, index - 30);
             return {
                 date,
                 dateKey: formatDateToLocalISO(date),
             };
         });
-    }, [selectedDate]);
+    }, [anchorDate]);
 
     const dayTitleFormatter = useMemo(() => {
         return new Intl.DateTimeFormat(undefined, {
@@ -365,32 +367,64 @@ export default function TaskList({
         return selectedSection?.tasks.length ?? 0;
     }, [daySections, selectedDateKey]);
 
+    // Derive collapsed viewport height from task count — avoids DOM measurement
+    const collapsedViewportHeight = useMemo(() => {
+        // Non-row section height: title(20) + table header(42) + New button(36) + padding(12) = 110px
+        const sectionContent = 110 + selectedDayTaskCount * 36;
+        const estimated = collapsedTopFadePx + sectionContent + collapsedContentGapPx + collapsedBottomFadePx;
+        return estimated;
+    }, [selectedDayTaskCount, collapsedTopFadePx, collapsedContentGapPx, collapsedBottomFadePx]);
+
+    const rowVirtualizer = useVirtualizer({
+        count: daySections.length,
+        getScrollElement: () => daySectionsScrollRef.current,
+        estimateSize: (index) => {
+            const count = daySections[index]?.tasks.length ?? 0;
+            return 110 + count * 36;
+        },
+        overscan: 3,
+        getItemKey: (index) => daySections[index].dateKey,
+    });
+
+    // Scroll to selected day whenever the date changes externally
     useEffect(() => {
-        if (isExpanded) return;
+        // If the date change was initiated by interacting with a task list section, don't auto-scroll
+        if (lastFocusedDayKeyRef.current === selectedDateKey) {
+            lastFocusedDayKeyRef.current = null;
+            return;
+        }
 
-        const container = daySectionsScrollRef.current;
-        const viewport = daySectionsViewportRef.current;
-        const target = daySectionRefs.current.get(selectedDateKey);
-        if (!container || !target) return;
+        // External change (e.g. from calendar): Update anchor to center viewport and queue scroll
+        setAnchorDate(selectedDate);
+        setScrollToDateKey(selectedDateKey);
+    }, [selectedDate, selectedDateKey]);
 
-        const containerRect = container.getBoundingClientRect();
-        const targetRect = target.getBoundingClientRect();
-        const targetOffsetTop = targetRect.top - containerRect.top + container.scrollTop;
-        const measuredTargetHeight = target.offsetHeight;
-        const availableHeight = viewport?.clientHeight ?? 0;
-        const desiredHeight = measuredTargetHeight + collapsedTopFadePx + collapsedBottomFadePx;
-        const nextCollapsedHeight = Math.max(280, Math.min(desiredHeight, availableHeight > 0 ? availableHeight : desiredHeight));
-        const shouldSmooth = hasAutoPositionedRef.current && lastAutoPositionedDateRef.current !== selectedDateKey;
+    // Apply scroll safely after daySections have finished rebuilding using the new anchorDate
+    useEffect(() => {
+        if (!scrollToDateKey) return;
 
-        setCollapsedViewportHeight(nextCollapsedHeight);
-        container.scrollTo({
-            top: Math.max(0, targetOffsetTop - collapsedTopFadePx),
-            behavior: shouldSmooth ? 'smooth' : 'auto',
-        });
+        const selectedIndex = daySections.findIndex(s => s.dateKey === scrollToDateKey);
+        if (selectedIndex === -1) return;
 
-        hasAutoPositionedRef.current = true;
-        lastAutoPositionedDateRef.current = selectedDateKey;
-    }, [selectedDateKey, selectedDayTaskCount, isExpanded, collapsedTopFadePx, collapsedBottomFadePx]);
+        rowVirtualizer.scrollToIndex(selectedIndex, { align: 'start', behavior: 'auto' });
+        setScrollToDateKey(null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [daySections, scrollToDateKey]);
+
+    // Block user-initiated scroll in collapsed mode; virtualizer still drives scrollTop
+    useEffect(() => {
+        const el = daySectionsScrollRef.current;
+        if (!el || isExpanded) return;
+        const prevent = (e: WheelEvent) => e.preventDefault();
+        const preventTouch = (e: TouchEvent) => e.preventDefault();
+        el.addEventListener('wheel', prevent, { passive: false });
+        el.addEventListener('touchmove', preventTouch, { passive: false });
+        return () => {
+            el.removeEventListener('wheel', prevent);
+            el.removeEventListener('touchmove', preventTouch);
+        };
+    }, [isExpanded]);
+
 
     // Check if a task is assigned (has start time) for the separator
     const isAssigned = useCallback((task: TaskWithExtras) => {
@@ -630,26 +664,6 @@ export default function TaskList({
                         </div>
                     )}
 
-                    {/* Hidden Columns Badge */}
-                    {hiddenColumns.length > 0 && onShowColumn && (
-                        <Popover open={showHiddenColumnsMenu} onOpenChange={setShowHiddenColumnsMenu}>
-                            <PopoverTrigger asChild>
-                                <button
-                                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-[#787774] cursor-pointer transition-colors"
-                                >
-                                    <span>{hiddenColumns.length} hidden</span>
-                                </button>
-                            </PopoverTrigger>
-                            <PopoverContent align="start" sideOffset={4} className="p-0 w-auto bg-transparent border-none shadow-none">
-                                <HiddenColumnsMenu
-                                    hiddenColumns={hiddenColumns}
-                                    columnLabels={columnLabels}
-                                    onShowColumn={onShowColumn}
-                                    onClose={() => setShowHiddenColumnsMenu(false)}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    )}
                 </div>
             )}
 
@@ -661,68 +675,89 @@ export default function TaskList({
                     >
                         <div
                             ref={daySectionsScrollRef}
-                            className={`h-full pr-1 ${isExpanded ? 'overflow-y-auto' : 'overflow-y-hidden'}`}
+                            className="h-full pr-1 overflow-y-auto"
+                            style={{ paddingTop: collapsedTopFadePx }}
                         >
-                            {daySections.map(section => (
-                                <section
-                                    key={section.dateKey}
-                                    ref={(el) => {
-                                        if (el) {
-                                            daySectionRefs.current.set(section.dateKey, el);
-                                        } else {
-                                            daySectionRefs.current.delete(section.dateKey);
-                                        }
-                                    }}
-                                    className="pt-1 pb-2 last:mb-0"
-                                    onMouseDownCapture={() => {
-                                        if (!isExpanded || !onFocusDayFromTaskView) return;
-                                        if (section.dateKey === selectedDateKey) return;
-                                        if (lastFocusedDayKeyRef.current === section.dateKey) return;
+                            <div
+                                style={{
+                                    height: `${rowVirtualizer.getTotalSize()}px`,
+                                    width: '100%',
+                                    position: 'relative',
+                                }}
+                            >
+                                {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                                    const section = daySections[virtualRow.index];
+                                    return (
+                                        <div
+                                            key={section.dateKey}
+                                            data-index={virtualRow.index}
+                                            ref={rowVirtualizer.measureElement}
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                width: '100%',
+                                                transform: `translateY(${virtualRow.start}px)`,
+                                            }}
+                                        >
+                                            <section
+                                                className="pt-1 pb-2"
+                                                onFocus={() => {
+                                                    if (!isExpanded || !onFocusDayFromTaskView) return;
+                                                    if (section.dateKey === selectedDateKey) return;
+                                                    if (lastFocusedDayKeyRef.current === section.dateKey) return;
 
-                                        lastFocusedDayKeyRef.current = section.dateKey;
-                                        onFocusDayFromTaskView(section.date);
-                                    }}
-                                >
-                                    <div className="px-2 pb-0 text-[11px] font-medium text-[#787774]">
-                                        {section.title}
-                                    </div>
-                                    <EditableTable<TaskWithExtras>
-                                        data={section.tasks}
-                                        columns={columns}
-                                        onCellChange={handleCellChange}
-                                        onAddRow={() => { onAddTask({ scheduledDate: section.dateKey }); }}
-                                        onRowClick={handleRowClick}
-                                        onOpenRow={(rowId) => {
-                                            const task = tasks.find(t => t.id === rowId);
-                                            if (task) onTaskClick(task);
-                                        }}
-                                        onDragStart={handleDragStart}
-                                        onDragEnd={handleDragEnd}
-                                        onDeleteRow={onDeleteTask}
-                                        onDuplicateRow={onDuplicateTask}
-                                        sorting={sortConfig}
-                                        onSortChange={onSortChange}
-                                        hiddenColumns={hiddenColumns}
-                                        onHideColumn={onHideColumn}
-                                        isPendingRow={isPendingTask}
-                                        onAcceptRow={onAcceptAssignment}
-                                        onRejectRow={onRejectAssignment}
-                                        getOwnerStatuses={getOwnerStatuses}
-                                        customColumns={customColumns}
-                                        onAddCustomColumn={handleAddCustomColumn}
-                                        onRemoveCustomColumn={removeCustomColumn}
-                                        onCreateSubtask={onCreateSubtask}
-                                        isAssigned={isAssigned}
-                                        onAddSubtask={onAddSubtask
-                                            ? (parentId) => handleAddSubtask(parentId, section.dateKey)
-                                            : undefined
-                                        }
-                                        onToggleSubtasks={toggleSubtasks}
-                                        expandedSubtaskParentIds={expandedParentIds}
-                                        subtaskCountMap={subtaskCountMap}
-                                    />
-                                </section>
-                            ))}
+                                                    lastFocusedDayKeyRef.current = section.dateKey;
+                                                    // Defer so the browser commits focus + cursor placement before the
+                                                    // calendar update triggers a React re-render.
+                                                    requestAnimationFrame(() => {
+                                                        onFocusDayFromTaskView(section.date);
+                                                    });
+                                                }}
+                                            >
+                                                <div className="px-2 pb-0 text-[11px] font-semibold text-[#787774]">
+                                                    {section.title}
+                                                </div>
+                                                <EditableTable<TaskWithExtras>
+                                                    data={section.tasks}
+                                                    columns={columns}
+                                                    onCellChange={handleCellChange}
+                                                    onAddRow={() => onAddTask({ scheduledDate: section.dateKey })}
+                                                    onRowClick={handleRowClick}
+                                                    onOpenRow={(rowId) => {
+                                                        const task = tasks.find(t => t.id === rowId);
+                                                        if (task) onTaskClick(task);
+                                                    }}
+                                                    onDragStart={handleDragStart}
+                                                    onDragEnd={handleDragEnd}
+                                                    onDeleteRow={onDeleteTask}
+                                                    onDuplicateRow={onDuplicateTask}
+                                                    sorting={sortConfig}
+                                                    onSortChange={onSortChange}
+                                                    hiddenColumns={hiddenColumns}
+                                                    onHideColumn={onHideColumn}
+                                                    isPendingRow={isPendingTask}
+                                                    onAcceptRow={onAcceptAssignment}
+                                                    onRejectRow={onRejectAssignment}
+                                                    getOwnerStatuses={getOwnerStatuses}
+                                                    customColumns={customColumns}
+                                                    onAddCustomColumn={handleAddCustomColumn}
+                                                    onRemoveCustomColumn={removeCustomColumn}
+                                                    onCreateSubtask={onCreateSubtask}
+                                                    isAssigned={isAssigned}
+                                                    onAddSubtask={onAddSubtask
+                                                        ? (parentId) => handleAddSubtask(parentId, section.dateKey)
+                                                        : undefined
+                                                    }
+                                                    onToggleSubtasks={toggleSubtasks}
+                                                    expandedSubtaskParentIds={expandedParentIds}
+                                                    subtaskCountMap={subtaskCountMap}
+                                                />
+                                            </section>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {!isExpanded && (
@@ -733,7 +768,7 @@ export default function TaskList({
                                 />
                                 <div
                                     className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent flex items-start justify-center"
-                                    style={{ height: `${collapsedBottomFadePx}px`, paddingTop: '60px' }}
+                                    style={{ height: `${collapsedBottomFadePx}px`, paddingTop: '28px' }}
                                 >
                                     <button
                                         type="button"

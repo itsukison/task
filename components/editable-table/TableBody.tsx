@@ -48,9 +48,10 @@ export function TableBody<T extends { id: string }>({
             {rows.map((row) => {
                 const isPending = isPendingRow?.(row.original) ?? false;
                 const isSubtask = !!(row.original as any).parentTaskId;
+                const isCompleted = (row.original as any).status === 'completed';
 
                 return (
-                    <React.Fragment key={row.id}>
+                    <React.Fragment key={row.original.id}>
                         <div
                             draggable={!isPending}  // Don't allow dragging pending rows
                             onDragStart={(e) => !isPending && handleDragStart(e, row)}
@@ -59,33 +60,55 @@ export function TableBody<T extends { id: string }>({
                                 'flex group border-b border-[#e0e0e0]',
                                 'transition-colors',
                                 isSubtask && 'bg-[#fafafa]',
+                                isCompleted && 'bg-[#f7f7f5]',
                                 isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#f7f7f5] cursor-pointer',
                                 // Strikethrough + muted text for completed rows
-                                (row.original as any).status === 'completed' && '[&_div]:line-through [&_div]:!text-[#b0b0b0] [&_input]:line-through [&_input]:!text-[#b0b0b0] [&_span]:line-through [&_span]:!text-[#b0b0b0]'
+                                isCompleted && '[&_div]:line-through [&_div]:!text-[#b0b0b0] [&_input]:line-through [&_input]:!text-[#b0b0b0] [&_span]:line-through [&_span]:!text-[#b0b0b0]'
                             )}
                             onClick={() => {
                                 if (isPending) return;  // Disable clicking on pending rows
                                 onRowClick?.(row.original);
                             }}
                         >
-                            {row.getVisibleCells().map((cell, cellIndex) => (
-                                <div
-                                    key={cell.id}
-                                    className={cn(
-                                        'flex items-center',
-                                        // Add left border for columns after drag and first data column
-                                        cell.column.id !== 'drag' && cellIndex > 1 && 'border-l border-[#e0e0e0]'
-                                    )}
-                                    style={{ width: cell.column.getSize() }}
-                                    onClick={(e) => {
-                                        if (cell.column.id !== 'drag') {
+                            {row.getVisibleCells().map((cell, cellIndex) => {
+                                let cellStyle: React.CSSProperties = {
+                                    width: cell.column.getSize(),
+                                };
+
+                                if (cell.column.id === 'title') {
+                                    cellStyle = {
+                                        flex: `1 1 ${cell.column.getSize()}px`,
+                                        minWidth: Math.max(cell.column.columnDef.minSize ?? 160, 160),
+                                    };
+                                } else if (cell.column.id === 'actions') {
+                                    cellStyle = {
+                                        flex: `0 0 ${cell.column.getSize()}px`,
+                                        width: cell.column.getSize(),
+                                        minWidth: cell.column.getSize(),
+                                        maxWidth: cell.column.getSize()
+                                    };
+                                } else {
+                                    cellStyle = {
+                                        flex: `0 1 ${cell.column.getSize()}px`,
+                                        minWidth: cell.column.columnDef.minSize ?? 100,
+                                    };
+                                }
+                                return (
+                                    <div
+                                        key={cell.id}
+                                        className={cn(
+                                            'flex items-center',
+                                            cellIndex > 0 && 'border-l border-[#e0e0e0]'
+                                        )}
+                                        style={cellStyle}
+                                        onClick={(e) => {
                                             e.stopPropagation();
-                                        }
-                                    }}
-                                >
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </div>
-                            ))}
+                                        }}
+                                    >
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </div>
+                                );
+                            })}
                             {/* Accept/Reject buttons for pending rows */}
                             {isPending && onAcceptRow && onRejectRow && (
                                 <div className="flex items-center -ml-4">

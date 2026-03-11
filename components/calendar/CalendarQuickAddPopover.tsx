@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Clock, Calendar, ArrowRight } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
 import { useLanguage, dateLocales } from '@/lib/i18n';
@@ -29,10 +30,13 @@ export const CalendarQuickAddPopover = ({
     }, [initialTime]);
 
     useEffect(() => {
-        // Focus input on mount
-        if (inputRef.current) {
+        // Focus input on mount (defer to ensure portal content is in the DOM)
+        const focusInput = () => {
+            if (!inputRef.current) return;
             inputRef.current.focus();
-        }
+            inputRef.current.select();
+        };
+        const raf = requestAnimationFrame(() => requestAnimationFrame(focusInput));
 
         // Handle clicks outside
         const handleClickOutside = (event: MouseEvent) => {
@@ -45,7 +49,10 @@ export const CalendarQuickAddPopover = ({
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        return () => {
+            cancelAnimationFrame(raf);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
     }, [onClose]);
 
     const handleSubmit = (e?: React.FormEvent) => {
@@ -87,9 +94,6 @@ export const CalendarQuickAddPopover = ({
 
     if (!mounted) return null;
 
-    // Use createPortal from react-dom
-    const { createPortal } = require('react-dom');
-
     return createPortal(
         <div
             ref={popoverRef}
@@ -106,6 +110,7 @@ export const CalendarQuickAddPopover = ({
                         onChange={(e) => setTitle(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder={t('tasks.title')}
+                        autoFocus
                         className="w-full bg-transparent text-[#37352F] placeholder-gray-400 outline-none text-base font-medium"
                     />
                 </div>

@@ -203,6 +203,7 @@ export default function WorkspaceView({
                             }}
                         />
                     }
+                    rightMinWidth={430}
                     right={
                         <TaskList
                             tasks={tasks}

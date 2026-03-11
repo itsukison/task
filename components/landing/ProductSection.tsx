@@ -64,7 +64,7 @@ export const ProductSection: React.FC = () => {
                         <div className="relative rounded-xl p-2">
                             <div className="relative rounded-lg overflow-hidden">
                                 <video
-                                    src="/videos/new-task.mp4"
+                                    src="/videos/member-selection.mp4"
                                     autoPlay
                                     loop
                                     muted
@@ -165,7 +165,7 @@ export const ProductSection: React.FC = () => {
                         <div className="relative rounded-xl p-2">
                             <div className="relative rounded-lg overflow-hidden">
                                 <video
-                                    src="/videos/member-selection.mp4"
+                                    src="/videos/new-task.mp4"
                                     autoPlay
                                     loop
                                     muted

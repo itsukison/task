@@ -12,15 +12,18 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 export function useCalendarZoom(containerRef: React.RefObject<HTMLDivElement | null>) {
   const [hourHeight, setHourHeight] = useState(64);
   const zoomAnchorRef = useRef<{ timeHours: number; offsetY: number } | null>(null);
+  // Ref so the wheel handler always reads the current value without being in deps
+  const hourHeightRef = useRef(hourHeight);
+  useEffect(() => { hourHeightRef.current = hourHeight; }, [hourHeight]);
 
   // Scroll to 8 AM on mount (only if not zooming)
   useEffect(() => {
     if (containerRef.current && !zoomAnchorRef.current) {
-      containerRef.current.scrollTop = 8 * hourHeight;
+      containerRef.current.scrollTop = 8 * hourHeightRef.current;
     }
   }, []); // Run once on mount
 
-  // Handle Pinch-to-Zoom
+  // Handle Pinch-to-Zoom — registered once, no listener churn on zoom
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -29,25 +32,22 @@ export function useCalendarZoom(containerRef: React.RefObject<HTMLDivElement | n
       if (e.ctrlKey) {
         e.preventDefault();
 
-        // Calculate anchor point before zoom
+        // Calculate anchor point before zoom using the ref (fresh value, no dep)
         const rect = container.getBoundingClientRect();
         const offsetY = e.clientY - rect.top;
         const scrollTop = container.scrollTop;
-        const timeHours = (scrollTop + offsetY) / hourHeight;
+        const timeHours = (scrollTop + offsetY) / hourHeightRef.current;
 
         zoomAnchorRef.current = { timeHours, offsetY };
 
         const delta = -e.deltaY;
-        setHourHeight((prev) => {
-          const newHeight = Math.max(40, Math.min(200, prev + delta * 0.5));
-          return newHeight;
-        });
+        setHourHeight((prev) => Math.max(40, Math.min(200, prev + delta * 0.5)));
       }
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, [hourHeight]); // Add hourHeight dependency to ensure fresh state access in handler
+  }, []); // empty deps — hourHeight read via ref, listener registered once
 
   // Restore scroll position after zoom to keep cursor centered
   useLayoutEffect(() => {

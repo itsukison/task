@@ -320,22 +320,19 @@ export default function WorkspacePage() {
         try {
             await updateCalendarBlock(blockId, { startTime, endTime });
 
-            // Find the block/task to sync scheduledDate
-            // Note: In multi-member view we use multiMemberBlocks, otherwise calendarBlocks
             const block = calendarBlocks.find(b => b.id === blockId) || multiMemberBlocks.find(b => b.id === blockId);
 
             if (block) {
                 const newDateISO = formatDateToLocalISO(startTime);
-                // We need to find the task to check/update its date
-                // Note: block.taskId is available on both CalendarBlock and MultiMemberBlock
                 const task = tasks.find(t => t.id === block.taskId);
 
                 if (task && task.scheduledDate !== newDateISO) {
-                    await updateTask(block.taskId, { scheduledDate: newDateISO });
+                    // scheduledDate is a cosmetic sort hint — fire-and-forget to unblock drag response
+                    updateTask(block.taskId, { scheduledDate: newDateISO })
+                        .catch((err) => console.error('scheduledDate sync failed:', err));
                 }
             }
 
-            // Refetch multi-member blocks to reflect the change immediately in multi-member view
             if (selectedMemberIds.length > 1) {
                 refetchMultiMemberBlocks();
             }
@@ -358,7 +355,9 @@ export default function WorkspacePage() {
                 const newDateISO = formatDateToLocalISO(newStartTime);
                 const task = tasks.find(t => t.id === block.taskId);
                 if (task && task.scheduledDate !== newDateISO) {
-                    await updateTask(block.taskId, { scheduledDate: newDateISO });
+                    // scheduledDate is a cosmetic sort hint — fire-and-forget
+                    updateTask(block.taskId, { scheduledDate: newDateISO })
+                        .catch((err) => console.error('scheduledDate sync failed:', err));
                 }
             });
 

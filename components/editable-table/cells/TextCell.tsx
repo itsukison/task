@@ -1,72 +1,51 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CellProps } from '../types';
 
 /**
- * Text input cell with inline editing
+ * Text input cell — always rendered as <input> so the browser handles
+ * cursor placement at click position naturally (no div→input swap, no select()).
  */
-export function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter, secondaryText }: CellProps) {
-    const [isEditing, setIsEditing] = useState(false);
+export const TextCell = React.memo(function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter, secondaryText }: CellProps) {
     const [localValue, setLocalValue] = useState(String(value ?? ''));
     const inputRef = useRef<HTMLInputElement>(null);
-
-    // Initialize isEditing/autoFocus on mount if requested
-    useEffect(() => {
-        if (autoFocus) {
-            setIsEditing(true);
-        }
-    }, [autoFocus]);
 
     useEffect(() => {
         setLocalValue(String(value ?? ''));
     }, [value]);
 
+    // Auto-focus when a new row is created (e.g. after pressing Enter).
+    // preventScroll avoids the browser jumping to an off-screen input if the
+    // row happens to be outside the visible virtualizer range on mount.
     useEffect(() => {
-        if (isEditing && inputRef.current) {
-            inputRef.current.focus();
-            if (autoFocus) {
-                // If auto-focused (new row), don't select all text, just place cursor at end (though it's empty usually)
-                // But select() is fine too if it's new.
-                // Actually, for a new task, it's empty, so select() does nothing harmful.
-            } else {
-                inputRef.current.select();
-            }
+        if (autoFocus && inputRef.current) {
+            inputRef.current.focus({ preventScroll: true });
         }
-    }, [isEditing, autoFocus]);
+    }, [autoFocus]);
 
     const handleBlur = () => {
-        setIsEditing(false);
         if (localValue !== String(value ?? '')) {
             onChange(rowId, columnId, localValue);
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            // Commit change first
+            e.preventDefault();
             if (localValue !== String(value ?? '')) {
                 onChange(rowId, columnId, localValue);
             }
-            setIsEditing(false);
-
-            // Trigger onEnter callback if provided (e.g., create new row)
-            if (onEnter) {
-                // We use a small timeout to ensure the state update has processed and potential re-renders happen
-                // before creating the next row, though usually sync call is fine.
-                // However, avoiding race conditions with blur event.
-                // e.preventDefault() to prevent normal newline if it were a textarea, but it's input.
-                e.preventDefault();
-                onEnter();
-            }
+            inputRef.current?.blur();
+            onEnter?.();
         } else if (e.key === 'Escape') {
             setLocalValue(String(value ?? ''));
-            setIsEditing(false);
+            inputRef.current?.blur();
         }
     };
 
-    if (isEditing) {
-        return (
+    return (
+        <div className="w-full h-full px-2 py-1.5 flex flex-col justify-center">
             <input
                 ref={inputRef}
                 type="text"
@@ -74,19 +53,9 @@ export function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter,
                 onChange={(e) => setLocalValue(e.target.value)}
                 onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
-                className="w-full h-full bg-transparent border-none outline-none text-[#424242] text-sm px-2 py-1.5"
+                placeholder="Empty"
+                className="w-full truncate bg-transparent border-none outline-none text-[#424242] text-sm leading-tight placeholder:text-gray-300 placeholder:italic"
             />
-        );
-    }
-
-    return (
-        <div
-            className="w-full h-full px-2 py-1.5 cursor-text text-[#424242] text-sm leading-tight"
-            onClick={() => setIsEditing(true)}
-        >
-            <div className="truncate">
-                {localValue || <span className="text-gray-300 italic">Empty</span>}
-            </div>
             {secondaryText && (
                 <div className="mt-0.5 truncate text-[11px] text-[#787774] leading-tight">
                     {secondaryText}
@@ -94,4 +63,4 @@ export function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter,
             )}
         </div>
     );
-}
+});

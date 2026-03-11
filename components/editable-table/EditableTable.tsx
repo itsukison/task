@@ -117,6 +117,14 @@ export default function EditableTable<T extends { id: string }>({
         }
     }, [onAddSubtaskProp]);
 
+    // Clear focusRowId one frame after it is set so the virtualizer cannot
+    // re-trigger .focus() when it unmounts and remounts the row while scrolling.
+    useEffect(() => {
+        if (!focusRowId) return;
+        const id = requestAnimationFrame(() => setFocusRowId(null));
+        return () => cancelAnimationFrame(id);
+    }, [focusRowId]);
+
     const columns = useTableColumns({
         tableColumns,
         onCellChange,
@@ -137,11 +145,13 @@ export default function EditableTable<T extends { id: string }>({
         subtaskCountMap,
         focusRowId,
         onEnter: handleAddRow,
+        onDeleteRow,
     });
 
     const table = useReactTable({
         data,
         columns,
+        getRowId: (row) => row.id,
         state: {
             sorting: internalSorting,
             columnVisibility,
@@ -157,8 +167,8 @@ export default function EditableTable<T extends { id: string }>({
 
     return (
         <EditableTableProvider>
-            <div className="w-full overflow-auto ml-2">
-                <div className="inline-block min-w-full">
+            <div className="w-full overflow-hidden">
+                <div className="w-full">
                     {/* Header */}
                     <TableHeader headerGroups={table.getHeaderGroups()} />
 
@@ -179,7 +189,7 @@ export default function EditableTable<T extends { id: string }>({
                     <div
                         className="flex items-center gap-1.5 py-2 text-[#9e9e9e] text-sm cursor-pointer hover:bg-[#f5f5f5] transition-colors"
                         onClick={handleAddRow}
-                        style={{ paddingLeft: 32 }} // Matches drag column width for alignment
+                        style={{ paddingLeft: 8 }}
                     >
                         <Plus size={14} />
                         <span>New</span>

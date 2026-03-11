@@ -12,6 +12,7 @@ import {
   type UpdateTaskInput,
 } from './mutations';
 import { Task } from '@/lib/types';
+import { rpcToTask, type RpcTaskData } from './transforms';
 
 export interface UseTasksReturn {
   tasks: Task[];
@@ -60,7 +61,10 @@ export function useTasks(): UseTasksReturn {
     error: error?.message || null,
 
     createTask: async (input: CreateTaskInput) => {
-      return createTaskMutation.mutateAsync(input);
+      const result = await createTaskMutation.mutateAsync(input);
+      const taskData = result?.data?.[0];
+      if (taskData) return rpcToTask(taskData as RpcTaskData);
+      return result;
     },
 
     updateTask: async (id: string, input: UpdateTaskInput) => {
