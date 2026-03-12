@@ -63,7 +63,7 @@ export default function OnboardingPage() {
     if (!initialized || authLoading) {
         return (
             <div className="min-h-screen w-full flex items-center justify-center bg-white">
-                <div className="text-[#787774]">Loading...</div>
+                <div className="text-[#787774]">{t('common.loading')}</div>
             </div>
         );
     }
@@ -166,8 +166,9 @@ export default function OnboardingPage() {
                         onClick={handleSignOut}
                         className="text-sm text-[#787774] hover:text-[#37352F] transition-colors"
                     >
-                        Sign out
+                        {t('auth.sign_out_btn')}
                     </button>
+
                 </div>
             </div>
         </div>

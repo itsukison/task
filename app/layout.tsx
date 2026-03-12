@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = cookies();
   const languageCookie = (await cookieStore).get('taskos-language');
-  const isJapanese = languageCookie?.value === 'ja';
+  const isJapanese = languageCookie?.value !== 'en';
   
   const title = isJapanese 
     ? {
@@ -46,13 +46,17 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = cookies();
+  const languageCookie = (await cookieStore).get('taskos-language');
+  const isJapanese = languageCookie?.value !== 'en';
+
   return (
-    <html lang="en" suppressHydrationWarning={true}>
+    <html lang={isJapanese ? "ja" : "en"} suppressHydrationWarning={true}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

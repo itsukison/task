@@ -13,12 +13,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   if (!post) {
     return {
-      title: 'Post Not Found | Taskle',
+      title: '記事が見つかりません',
     };
   }
 
   return {
-    title: `${post.title} | Taskle`,
+    title: post.title,
     description: post.description,
   };
 }

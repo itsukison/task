@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import { BlogIndexContent } from '@/components/blog/BlogIndexContent';
 
 export const metadata: Metadata = {
-  title: 'Blog | Taskle',
-  description: 'Insights and guides on timeboxing, task management, and team productivity.',
+  title: 'ブログ',
+  description: 'タイムボクシング、タスク管理、チームの生産性に関する洞察とガイド。',
 };
 
 export default function BlogIndex() {

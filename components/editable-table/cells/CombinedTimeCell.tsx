@@ -19,10 +19,10 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
     const expectedTime = typeof row?.expectedTime === 'number' ? row.expectedTime : (typeof row?.expected_time_minutes === 'number' ? row.expected_time_minutes : 0);
 
     const [isRunning, setIsRunning] = useState(false);
-    const [localActual, setLocalActual] = useState(actualTime);
-    const [localExpected, setLocalExpected] = useState(expectedTime);
-    const localExpectedRef = useRef(localExpected);
-    const localActualRef = useRef(localActual);
+    const [localActual, setLocalActual] = useState<number | string>(actualTime);
+    const [localExpected, setLocalExpected] = useState<number | string>(expectedTime);
+    const localExpectedRef = useRef<number | string>(localExpected);
+    const localActualRef = useRef<number | string>(localActual);
     const isSelectingRef = useRef(false);
     const [editingField, setEditingField] = useState<'actual' | 'expected' | null>(null);
 
@@ -77,8 +77,9 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
             const { startTime, startBaseValue } = JSON.parse(savedState);
             const newValue = startBaseValue + Math.floor((Date.now() - startTime) / 60000);
             if (newValue !== localActualRef.current) {
-                localActualRef.current = newValue;
-                setLocalActual(newValue);
+                const numericValue = typeof newValue === 'string' ? (parseInt(newValue, 10) || 0) : newValue;
+                localActualRef.current = numericValue;
+                setLocalActual(numericValue);
                 // DB write deferred to pause
             }
         }, 10000);
@@ -88,7 +89,10 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
     // Flush to DB on tab close while running
     useEffect(() => {
         if (!isRunning) return;
-        const flush = () => onChange(rowId, 'actualTime', localActualRef.current);
+        const flush = () => {
+            const val = typeof localActualRef.current === 'string' ? (parseInt(localActualRef.current, 10) || 0) : localActualRef.current;
+            onChange(rowId, 'actualTime', val);
+        };
         window.addEventListener('beforeunload', flush);
         return () => window.removeEventListener('beforeunload', flush);
     }, [isRunning, rowId, onChange]);
@@ -102,7 +106,8 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
             // Pause
             setIsRunning(false);
             localStorage.removeItem(timerKey);
-            onChange(rowId, 'actualTime', localActual);
+            const val = typeof localActual === 'string' ? (parseInt(localActual, 10) || 0) : localActual;
+            onChange(rowId, 'actualTime', val);
         } else {
             // Start
             setIsRunning(true);
@@ -116,7 +121,9 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
 
     const handleActualBlur = () => {
         setEditingField(null);
-        onChange(rowId, 'actualTime', localActual);
+        const val = typeof localActual === 'string' ? (parseInt(localActual, 10) || 0) : localActual;
+        setLocalActual(val);
+        onChange(rowId, 'actualTime', val);
     };
 
     const handleExpectedBlur = () => {
@@ -127,7 +134,9 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
                 return;
             }
             setEditingField((prev) => prev === 'expected' ? null : prev);
-            onChange(rowId, 'expectedTime', localExpectedRef.current);
+            const val = typeof localExpectedRef.current === 'string' ? (parseInt(localExpectedRef.current, 10) || 0) : localExpectedRef.current;
+            setLocalExpected(val);
+            onChange(rowId, 'expectedTime', val);
         }, 150);
     };
 
@@ -181,9 +190,17 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
                 {editingField === 'actual' && !isRunning ? (
                     <input
                         ref={actualInputRef}
-                        type="number"
+                        type="text"
                         value={localActual}
-                        onChange={(e) => setLocalActual(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '') {
+                                setLocalActual('');
+                            } else {
+                                const parsed = parseInt(val, 10);
+                                if (!isNaN(parsed)) setLocalActual(parsed);
+                            }
+                        }}
                         onBlur={handleActualBlur}
                         onKeyDown={(e) => handleKeyDown(e, 'actual')}
                         className="w-12 bg-transparent border-none outline-none text-[#37352F] text-right"
@@ -213,16 +230,16 @@ function CombinedTimeCellInner({ value, rowId, columnId, onChange }: CellProps) 
                                     type="text"
                                     value={localExpected}
                                     onChange={(e) => {
-                                        // Allow clearing input
-                                        if (e.target.value === '') {
-                                            setLocalExpected(0);
-                                            localExpectedRef.current = 0;
-                                            return;
-                                        }
-                                        const val = parseInt(e.target.value, 10);
-                                        if (!isNaN(val)) {
-                                            setLocalExpected(val);
-                                            localExpectedRef.current = val;
+                                        const val = e.target.value;
+                                        if (val === '') {
+                                            setLocalExpected('');
+                                            localExpectedRef.current = '';
+                                        } else {
+                                            const parsed = parseInt(val, 10);
+                                            if (!isNaN(parsed)) {
+                                                setLocalExpected(parsed);
+                                                localExpectedRef.current = parsed;
+                                            }
                                         }
                                     }}
                                     onBlur={handleExpectedBlur}
