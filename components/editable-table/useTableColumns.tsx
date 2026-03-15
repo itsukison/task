@@ -146,7 +146,8 @@ export function useTableColumns<T extends { id: string }>({
                 const scheduleTimeRange = isFirstDataCol
                     ? formatTimeRange((row.original as any).startTime, (row.original as any).expectedTime) || '-'
                     : undefined;
-                const isSubtask = !!(row.original as any).parentTaskId;
+                const parentTaskId = (row.original as any).parentTaskId as string | undefined;
+                const isSubtask = !!parentTaskId;
                 const hasSubtasks = isFirstDataCol && !isSubtask && (subtaskCountRef.current?.get(row.original.id) ?? 0) > 0;
                 const isExpanded = isFirstDataCol && (expandedRef.current?.has(row.original.id) ?? false);
 
@@ -158,15 +159,24 @@ export function useTableColumns<T extends { id: string }>({
                         {/* Chevron toggle — visible whenever task has subtasks */}
                         {hasSubtasks && (
                             <button
-                                className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-2 text-[#9e9e9e] hover:text-[#37352F] transition-colors"
+                                className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-2 text-[#9e9e9e] hover:text-[#37352F] transition-colors opacity-0 group-hover:opacity-100"
                                 onClick={(e) => { e.stopPropagation(); onToggleSubtasks?.(row.original.id); }}
                             >
                                 {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
                             </button>
                         )}
-                        {/* Spacer for alignment when subtaskCountMap is active but task has no subtasks */}
+                        {/* Add-subtask button in left slot when no subtasks exist */}
                         {isFirstDataCol && !hasSubtasks && !isSubtask && subtaskCountRef.current !== undefined && (
-                            <span className="flex-shrink-0 w-3.5 mr-2" />
+                            onAddSubtask ? (
+                                <button
+                                    className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-2 text-[#9e9e9e] hover:text-[#37352F] transition-colors opacity-0 group-hover:opacity-100"
+                                    onClick={(e) => { e.stopPropagation(); onAddSubtask(row.original.id); }}
+                                >
+                                    <Plus size={11} />
+                                </button>
+                            ) : (
+                                <span className="flex-shrink-0 w-3.5 mr-2" />
+                            )
                         )}
                         {/* Completion checkbox — only in title column */}
                         {isFirstDataCol && (
@@ -198,7 +208,14 @@ export function useTableColumns<T extends { id: string }>({
                                 onChange={onCellChange}
                                 onCreateSubtask={col.dataType === 'subtask' ? onCreateSubtask : undefined}
                                 autoFocus={focusRowIdRef.current === row.original.id && isFirstDataCol}
-                                onEnter={isFirstDataCol && col.dataType === 'text' ? onEnter : undefined}
+                                preventBlurOnEnter={isFirstDataCol && col.dataType === 'text' && isSubtask && !!onAddSubtask}
+                                onEnter={
+                                    isFirstDataCol && col.dataType === 'text'
+                                        ? (isSubtask && onAddSubtask
+                                            ? () => onAddSubtask(parentTaskId!)
+                                            : onEnter)
+                                        : undefined
+                                }
                             />
                         </div>
                         {/* OPEN button — absolutely positioned, overlays the text on hover */}
@@ -302,22 +319,13 @@ export function useTableColumns<T extends { id: string }>({
             });
         });
 
-        // Right-side actions column (delete + add subtask on hover)
+        // Right-side actions column (delete on hover)
         const actionsColumn: ColumnDef<T> = {
             id: 'actions',
             header: () => null,
             cell: ({ row }) => {
-                const isSubtask = !!(row.original as any).parentTaskId;
                 return (
-                    <div className="flex items-center justify-end h-full gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity px-1.5">
-                        {!isSubtask && onAddSubtask && (
-                            <button
-                                className="flex items-center justify-center w-5 h-5 rounded hover:bg-gray-100 text-[#9e9e9e] hover:text-[#37352F] transition-colors"
-                                onClick={(e) => { e.stopPropagation(); onAddSubtask(row.original.id); }}
-                            >
-                                <Plus size={12} />
-                            </button>
-                        )}
+                    <div className="flex items-center justify-end h-full opacity-0 group-hover:opacity-100 transition-opacity px-1">
                         <button
                             className="flex items-center justify-center w-5 h-5 rounded hover:bg-red-50 text-[#9e9e9e] hover:text-red-400 transition-colors"
                             onClick={(e) => { e.stopPropagation(); onDeleteRow?.(row.original.id); }}
@@ -327,7 +335,7 @@ export function useTableColumns<T extends { id: string }>({
                     </div>
                 );
             },
-            size: 56,
+            size: 32,
             enableResizing: false,
         };
 

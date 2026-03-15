@@ -20,8 +20,8 @@ export function useCalendarHorizontalScroll({
     dayColumnWidth,
     occludedRightPx = 0,
 }: UseCalendarHorizontalScrollOptions) {
+    // Single ref — this is the unified scroll container (both x and y)
     const bodyScrollRef = useRef<HTMLDivElement>(null);
-    const headerScrollRef = useRef<HTMLDivElement>(null);
 
     // Track infinite scroll state
     const isInfiniteScrollingRef = useRef(false);
@@ -77,10 +77,6 @@ export function useCalendarHorizontalScroll({
             if (colAdjustment !== 0) {
                 el.scrollLeft += colAdjustment * dayColumnWidth;
                 firstVisibleColRef.current = el.scrollLeft / dayColumnWidth;
-
-                if (headerScrollRef.current) {
-                    headerScrollRef.current.scrollLeft = el.scrollLeft;
-                }
             }
 
             isInfiniteScrollingRef.current = false;
@@ -110,10 +106,6 @@ export function useCalendarHorizontalScroll({
                 el.scrollLeft = targetCol * dayColumnWidth;
                 firstVisibleColRef.current = targetCol;
                 hasCenteredRef.current = true;
-
-                if (headerScrollRef.current) {
-                    headerScrollRef.current.scrollLeft = el.scrollLeft;
-                }
             }
         }
 
@@ -130,7 +122,6 @@ export function useCalendarHorizontalScroll({
         const handleResize = () => {
             if (!el) return;
 
-            // Suppress scroll-triggered week changes during and briefly after resize
             isResizingRef.current = true;
             if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
             resizeTimeoutRef.current = setTimeout(() => {
@@ -154,13 +145,10 @@ export function useCalendarHorizontalScroll({
         };
     }, []);
 
+    // Scroll handler — no JS header sync needed; header is in the same scroll container
     const handleBodyScroll = useCallback(() => {
         const body = bodyScrollRef.current;
         if (!body) return;
-
-        if (headerScrollRef.current) {
-            headerScrollRef.current.scrollLeft = body.scrollLeft;
-        }
 
         if (isInfiniteScrollingRef.current || isResizingRef.current) return;
 
@@ -187,7 +175,6 @@ export function useCalendarHorizontalScroll({
     return {
         allDisplayedDays,
         bodyScrollRef,
-        headerScrollRef,
         handleBodyScroll,
     };
 }

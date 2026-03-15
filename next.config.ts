@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ['tunnel-rat'],
+  serverExternalPackages: ['@browserbasehq/stagehand', '@browserbasehq/sdk', 'playwright', 'playwright-core'],
   async headers() {
     return [
       {

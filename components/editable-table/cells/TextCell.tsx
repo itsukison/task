@@ -7,7 +7,7 @@ import { CellProps } from '../types';
  * Text input cell — always rendered as <input> so the browser handles
  * cursor placement at click position naturally (no div→input swap, no select()).
  */
-export const TextCell = React.memo(function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter, secondaryText }: CellProps) {
+export const TextCell = React.memo(function TextCell({ value, rowId, columnId, onChange, autoFocus, onEnter, secondaryText, preventBlurOnEnter }: CellProps) {
     const [localValue, setLocalValue] = useState(String(value ?? ''));
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -32,11 +32,16 @@ export const TextCell = React.memo(function TextCell({ value, rowId, columnId, o
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
+            // During IME composition (e.g. Japanese kanji conversion), Enter confirms
+            // the candidate — let the browser handle it and don't submit the cell.
+            if (e.nativeEvent.isComposing) return;
             e.preventDefault();
             if (localValue !== String(value ?? '')) {
                 onChange(rowId, columnId, localValue);
             }
-            inputRef.current?.blur();
+            if (!preventBlurOnEnter) {
+                inputRef.current?.blur();
+            }
             onEnter?.();
         } else if (e.key === 'Escape') {
             setLocalValue(String(value ?? ''));

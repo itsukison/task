@@ -25,6 +25,8 @@ export interface CellProps {
     autoFocus?: boolean;
     // Callback when Enter is pressed in the cell
     onEnter?: () => void;
+    // When true, keep focus on Enter to avoid flicker during row insertion
+    preventBlurOnEnter?: boolean;
 }
 
 /**

@@ -72,8 +72,6 @@ const Calendar = React.memo(function Calendar({
   const { membersWithVisibility } = useOrganizationMembers();
   const { user, currentOrg } = useAuth();
   const { t } = useLanguage();
-  const containerRef = useRef<HTMLDivElement>(null);
-
   // Lasso selection — only a boolean in React state so children never re-render during drag.
   // Coordinates live in a ref; the visual box is updated via direct DOM mutation.
   const [isLassoActive, setIsLassoActive] = React.useState(false);
@@ -84,14 +82,10 @@ const Calendar = React.memo(function Calendar({
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  // Use extracted hooks
-  const { hourHeight, snapInterval } = useCalendarZoom(containerRef);
-
-  // Horizontal scroll hook
+  // Horizontal scroll hook — bodyScrollRef is the unified scroll container
   const {
     allDisplayedDays,
     bodyScrollRef,
-    headerScrollRef,
     handleBodyScroll,
   } = useCalendarHorizontalScroll({
     viewDate,
@@ -101,6 +95,9 @@ const Calendar = React.memo(function Calendar({
     dayColumnWidth,
     occludedRightPx,
   });
+
+  // Pass bodyScrollRef (the unified scroll container) to the zoom hook
+  const { hourHeight, snapInterval } = useCalendarZoom(bodyScrollRef);
 
   // Visible hours array driven by startHour and endHour
   const visibleHours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
@@ -395,9 +392,12 @@ const Calendar = React.memo(function Calendar({
   React.useEffect(() => {
     if (!onDayViewportWidthChange || !bodyScrollRef.current) return;
     const el = bodyScrollRef.current;
+    // Subtract the time column width (w-12 = 48px) because bodyScrollRef is now
+    // the unified scroll container that includes the sticky time column area.
+    const TIME_COL_WIDTH = 48;
 
     const emit = () => {
-      onDayViewportWidthChange(el.clientWidth);
+      onDayViewportWidthChange(el.clientWidth - TIME_COL_WIDTH);
     };
 
     emit();
@@ -514,7 +514,7 @@ const Calendar = React.memo(function Calendar({
           <div className="flex items-center gap-1 ml-2">
             <button
               onClick={() => {
-                const container = containerRef.current;
+                const container = bodyScrollRef.current;
                 if (container) {
                   container.scrollTop = 0;
                 }
@@ -539,30 +539,35 @@ const Calendar = React.memo(function Calendar({
         )}
       </div>
 
-      {/* Calendar Header — syncs horizontal scroll with body */}
-      <CalendarHeader
-        displayedDays={displayedDays}
-        selectedDate={selectedDate}
-        onSelectDate={onSelectDate}
-        scrollRef={headerScrollRef}
-        isHorizontalScroll={view === 'week'}
-        dayColumnWidth={dayColumnWidth}
-      />
+      {/* Unified scroll container — handles both vertical and horizontal scrolling.
+          CalendarHeader is inside with sticky top-0, so header and body scroll
+          together natively at the compositor level. No JS sync needed. */}
+      <div
+        ref={bodyScrollRef}
+        onScroll={handleBodyScroll}
+        className="flex-1 overflow-auto relative custom-scrollbar"
+      >
+        {/* Inner width wrapper — sets the total scrollable content width */}
+        <div style={{ width: view === 'week' ? `${48 + displayedDays.length * dayColumnWidth}px` : '100%' }}>
 
-      {/* Scrollable Grid */}
-      <div className="flex-1 overflow-y-auto relative custom-scrollbar" ref={containerRef}>
-        <div className="flex relative" style={{ height: visibleHours.length * hourHeight }}>
-          {/* Time column — sticky left */}
-          <div className="sticky left-0 z-30 bg-white">
-            <CalendarTimeColumn hours={visibleHours} hourHeight={hourHeight} snapInterval={snapInterval} />
-          </div>
+          {/* Calendar Header — sticky top so it stays visible on vertical scroll.
+              Scrolls horizontally with the content (no JS needed).
+              Corner spacer inside is sticky left to always stay in the top-left. */}
+          <CalendarHeader
+            displayedDays={displayedDays}
+            selectedDate={selectedDate}
+            onSelectDate={onSelectDate}
+            dayColumnWidth={dayColumnWidth}
+          />
 
-          {/* Horizontally scrollable day columns */}
-          <div
-            ref={bodyScrollRef}
-            onScroll={handleBodyScroll}
-            className="flex-1 overflow-x-auto"
-          >
+          {/* Body — time column sticky left, day columns at natural width */}
+          <div className="flex relative" style={{ height: visibleHours.length * hourHeight }}>
+            {/* Time column — sticky left */}
+            <div className="sticky left-0 z-10 bg-white">
+              <CalendarTimeColumn hours={visibleHours} hourHeight={hourHeight} snapInterval={snapInterval} />
+            </div>
+
+            {/* Day columns */}
             <div
               className="flex relative"
               style={{
