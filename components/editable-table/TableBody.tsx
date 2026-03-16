@@ -96,6 +96,7 @@ export function TableBody<T extends { id: string }>({
                                 return (
                                     <div
                                         key={cell.id}
+                                        data-table-cell="true"
                                         className={cn(
                                             'flex items-center',
                                             cellIndex > 0 && 'border-l border-[#e0e0e0]'

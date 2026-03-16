@@ -153,13 +153,13 @@ export function useTableColumns<T extends { id: string }>({
 
                 return (
                     <div
-                        className="relative flex items-center w-full h-full overflow-hidden"
+                        className="relative flex items-center w-full h-full overflow-hidden pl-1"
                         style={isSubtask && isFirstDataCol ? { paddingLeft: '36px' } : undefined}
                     >
                         {/* Chevron toggle — visible whenever task has subtasks */}
                         {hasSubtasks && (
                             <button
-                                className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-2 text-[#9e9e9e] hover:text-[#37352F] transition-colors opacity-0 group-hover:opacity-100"
+                                className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-1 text-[#9e9e9e] hover:text-[#37352F] transition-colors"
                                 onClick={(e) => { e.stopPropagation(); onToggleSubtasks?.(row.original.id); }}
                             >
                                 {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
@@ -169,13 +169,13 @@ export function useTableColumns<T extends { id: string }>({
                         {isFirstDataCol && !hasSubtasks && !isSubtask && subtaskCountRef.current !== undefined && (
                             onAddSubtask ? (
                                 <button
-                                    className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-2 text-[#9e9e9e] hover:text-[#37352F] transition-colors opacity-0 group-hover:opacity-100"
+                                    className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-1 text-[#9e9e9e] hover:text-[#37352F] transition-colors opacity-0 group-hover:opacity-100"
                                     onClick={(e) => { e.stopPropagation(); onAddSubtask(row.original.id); }}
                                 >
                                     <Plus size={11} />
                                 </button>
                             ) : (
-                                <span className="flex-shrink-0 w-3.5 mr-2" />
+                                <span className="flex-shrink-0 w-3.5 mr-1" />
                             )
                         )}
                         {/* Completion checkbox — only in title column */}
@@ -195,7 +195,7 @@ export function useTableColumns<T extends { id: string }>({
                             </button>
                         )}
                         {/* Text */}
-                        <div className={cn('w-full min-w-0 transition-[padding] duration-200', isFirstDataCol && onOpenRow && 'pr-2 group-hover:pr-[70px]')}>
+                        <div className={cn('w-full min-w-0 transition-[padding] duration-200', isFirstDataCol && onOpenRow && 'pr-2 group-hover:pr-[70px] group-has-[input:focus]:!pr-2')}>
                             <Cell
                                 value={col.dataType === 'combinedTime' ? row.original : row.getValue(column.id)}
                                 rowId={row.original.id}
@@ -221,7 +221,7 @@ export function useTableColumns<T extends { id: string }>({
                         {/* OPEN button — absolutely positioned, overlays the text on hover */}
                         {isFirstDataCol && onOpenRow && (
                             <button
-                                className="absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-0.5 text-xs text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded border border-gray-200 whitespace-nowrap bg-white"
+                                className="absolute right-1 opacity-0 group-hover:opacity-100 group-has-[input:focus]:!opacity-0 group-has-[input:focus]:pointer-events-none transition-opacity flex items-center gap-1 px-2 py-0.5 text-xs text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded border border-gray-200 whitespace-nowrap bg-white"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onOpenRow(row.original.id);

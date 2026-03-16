@@ -335,19 +335,27 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           const isPendingBlock = 'isPendingAssignment' in block && block.isPendingAssignment;
           const isPreviewBlock = block.id === 'preview-block-temp';
 
-          // Compute pixel height to adapt text density for short blocks
+          // Compute pixel height to adapt text density for short blocks.
+          // During resize, use the live resize height so padding classes don't
+          // oscillate (which would itself cause flicker).
           const blockDurationMin = (new Date(block.endTime).getTime() - new Date(block.startTime).getTime()) / 60000;
           const blockPxHeight = blockDurationMin * (hourHeight / 60);
-          const isSmallBlock = blockPxHeight < 22;
-          const isMicroBlock = blockPxHeight < 14;
+          const isResizing = resizingBlockId === block.id;
+          const hasOptimisticHeight = optimisticResizeBlock?.blockId === block.id;
+          const liveHeight = isResizing && resizeHeight !== null
+            ? resizeHeight
+            : hasOptimisticHeight
+              ? optimisticResizeBlock!.height
+              : blockPxHeight;
+          const isSmallBlock = liveHeight < 22;
+          const isMicroBlock = liveHeight < 14;
 
           // Check if current user is a confirmed owner of the task
           const isConfirmedOwner = task.owners?.some(
             owner => owner.id === currentUserId && owner.status === 'confirmed'
           ) ?? false;
 
-          const isResizing = resizingBlockId === block.id;
-          const hasOptimisticHeight = optimisticResizeBlock?.blockId === block.id;
+          // (isResizing and hasOptimisticHeight already computed above)
           const isSelected = selectedBlockIds?.has(block.id);
 
           // Apply resize height during active resize or optimistic state
@@ -355,6 +363,14 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             const heightToUse = isResizing ? resizeHeight : optimisticResizeBlock!.height;
             style.height = `${heightToUse! - 1}px`;
             style.zIndex = 50; // Bring to front while resizing
+
+            // Suppress hover-brightness and CSS transitions during resize.
+            // As the block height changes on every mousemove, the cursor rapidly
+            // crosses the block boundary, toggling :hover on and off. With
+            // `transition-colors` active this produces a rapid gray↔white flicker.
+            style.className = style.className
+              .replace('hover:brightness-95', '')
+              .replace('transition-colors', '');
           }
 
           // Optimistic block styling (translucent orange)

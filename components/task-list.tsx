@@ -59,7 +59,7 @@ function getTaskColumns(orgMembers: PeopleOption[], customColumns: any[], t: any
             id: 'title',
             label: t('headers.task_name'),
             dataType: 'text',
-            width: 280,
+            width: 360,
             minWidth: 150,
         },
         // {
@@ -81,7 +81,7 @@ function getTaskColumns(orgMembers: PeopleOption[], customColumns: any[], t: any
             id: 'ownerIds',  // Array of user IDs
             label: t('headers.owner'),
             dataType: 'people',
-            width: 200,
+            width: 120,
             minWidth: 80,
             peopleOptions: orgMembers,
         },

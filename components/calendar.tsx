@@ -563,7 +563,7 @@ const Calendar = React.memo(function Calendar({
           {/* Body — time column sticky left, day columns at natural width */}
           <div className="flex relative" style={{ height: visibleHours.length * hourHeight }}>
             {/* Time column — sticky left */}
-            <div className="sticky left-0 z-10 bg-white">
+            <div className="sticky left-0 z-20 bg-white">
               <CalendarTimeColumn hours={visibleHours} hourHeight={hourHeight} snapInterval={snapInterval} />
             </div>
 
