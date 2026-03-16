@@ -61,6 +61,8 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             yesterday: 'Yesterday',
             today: 'Today',
             tomorrow: 'Tomorrow',
+            open: 'Open',
+            error_delete_block: 'Failed to delete calendar block. Please try again.',
         },
         filter_operators: {
             contains: 'contains',
@@ -639,6 +641,8 @@ export const translations: Record<'en' | 'ja', TranslationDictionary> = {
             yesterday: '昨日',
             today: '今日',
             tomorrow: '明日',
+            open: '開く',
+            error_delete_block: 'カレンダーブロックの削除に失敗しました。もう一度お試しください。',
         },
         filter_operators: {
             contains: '含む',

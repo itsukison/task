@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { CellProps } from '../types';
+import { useLanguage } from '@/lib/i18n';
 
 /**
  * Text input cell with two UX improvements:
@@ -20,7 +21,9 @@ export const TextCell = React.memo(function TextCell({
     onEnter,
     secondaryText,
     preventBlurOnEnter,
+    placeholder,
 }: CellProps) {
+    const { t } = useLanguage();
     const [localValue, setLocalValue] = useState(String(value ?? ''));
     const [showPopover, setShowPopover] = useState(false);
     const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
@@ -218,7 +221,7 @@ export const TextCell = React.memo(function TextCell({
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
                 onKeyDown={handleInputKeyDown}
-                placeholder="Empty"
+                placeholder={placeholder ?? t('common.empty')}
                 className="w-full truncate bg-transparent border-none outline-none text-[#424242] text-sm leading-tight placeholder:text-gray-300 placeholder:italic"
             />
             {secondaryText && (

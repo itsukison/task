@@ -38,6 +38,23 @@ interface CalendarDayColumnProps {
   startHour?: number;
 }
 
+function CurrentTimeLine({ startHour, hourHeight }: { startHour: number; hourHeight: number }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const top = Math.max(0, (now.getHours() - startHour) * 60 + now.getMinutes()) * (hourHeight / 60);
+  return (
+    <div
+      className="absolute left-0 right-0 border-t border-red-500 z-20 pointer-events-none flex items-center"
+      style={{ top: `${top}px` }}
+    >
+      <div className="w-1.5 h-1.5 bg-red-500 rounded-full -ml-[3px]"></div>
+    </div>
+  );
+}
+
 export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   date,
   dateStr,
@@ -239,15 +256,8 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
         </div>
       ))}
 
-      {/* Current Time Line */}
-      {isToday && (
-        <div
-          className="absolute left-0 right-0 border-t border-red-500 z-20 pointer-events-none flex items-center"
-          style={{ top: `${Math.max(0, (new Date().getHours() - startHour) * 60 + new Date().getMinutes()) * (hourHeight / 60)}px` }}
-        >
-          <div className="w-1.5 h-1.5 bg-red-500 rounded-full -ml-[3px]"></div>
-        </div>
-      )}
+      {/* Current Time Line — updates every 60 s so the indicator stays accurate */}
+      {isToday && <CurrentTimeLine startHour={startHour} hourHeight={hourHeight} />}
 
       {/* Ghost Blocks for Drag Preview */}
       {dragPreview && draggingTask && (

@@ -43,6 +43,13 @@ export default function WorkspacePage() {
     const [viewDate, setViewDate] = useState<Date>(new Date());
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
     const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(new Set());
+    const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
+    useEffect(() => {
+        if (!toast) return;
+        const id = setTimeout(() => setToast(null), 4000);
+        return () => clearTimeout(id);
+    }, [toast]);
 
     // Compute startHour/endHour from user preferences (default full day)
     const workStartTime: string = (preferences as any)?.work_start_time ?? '00:00';
@@ -191,8 +198,7 @@ export default function WorkspacePage() {
             if (selectedTask?.id === taskId) setSelectedTask(null);
         } catch (err) {
             console.error('Failed to delete task:', err);
-            // Show user-friendly error
-            alert(t('common.alert_delete_own'));
+            setToast({ message: t('common.alert_delete_own'), type: 'error' });
         }
     };
 
@@ -376,8 +382,7 @@ export default function WorkspacePage() {
             await deleteCalendarBlock(blockId);
         } catch (err) {
             console.error('Failed to delete calendar block:', err);
-            // Show user-visible error notification
-            alert(t('common.error_delete_block') || 'Failed to delete calendar block. Please try again.');
+            setToast({ message: t('common.error_delete_block'), type: 'error' });
         }
     };
 
@@ -403,6 +408,12 @@ export default function WorkspacePage() {
 
     return (
         <>
+            {toast && (
+                <div className={`fixed bottom-5 right-5 z-[9999] flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${toast.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+                    {toast.message}
+                    <button onClick={() => setToast(null)} className="ml-2 opacity-60 hover:opacity-100 text-xs">✕</button>
+                </div>
+            )}
             <WorkspaceView
                 tasks={tasks}
                 calendarBlocks={calendarBlocks}

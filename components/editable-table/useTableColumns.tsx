@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { TableColumn, AssignmentStatus } from '@/lib/types';
 import { Cell } from './cells';
 import { DataTypeIcon } from './utils';
+import { useLanguage } from '@/lib/i18n';
 
 const formatTimeRange = (startTime: unknown, expectedTime: unknown): string | undefined => {
     if (typeof startTime !== 'string') return undefined;
@@ -80,6 +81,7 @@ export function useTableColumns<T extends { id: string }>({
     onEnter,
     onDeleteRow,
 }: UseTableColumnsProps<T>) {
+    const { t } = useLanguage();
     // Refs for high-churn values so they don't trigger useMemo recomputation
     const focusRowIdRef = useRef(focusRowId);
     const expandedRef = useRef(expandedSubtaskParentIds);
@@ -191,7 +193,7 @@ export function useTableColumns<T extends { id: string }>({
                                     );
                                 }}
                             >
-                                {isCompleted && <Check size={9} className="text-[#9e9e9e]" />}
+                                {isCompleted && <Check size={9} className="text-green-500" />}
                             </button>
                         )}
                         {/* Text */}
@@ -230,7 +232,7 @@ export function useTableColumns<T extends { id: string }>({
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                                 </svg>
-                                OPEN
+                                {t('common.open')}
                             </button>
                         )}
                     </div>

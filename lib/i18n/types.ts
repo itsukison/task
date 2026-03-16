@@ -60,6 +60,8 @@ export interface TranslationDictionary {
         yesterday: string;
         today: string;
         tomorrow: string;
+        open: string;
+        error_delete_block: string;
     };
     filter_operators: {
         contains: string;

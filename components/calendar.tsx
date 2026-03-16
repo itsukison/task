@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useMemo, useCallback, useState } from 'react';
-import { format, addDays, startOfWeek, addMinutes } from 'date-fns';
+import { format, addDays, startOfWeek, addMinutes, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar as UiCalendar } from '@/components/ui/calendar';
@@ -81,6 +81,11 @@ const Calendar = React.memo(function Calendar({
   const selectionRafRef = useRef<number | null>(null);
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [now, setNow] = React.useState(new Date());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Horizontal scroll hook — bodyScrollRef is the unified scroll container
   const {
@@ -97,7 +102,7 @@ const Calendar = React.memo(function Calendar({
   });
 
   // Pass bodyScrollRef (the unified scroll container) to the zoom hook
-  const { hourHeight, snapInterval } = useCalendarZoom(bodyScrollRef);
+  const { hourHeight, snapInterval, resetZoom } = useCalendarZoom(bodyScrollRef);
 
   // Visible hours array driven by startHour and endHour
   const visibleHours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
@@ -513,12 +518,7 @@ const Calendar = React.memo(function Calendar({
           {/* Zoom Controls */}
           <div className="flex items-center gap-1 ml-2">
             <button
-              onClick={() => {
-                const container = bodyScrollRef.current;
-                if (container) {
-                  container.scrollTop = 0;
-                }
-              }}
+              onClick={resetZoom}
               className="text-xs px-2 py-1 text-[#787774] hover:bg-[#EFEFED] rounded-md transition-colors"
               title={t('calendar.reset_zoom')}
             >
@@ -579,6 +579,16 @@ const Calendar = React.memo(function Calendar({
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseUp}
             >
+              {/* Faint current-time line spanning all visible day columns */}
+              {displayedDays.some(d => isSameDay(d, now)) && (() => {
+                const top = Math.max(0, (now.getHours() - startHour) * 60 + now.getMinutes()) * (hourHeight / 60);
+                return (
+                  <div
+                    className="absolute left-0 right-0 border-t border-red-400/25 z-15 pointer-events-none"
+                    style={{ top: `${top}px` }}
+                  />
+                );
+              })()}
               {isLassoActive && (
                 <div
                   ref={selectionBoxDivRef}

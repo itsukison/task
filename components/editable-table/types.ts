@@ -27,6 +27,8 @@ export interface CellProps {
     onEnter?: () => void;
     // When true, keep focus on Enter to avoid flicker during row insertion
     preventBlurOnEnter?: boolean;
+    // Custom placeholder text (defaults to translated 'empty' string)
+    placeholder?: string;
 }
 
 /**

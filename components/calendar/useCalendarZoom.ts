@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 
 /**
  * Hook for managing calendar zoom state with pinch-to-zoom support
@@ -61,5 +61,13 @@ export function useCalendarZoom(containerRef: React.RefObject<HTMLDivElement | n
 
   const snapInterval = hourHeight >= 80 ? 5 : 15;
 
-  return { hourHeight, snapInterval };
+  const resetZoom = useCallback(() => {
+    zoomAnchorRef.current = null;
+    setHourHeight(64);
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 8 * 64;
+    }
+  }, [containerRef]);
+
+  return { hourHeight, snapInterval, resetZoom };
 }
