@@ -272,7 +272,7 @@ const Calendar = React.memo(function Calendar({
                         <div className="flex items-center bg-white border border-[#E9E9E7] rounded-md shadow-sm">
                             {onPrev && (
                                 <button onClick={onPrev} className="p-1 hover:bg-[#EFEFED] text-[#787774] border-r border-[#E9E9E7]">
-                                    <ChevronLeft size={14} />
+                                    <ChevronRight size={14} />
                                 </button>
                             )}
                             {onToday && (
@@ -351,7 +351,6 @@ const Calendar = React.memo(function Calendar({
                                 draggingTask={draggingTask}
                                 dragPreview={dragPreview}
                                 getTaskStyle={getTaskStyle}
-                                formatMinutesToTime={formatMinutesToTime}
                                 onDragOverDay={handleDragOverDay}
                                 onDrop={handleDrop}
                                 onTaskClick={onTaskClick}

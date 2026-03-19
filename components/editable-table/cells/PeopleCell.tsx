@@ -15,7 +15,7 @@ import { useEditableTable } from '../EditableTableContext';
  * Displays selected users as avatars, allows adding/removing owners
  * Shows muted styling for pending assignments
  */
-export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerStatuses = {}, onChange }: CellProps) {
+export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerStatuses = {}, onChange, hideNames }: CellProps) {
     const { user } = useAuth();
     const { activePopup, setActivePopup } = useEditableTable();
 
@@ -126,11 +126,11 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerSt
     return (
         <div className="relative w-full h-full" ref={triggerRef}>
             <div
-                className="w-full h-full px-2 py-1.5 cursor-pointer flex items-center gap-1"
+                className="w-full h-full px-2 py-1.5 cursor-pointer flex items-center justify-center gap-1"
                 onClick={handleToggleDropdown}
             >
                 {selectedPeople.length > 0 ? (
-                    <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex items-center justify-center gap-1 flex-wrap">
                         {selectedPeople.map(person => {
                             const isPending = ownerStatuses[person.id] === 'pending';
                             return (
@@ -150,7 +150,7 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerSt
                                     )}>
                                         {getInitials(person.displayName)}
                                     </div>
-                                    {selectedPeople.length === 1 && (
+                                    {selectedPeople.length === 1 && !hideNames && (
                                         <span className={cn(
                                             "text-sm",
                                             isPending ? "text-gray-400" : "text-[#37352F]"

@@ -29,6 +29,12 @@ export interface CellProps {
     preventBlurOnEnter?: boolean;
     // Custom placeholder text (defaults to translated 'empty' string)
     placeholder?: string;
+    // When true, hide identifying names/labels (used for compact PeopleCell)
+    hideNames?: boolean;
+    // Inline edit affordance
+    editMode?: 'direct' | 'pencil';
+    // Delete newly-created empty rows on blur
+    onDeleteEmptyRow?: (rowId: string) => void;
 }
 
 /**

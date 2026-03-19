@@ -7,6 +7,7 @@ import { SelectCell } from './SelectCell';
 import { PeopleCell } from './PeopleCell';
 import { TimerNumberCell } from './TimerNumberCell';
 import { CombinedTimeCell } from './CombinedTimeCell';
+import { EstimatedTimeCell } from './EstimatedTimeCell';
 import { SubtaskCell } from './SubtaskCell';
 import { DocumentCell } from './DocumentCell';
 
@@ -27,6 +28,8 @@ export function Cell(props: CellProps) {
             return <TimerNumberCell {...props} />;
         case 'combinedTime':
             return <CombinedTimeCell {...props} />;
+        case 'estimatedTime':
+            return <EstimatedTimeCell {...props} />;
         case 'subtask':
             return <SubtaskCell {...props} />;
         case 'document':

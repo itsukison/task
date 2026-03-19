@@ -66,7 +66,6 @@ export function MemberTasksModal({
 
     // Calculate totals
     const totalEstimated = tasks.reduce((sum, t) => sum + t.expectedTime, 0);
-    const totalActual = tasks.reduce((sum, t) => sum + (t.actualTime || 0), 0);
     const completedCount = tasks.filter(t => t.status === 'completed').length;
 
     // Localized date format
@@ -118,11 +117,6 @@ export function MemberTasksModal({
                             <span className="font-medium text-[#37352F]">{formatTime(totalEstimated)}</span>
                         </div>
                         <div className="h-3 w-px bg-[#E9E9E7]" />
-                        <div className="flex items-center gap-1.5">
-                            <Clock size={14} className="text-[#787774]" />
-                            <span className="text-[#787774]">{t('member_tasks.act_label')}</span>
-                            <span className="font-medium text-[#37352F]">{formatTime(totalActual)}</span>
-                        </div>
                     </div>
                 </div>
 
@@ -163,10 +157,6 @@ export function MemberTasksModal({
                                         <div className="flex items-center gap-1">
                                             <span>{t('member_tasks.est_label')}</span>
                                             <span className="font-medium text-[#787774]">{formatTime(task.expectedTime)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <span>{t('member_tasks.act_label')}</span>
-                                            <span className="font-medium text-[#787774]">{formatTime(task.actualTime || 0)}</span>
                                         </div>
                                     </div>
                                 </div>

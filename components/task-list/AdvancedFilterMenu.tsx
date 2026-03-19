@@ -203,7 +203,6 @@ export function AdvancedFilterMenu({
                                                         case 'status': return t('headers.status');
                                                         case 'ownerIds': return t('headers.owner');
                                                         case 'expectedTime': return t('headers.est_time');
-                                                        case 'actualTime': return t('headers.act_time');
                                                         default: return col.label;
                                                     }
                                                 };

@@ -12,7 +12,6 @@ interface WorkspaceHeaderProps {
         totalTasks: number;
         tasksLeft: number;
         estimatedHours: number;
-        actualHours: number;
     };
 }
 
@@ -47,10 +46,6 @@ export function WorkspaceHeader({
                             <span className="text-[#787774]">{t('common.est_label')}</span>
                             <span className="font-medium">{stats.estimatedHours}h</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <span className="text-[#787774]">{t('common.used_label')}</span>
-                            <span className="font-medium">{stats.actualHours}h</span>
-                        </div>
                     </div>
 
                     <div className="h-4 w-px bg-gray-200"></div>
@@ -58,7 +53,7 @@ export function WorkspaceHeader({
                     {/* Add Task Button */}
                     <button
                         onClick={() => onAddTask({ shouldOpenModal: true })}
-                        className="flex items-center gap-1 bg-accent hover:bg-accent-dark text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                        className="flex items-center gap-1 bg-accent hover:bg-accent-dark text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer"
                     >
                         <Plus size={14} /> {t('common.new_task')}
                     </button>

@@ -24,6 +24,9 @@ const formatDateToLocalISO = (date: Date): string => {
 
 export default function WorkspacePage() {
     const { t } = useLanguage();
+    // Default variant (TanStack table) is currently deprecated.
+    // 'minimal' uses the FastSection/FastTaskRow list optimized for rapid entry.
+    const tableVariant = 'minimal';
     const { user, currentOrg } = useAuth();
     const { preferences, loading: preferencesLoading } = useUserPreferences();
     const { setSelectedDate: setAISelectedDate, pendingAction } = useAI();
@@ -147,6 +150,7 @@ export default function WorkspacePage() {
                 actualTime: updatedTask.actualTime,
                 visibility: updatedTask.visibility,
                 ownerIds: updatedTask.ownerIds,
+                scheduledDate: updatedTask.scheduledDate,
             });
 
             if (expectedTimeChanged && user) {
@@ -204,8 +208,12 @@ export default function WorkspacePage() {
 
     const handleAddTask = async (initialData?: { scheduledDate?: string | Date, expectedTime?: number, title?: string, shouldOpenModal?: boolean }) => {
         try {
-            // Create task with scheduled_date set to the selected date or provided initial date
-            const newTask = await createTask({
+            // For calendar context-menu path (Date object), we need the real ID for block creation.
+            // For standard add-row / enter-key path, return instantly.
+            const isCalendarContextMenu = initialData?.scheduledDate instanceof Date;
+
+            // createTask returns synchronously with an optimistic task
+            const newTask = createTask({
                 title: initialData?.title ?? '',
                 description: '',
                 status: 'planned',
@@ -217,13 +225,14 @@ export default function WorkspacePage() {
                     : formatDateToLocalISO(selectedDate),
             });
 
-            // If created from calendar context menu (Date object provided), create a time block immediately
-            if (initialData?.scheduledDate instanceof Date) {
-                const startTime = initialData.scheduledDate;
+            // If created from calendar context menu (Date object provided), create a time block.
+            // We use the optimistic task ID — createCalendarBlock handles optimistic IDs too.
+            if (isCalendarContextMenu) {
+                const startTime = initialData.scheduledDate as Date;
                 const duration = initialData.expectedTime ?? 30;
                 const endTime = addMinutes(startTime, duration);
 
-                // Create the block linked to the new task
+                // Create the block linked to the new task (uses optimistic ID)
                 await createCalendarBlock({
                     taskId: newTask.id,
                     startTime,
@@ -231,17 +240,11 @@ export default function WorkspacePage() {
                 });
             }
 
-            // Open modal logic:
-            // 1. If explicit shouldOpenModal is true, open (e.g. Header button)
-            // 2. If created via Table (no args), shouldOpenModal is undefined -> false (inline edit)
-            // 3. If created via Quick Add (title provided), shouldOpenModal is undefined -> false
             const shouldOpen = initialData?.shouldOpenModal ?? false;
-
             if (shouldOpen) {
                 setSelectedTask(newTask);
             }
 
-            // Return new task for EditableTable focus
             return newTask;
         } catch (err) {
             console.error('Failed to create task:', err);
@@ -249,9 +252,9 @@ export default function WorkspacePage() {
     };
 
     // Create a subtask with title and link to parent task (legacy, used by subtask column cell)
-    const handleCreateSubtask = async (parentTaskId: string, title: string) => {
+    const handleCreateSubtask = (parentTaskId: string, title: string) => {
         try {
-            await createTask({
+            createTask({
                 title,
                 description: '',
                 status: 'planned',
@@ -267,7 +270,7 @@ export default function WorkspacePage() {
     // Create an inline subtask row from the + button — returns the new task for focus
     const handleAddSubtask = async (parentTaskId: string, scheduledDate: string) => {
         try {
-            const result = await createTask({
+            const result = createTask({
                 title: '',
                 description: '',
                 status: 'planned',
@@ -275,9 +278,7 @@ export default function WorkspacePage() {
                 scheduledDate,
                 parentTaskId,
             });
-            // result is the raw RPC response array; extract first row for focus tracking
-            const created = Array.isArray(result) ? result[0] : result;
-            return created ?? undefined;
+            return result;
         } catch (err) {
             console.error('Failed to create subtask:', err);
         }
@@ -414,10 +415,10 @@ export default function WorkspacePage() {
                     <button onClick={() => setToast(null)} className="ml-2 opacity-60 hover:opacity-100 text-xs">✕</button>
                 </div>
             )}
-            <WorkspaceView
-                tasks={tasks}
-                calendarBlocks={calendarBlocks}
-                selectedDate={selectedDate}
+        <WorkspaceView
+            tasks={tasks}
+            calendarBlocks={calendarBlocks}
+            selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
                 viewDate={viewDate}
                 onViewDateChange={setViewDate}
@@ -441,11 +442,12 @@ export default function WorkspacePage() {
                 previewTask={previewTask}
                 previewBlock={previewBlock}
                 onCreateSubtask={handleCreateSubtask}
-                onAddSubtask={handleAddSubtask}
-                selectedBlockIds={selectedBlockIds}
-                onSelectBlocks={setSelectedBlockIds}
-                onUpdateMultipleBlocks={handleUpdateMultipleBlocks}
-            />
+            onAddSubtask={handleAddSubtask}
+            selectedBlockIds={selectedBlockIds}
+            onSelectBlocks={setSelectedBlockIds}
+            onUpdateMultipleBlocks={handleUpdateMultipleBlocks}
+            tableVariant={tableVariant}
+        />
 
             {selectedTask && (
                 <TaskModal

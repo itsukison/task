@@ -24,6 +24,8 @@ export function DataTypeIcon({ dataType }: { dataType: DataType }) {
             return <Hash size={14} className="text-[#9e9e9e]" />;
         case 'combinedTime':
             return <Clock size={14} className="text-[#9e9e9e]" />;
+        case 'estimatedTime':
+            return <Clock size={14} className="text-[#9e9e9e]" />;
         case 'subtask':
             return <ListTodo size={14} className="text-[#9e9e9e]" />;
         case 'document':

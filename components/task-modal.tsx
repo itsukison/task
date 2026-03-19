@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { X, Clock, User, CheckCircle2, Sparkles, Play, Pause, MoreHorizontal, Calendar, ArrowUpRight } from 'lucide-react';
+import { X, Clock, User, CheckCircle2, Sparkles, MoreHorizontal, Calendar, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Task, TaskStatus, TaskModalProps } from '@/lib/types';
 import { useLanguage } from '@/lib/i18n';
@@ -11,25 +11,12 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
     const { t } = useLanguage();
     const [editedTask, setEditedTask] = useState<Task | null>(task);
     const [isEnhancing, setIsEnhancing] = useState(false);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
 
     useEffect(() => {
         setEditedTask(task);
     }, [task]);
 
     if (!editedTask) return null;
-
-    const toggleTimer = () => {
-        if (isTimerRunning) {
-            setIsTimerRunning(false);
-            onUpdate(editedTask);
-        } else {
-            setIsTimerRunning(true);
-            const newTask = { ...editedTask, status: 'in_progress' as TaskStatus };
-            setEditedTask(newTask);
-            onUpdate(newTask);
-        }
-    };
 
     // Keep a ref to the latest edited task to avoid stale closures in timeouts
     const editedTaskRef = useRef(editedTask);
@@ -193,19 +180,8 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                             </div>
                             <div className="flex-1 flex items-center gap-4 text-sm">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[#37352F] font-medium">{editedTask.actualTime}m</span>
-                                    <span className="text-[#9B9A97]">/</span>
                                     <span className="text-[#787774]">{editedTask.expectedTime}m {t('tasks.estimated')}</span>
                                 </div>
-                                <button
-                                    onClick={toggleTimer}
-                                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors border ${isTimerRunning
-                                        ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    {isTimerRunning ? <><Pause size={12} /> {t('common.pause')}</> : <><Play size={12} /> {t('common.start_timer')}</>}
-                                </button>
                             </div>
                         </div>
 

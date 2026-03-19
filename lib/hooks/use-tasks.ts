@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/hooks';
 import { Database } from '@/lib/database.types';
@@ -77,7 +77,7 @@ export interface UseTasksReturn {
     tasks: Task[];
     loading: boolean;
     error: string | null;
-    createTask: (input: CreateTaskInput) => Promise<Task>;
+    createTask: (input: CreateTaskInput) => Task;
     updateTask: (id: string, input: UpdateTaskInput) => Promise<void>;
     deleteTask: (id: string) => Promise<void>;
     acceptAssignment: (taskId: string) => Promise<void>;
@@ -90,6 +90,13 @@ export function useTasks(): UseTasksReturn {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Flag to suppress realtime refetches during our own mutations
+    const isMutatingRef = useRef(false);
+    // Debounce timer for realtime refetches
+    const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Track optimistic IDs cancelled before insert resolves
+    const cancelledOptimisticIdsRef = useRef<Set<string>>(new Set());
 
     // Fetch tasks with owner JOIN
     const fetchTasks = useCallback(async () => {
@@ -136,7 +143,24 @@ export function useTasks(): UseTasksReturn {
             const transformedTasks = filteredData.map((row: any) =>
                 dbToTask(row)
             );
-            setTasks(transformedTasks);
+
+            // Merge: keep optimistic rows that haven't persisted yet
+            setTasks(prev => {
+                const serverIds = new Set(transformedTasks.map((t: Task) => t.id));
+                const pendingOptimistic = prev.filter(
+                    t => t.id.startsWith('optimistic-') && !t.realId && !serverIds.has(t.id)
+                );
+                // For tasks that already have a realId, find the server version and
+                // preserve the stable optimistic id
+                const reconciledServer = transformedTasks.map((st: Task) => {
+                    const match = prev.find(t => t.realId === st.id);
+                    if (match) {
+                        return { ...st, id: match.id, realId: st.id };
+                    }
+                    return st;
+                });
+                return [...reconciledServer, ...pendingOptimistic];
+            });
         } catch (err: unknown) {
             console.error('Full tasks error:', JSON.stringify(err, null, 2));
             const message = err instanceof Error ? err.message : 'Failed to fetch tasks';
@@ -146,6 +170,18 @@ export function useTasks(): UseTasksReturn {
             setLoading(false);
         }
     }, [currentOrg, user]);
+
+    // Debounced refetch for realtime — skips if we're currently mutating
+    const debouncedRealtimeFetch = useCallback(() => {
+        if (isMutatingRef.current) return;
+        if (realtimeDebounceRef.current) {
+            clearTimeout(realtimeDebounceRef.current);
+        }
+        realtimeDebounceRef.current = setTimeout(() => {
+            realtimeDebounceRef.current = null;
+            fetchTasks();
+        }, 800);
+    }, [fetchTasks]);
 
     // Initial fetch and real-time subscription
     useEffect(() => {
@@ -169,8 +205,7 @@ export function useTasks(): UseTasksReturn {
                     filter: `organization_id=eq.${currentOrg.id}`,
                 },
                 () => {
-                    // Refetch on any change to get the joined owner data
-                    fetchTasks();
+                    debouncedRealtimeFetch();
                 }
             )
             .subscribe();
@@ -187,8 +222,7 @@ export function useTasks(): UseTasksReturn {
                     filter: `organization_id=eq.${currentOrg.id}`,
                 },
                 () => {
-                    // Refetch when any task_owner changes in the org
-                    fetchTasks();
+                    debouncedRealtimeFetch();
                 }
             )
             .subscribe();
@@ -196,69 +230,183 @@ export function useTasks(): UseTasksReturn {
         return () => {
             supabase.removeChannel(tasksChannel);
             supabase.removeChannel(taskOwnersChannel);
+            if (realtimeDebounceRef.current) {
+                clearTimeout(realtimeDebounceRef.current);
+            }
         };
-    }, [currentOrg, user, fetchTasks]);
+    }, [currentOrg, user, fetchTasks, debouncedRealtimeFetch]);
 
-    // Create a new task
-    const createTask = useCallback(async (input: CreateTaskInput): Promise<Task> => {
+    // Queue of pending updates for tasks that haven't persisted yet.
+    // Maps optimistic ID -> array of UpdateTaskInput patches.
+    const pendingUpdatesRef = useRef<Map<string, UpdateTaskInput[]>>(new Map());
+
+    // Persist a task to Supabase in the background (does NOT block the caller)
+    const persistTaskInBackground = useCallback(async (optimisticId: string, input: CreateTaskInput) => {
+        if (!user || !currentOrg) return;
+
+        isMutatingRef.current = true;
+
+        try {
+            const insertData: TaskInsert = {
+                organization_id: currentOrg.id,
+                owner_id: user.id,
+                created_by: user.id,
+                title: input.title,
+                description: input.description ?? null,
+                status: input.status ?? 'planned',
+                expected_time_minutes: input.expectedTime,
+                visibility: input.visibility ?? profile?.default_task_visibility ?? 'team',
+                scheduled_date: input.scheduledDate ?? null,
+                ...(input.parentTaskId ? { parent_task_id: input.parentTaskId } : {}),
+            } as TaskInsert;
+
+            const { data, error: insertError } = await supabase
+                .from('tasks')
+                .insert(insertData)
+                .select(`
+                    *,
+                    task_owners (
+                        id,
+                        status,
+                        assigned_by,
+                        user_profiles!task_owners_user_profiles_fkey (
+                            id,
+                            display_name,
+                            email
+                        )
+                    )
+                `)
+                .single();
+
+            if (insertError) {
+                // Mark the optimistic row with persistError instead of removing it
+                setTasks(prev => prev.map(t =>
+                    t.id === optimisticId ? { ...t, persistError: true } : t
+                ));
+                console.error(`Failed to create task: ${insertError.message}`);
+                return;
+            }
+
+            // Handle deletion that happened before persist completed
+            if (cancelledOptimisticIdsRef.current.has(optimisticId)) {
+                cancelledOptimisticIdsRef.current.delete(optimisticId);
+                try {
+                    await supabase
+                        .from('calendar_blocks')
+                        .delete()
+                        .eq('task_id', data.id);
+                    await supabase.rpc('soft_delete_task', { task_id: data.id });
+                } catch (cleanupError) {
+                    console.error('Failed to clean up cancelled task:', cleanupError);
+                }
+                return;
+            }
+
+            // Add creator as initial owner in task_owners (self-assignment = confirmed)
+            const { error: ownerError } = await supabase
+                .from('task_owners')
+                .insert({
+                    task_id: data.id,
+                    user_id: user.id,
+                    organization_id: currentOrg.id,
+                    status: 'confirmed',
+                    assigned_by: user.id,
+                });
+
+            if (ownerError) {
+                console.error('Failed to add initial owner:', ownerError);
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const serverTask = dbToTask(data as any);
+
+            // Replace optimistic task with server data, keeping the optimistic ID stable.
+            // If the server row hasn't populated owners yet, preserve the optimistic owners.
+            setTasks(prev => prev.map(t => {
+                if (t.id !== optimisticId) return t;
+                const owners = serverTask.owners.length > 0 ? serverTask.owners : t.owners;
+                return { ...serverTask, owners, id: optimisticId, realId: serverTask.id };
+            }));
+
+            // Flush any updates that were queued while the task was still optimistic
+            const queued = pendingUpdatesRef.current.get(optimisticId);
+            if (queued && queued.length > 0) {
+                pendingUpdatesRef.current.delete(optimisticId);
+                const merged: UpdateTaskInput = {};
+                for (const patch of queued) Object.assign(merged, patch);
+                // Fire the real update against the server ID
+                const updateData: TaskUpdate = {};
+                if (merged.title !== undefined) updateData.title = merged.title;
+                if (merged.description !== undefined) updateData.description = merged.description;
+                if (merged.status !== undefined) updateData.status = merged.status;
+                if (merged.expectedTime !== undefined) updateData.expected_time_minutes = merged.expectedTime;
+                if (merged.actualTime !== undefined) updateData.actual_time_minutes = merged.actualTime;
+                if (merged.visibility !== undefined) updateData.visibility = merged.visibility;
+                if (merged.scheduledDate !== undefined) updateData.scheduled_date = merged.scheduledDate;
+                if (Object.keys(updateData).length > 0) {
+                    await supabase
+                        .from('tasks')
+                        .update(updateData)
+                        .eq('id', serverTask.id)
+                        .eq('organization_id', currentOrg.id);
+                }
+            }
+        } finally {
+            setTimeout(() => {
+                isMutatingRef.current = false;
+            }, 500);
+        }
+    }, [user, currentOrg, profile]);
+
+    // Create a new task — returns immediately with optimistic data
+    const createTask = useCallback((input: CreateTaskInput): Task => {
         if (!user || !currentOrg) {
             throw new Error('Must be authenticated with an organization');
         }
 
-        const insertData: TaskInsert = {
-            organization_id: currentOrg.id,
-            owner_id: user.id,
-            created_by: user.id,
+        const optimisticId = `optimistic-${crypto.randomUUID()}`;
+        const now = new Date().toISOString();
+        const optimisticTask: Task = {
+            id: optimisticId,
             title: input.title,
             description: input.description ?? null,
             status: input.status ?? 'planned',
-            expected_time_minutes: input.expectedTime,
+            expectedTime: input.expectedTime,
+            actualTime: 0,
             visibility: input.visibility ?? profile?.default_task_visibility ?? 'team',
-            scheduled_date: input.scheduledDate ?? null,
-            ...(input.parentTaskId ? { parent_task_id: input.parentTaskId } : {}),
-        } as TaskInsert;
-
-        const { data, error: insertError } = await supabase
-            .from('tasks')
-            .insert(insertData)
-            .select(`
-                *,
-                task_owners (
-                    user_profiles!task_owners_user_profiles_fkey (
-                        id,
-                        display_name,
-                        email
-                    )
-                )
-            `)
-            .single();
-
-        if (insertError) {
-            throw new Error(`Failed to create task: ${insertError.message}`);
-        }
-
-        // Add creator as initial owner in task_owners (self-assignment = confirmed)
-        const { error: ownerError } = await supabase
-            .from('task_owners')
-            .insert({
-                task_id: data.id,
-                user_id: user.id,
-                organization_id: currentOrg.id,
+            owners: [{
+                id: user.id,
+                display_name: profile?.display_name ?? '',
+                email: user.email ?? '',
                 status: 'confirmed',
-                assigned_by: user.id,
-            });
+                assignedBy: user.id,
+            }],
+            ownerId: user.id,
+            organizationId: currentOrg.id,
+            scheduledDate: input.scheduledDate ?? null,
+            parentTaskId: input.parentTaskId ?? null,
+            createdAt: now,
+            updatedAt: now,
+        };
 
-        if (ownerError) {
-            console.error('Failed to add initial owner:', ownerError);
-        }
+        // Insert into state immediately
+        setTasks(prev => [...prev, optimisticTask]);
 
-        // Refetch to get the updated owners
-        await fetchTasks();
+        // Persist in background — does NOT block the return
+        persistTaskInBackground(optimisticId, input);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const newTask = dbToTask(data as any);
-        return newTask;
-    }, [user, currentOrg]);
+        return optimisticTask;
+    }, [user, currentOrg, profile, persistTaskInBackground]);
+
+    // Resolve the Supabase-side ID for a task (realId if set, else id)
+    const resolveApiId = useCallback((id: string): string | null => {
+        const task = tasks.find(t => t.id === id);
+        if (!task) return id;
+        if (task.realId) return task.realId;
+        // Still optimistic — no server ID yet
+        if (id.startsWith('optimistic-')) return null;
+        return id;
+    }, [tasks]);
 
     // Update a task
     const updateTask = useCallback(async (id: string, input: UpdateTaskInput): Promise<void> => {
@@ -266,12 +414,32 @@ export function useTasks(): UseTasksReturn {
             throw new Error('Must be authenticated with an organization');
         }
 
-        // 🔍 DIAGNOSTIC LOGGING
-        console.group('✏️ UPDATE TASK DEBUG');
-        console.log('Task ID:', id);
-        console.log('Current Org ID:', currentOrg.id);
-        console.log('Update input:', input);
-        console.groupEnd();
+        // Optimistic update so UI responds immediately
+        setTasks(prev => prev.map(t => {
+            if (t.id !== id) return t;
+            return {
+                ...t,
+                ...(input.title !== undefined && { title: input.title }),
+                ...(input.status !== undefined && { status: input.status }),
+                ...(input.expectedTime !== undefined && { expectedTime: input.expectedTime }),
+                ...(input.scheduledDate !== undefined && { scheduledDate: input.scheduledDate }),
+                ...(input.description !== undefined && { description: input.description }),
+                ...(input.actualTime !== undefined && { actualTime: input.actualTime }),
+                ...(input.visibility !== undefined && { visibility: input.visibility }),
+            };
+        }));
+
+        // If the task hasn't persisted yet, queue updates for later
+        const apiId = resolveApiId(id);
+        if (apiId === null) {
+            const existing = pendingUpdatesRef.current.get(id) ?? [];
+            existing.push(input);
+            pendingUpdatesRef.current.set(id, existing);
+            return;
+        }
+
+        // Suppress realtime refetches during our mutation
+        isMutatingRef.current = true;
 
         const updateData: TaskUpdate = {};
 
@@ -286,27 +454,20 @@ export function useTasks(): UseTasksReturn {
         const { error: updateError } = await supabase
             .from('tasks')
             .update(updateData)
-            .eq('id', id)
+            .eq('id', apiId)
             .eq('organization_id', currentOrg.id);
 
         if (updateError) {
-            console.error('❌ UPDATE ERROR:', updateError);
             throw new Error(`Failed to update task: ${updateError.message}`);
         }
 
         // Handle owner updates if provided - use smart logic to preserve confirmed status
         if (input.ownerIds !== undefined && user) {
-            console.group('👥 UPDATING TASK OWNERS');
-            console.log('Task ID:', id);
-            console.log('New owner IDs:', input.ownerIds);
-
             // Get existing owners with their status
             const { data: existingOwners } = await supabase
                 .from('task_owners')
                 .select('user_id, status')
-                .eq('task_id', id);
-
-            console.log('Existing owners:', existingOwners);
+                .eq('task_id', apiId);
 
             const existingUserIds = new Set(existingOwners?.map(o => o.user_id) || []);
             const newUserIds = new Set(input.ownerIds);
@@ -314,11 +475,10 @@ export function useTasks(): UseTasksReturn {
             // Remove owners not in new list
             const toRemove = [...existingUserIds].filter(uid => !newUserIds.has(uid));
             if (toRemove.length > 0) {
-                console.log('Removing owners:', toRemove);
                 await supabase
                     .from('task_owners')
                     .delete()
-                    .eq('task_id', id)
+                    .eq('task_id', apiId)
                     .in('user_id', toRemove);
             }
 
@@ -326,98 +486,102 @@ export function useTasks(): UseTasksReturn {
             const toAdd = [...newUserIds].filter(uid => !existingUserIds.has(uid));
             if (toAdd.length > 0) {
                 const ownerInserts = toAdd.map(userId => ({
-                    task_id: id,
+                    task_id: apiId,
                     user_id: userId,
                     organization_id: currentOrg.id,
                     assigned_by: user.id,
                     status: userId === user.id ? 'confirmed' as const : 'pending' as const,
                 }));
 
-                console.log('Inserting new owners:', ownerInserts);
-                const { data: insertedOwners, error: insertError } = await supabase
+                const { error: insertError } = await supabase
                     .from('task_owners')
                     .insert(ownerInserts)
                     .select();
 
                 if (insertError) {
-                    console.error('❌ Failed to insert owners:', insertError);
-                } else {
-                    console.log('✅ Inserted owners:', insertedOwners);
+                    console.error('Failed to insert owners:', insertError);
                 }
             }
-
-            console.groupEnd();
         }
 
-        // Refetch to get updated data including owners
-        await fetchTasks();
-    }, [currentOrg, user, fetchTasks]);
+        // For owner changes, do a deferred refetch to pick up the new JOIN data
+        if (input.ownerIds !== undefined) {
+            setTimeout(() => {
+                isMutatingRef.current = false;
+                fetchTasks();
+            }, 200);
+        } else {
+            // Re-enable realtime refetches after a short delay
+            setTimeout(() => {
+                isMutatingRef.current = false;
+            }, 500);
+        }
+    }, [currentOrg, user, fetchTasks, resolveApiId]);
 
-    // Soft delete a task using RPC function
+    // Soft delete a task using RPC function — optimistic removal first
     const deleteTask = useCallback(async (id: string): Promise<void> => {
         if (!currentOrg) {
             throw new Error('Must be authenticated with an organization');
         }
 
-        // CRITICAL: Delete associated calendar blocks BEFORE soft-deleting the task
-        // This prevents orphaned blocks that cause "phantom overlap" issues
-        const { error: blocksDeleteError } = await supabase
-            .from('calendar_blocks')
-            .delete()
-            .eq('task_id', id);
-
-        if (blocksDeleteError) {
-            throw new Error(`Failed to delete calendar blocks: ${blocksDeleteError.message}`);
+        // Check if this is a still-optimistic task (no realId yet)
+        const taskToDelete = tasks.find(t => t.id === id);
+        if (id.startsWith('optimistic-') && (!taskToDelete || !taskToDelete.realId)) {
+            cancelledOptimisticIdsRef.current.add(id);
+            pendingUpdatesRef.current.delete(id);
+            setTasks(prev => prev.filter(task => task.id !== id));
+            return;
         }
 
-        // Use RPC function to perform soft delete (bypasses RLS with internal auth check)
-        const { data: deleteResult, error: deleteError } = await supabase.rpc('soft_delete_task', {
-            task_id: id
-        });
+        // Resolve the server-side ID for API calls
+        const apiId = taskToDelete?.realId ?? id;
 
-        if (deleteError) {
-            throw new Error(`Failed to delete task: ${deleteError.message}`);
-        }
-
-        // Check the result from the function
-        const result = deleteResult as { success: boolean; error?: string } | null;
-        if (result && !result.success) {
-            throw new Error(`Failed to delete task: ${result.error}`);
-        }
-
-        // Optimistically remove from state
+        // Optimistically remove from state BEFORE async operations
+        const previousTasks = tasks;
         setTasks(prev => prev.filter(task => task.id !== id));
-    }, [currentOrg]);
+
+        // Suppress realtime refetches during deletion
+        isMutatingRef.current = true;
+
+        try {
+            // CRITICAL: Delete associated calendar blocks BEFORE soft-deleting the task
+            const { error: blocksDeleteError } = await supabase
+                .from('calendar_blocks')
+                .delete()
+                .eq('task_id', apiId);
+
+            if (blocksDeleteError) {
+                // Revert optimistic removal
+                setTasks(previousTasks);
+                throw new Error(`Failed to delete calendar blocks: ${blocksDeleteError.message}`);
+            }
+
+            // Use RPC function to perform soft delete (bypasses RLS with internal auth check)
+            const { data: deleteResult, error: deleteError } = await supabase.rpc('soft_delete_task', {
+                task_id: apiId
+            });
+
+            if (deleteError) {
+                setTasks(previousTasks);
+                throw new Error(`Failed to delete task: ${deleteError.message}`);
+            }
+
+            // Check the result from the function
+            const result = deleteResult as { success: boolean; error?: string } | null;
+            if (result && !result.success) {
+                setTasks(previousTasks);
+                throw new Error(`Failed to delete task: ${result.error}`);
+            }
+        } finally {
+            setTimeout(() => {
+                isMutatingRef.current = false;
+            }, 500);
+        }
+    }, [currentOrg, tasks]);
 
     // Accept a pending assignment
     const acceptAssignment = useCallback(async (taskId: string): Promise<void> => {
         if (!user || !currentOrg) throw new Error('Must be authenticated');
-
-        console.group('🔔 ACCEPT ASSIGNMENT');
-        console.log('Task ID:', taskId);
-        console.log('User ID:', user.id);
-        console.log('Org ID:', currentOrg.id);
-
-        // First, verify the record exists
-        console.log('🔍 Checking for existing task_owner record...');
-        const { data: existingRecords, error: checkError } = await supabase
-            .from('task_owners')
-            .select('*')
-            .eq('task_id', taskId)
-            .eq('user_id', user.id)
-            .eq('organization_id', currentOrg.id);
-
-        console.log('📋 Existing records:', existingRecords);
-        if (checkError) {
-            console.error('❌ Error checking records:', checkError);
-        }
-
-        // Also check ALL records for this task (to see what exists)
-        const { data: allTaskOwners } = await supabase
-            .from('task_owners')
-            .select('*')
-            .eq('task_id', taskId);
-        console.log('📋 All task_owners for this task:', allTaskOwners);
 
         // Optimistic update
         setTasks(prev => prev.map(task => {
@@ -430,9 +594,7 @@ export function useTasks(): UseTasksReturn {
             };
         }));
 
-        console.log('✅ Optimistic update applied');
-
-        const { data, error, count } = await supabase
+        const { data, error } = await supabase
             .from('task_owners')
             .update({ status: 'confirmed' })
             .eq('task_id', taskId)
@@ -440,23 +602,11 @@ export function useTasks(): UseTasksReturn {
             .eq('organization_id', currentOrg.id)
             .select();
 
-        console.log('📊 Update result:', { data, error, count });
-
         if (error) {
-            console.error('❌ Update failed:', error);
-            console.groupEnd();
             // Revert on error
             await fetchTasks();
             throw new Error(`Failed to accept assignment: ${error.message}`);
         }
-
-        if (!data || data.length === 0) {
-            console.warn('⚠️ No rows updated - task_owner record may not exist');
-        } else {
-            console.log('✅ Successfully updated', data.length, 'row(s)');
-        }
-
-        console.groupEnd();
 
         // Refetch to ensure consistency
         await fetchTasks();

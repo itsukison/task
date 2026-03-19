@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils';
 
 interface TableHeaderProps<T> {
     headerGroups: HeaderGroup<T>[];
+    variant?: 'default' | 'minimal';
 }
 
-export function TableHeader<T>({ headerGroups }: TableHeaderProps<T>) {
+export function TableHeader<T>({ headerGroups, variant = 'default' }: TableHeaderProps<T>) {
     return (
         <div className="border-b border-[#e0e0e0]">
             {headerGroups.map(headerGroup => (
@@ -42,7 +43,7 @@ export function TableHeader<T>({ headerGroups }: TableHeaderProps<T>) {
                                 className={cn(
                                     'relative',
                                     // Add left border for all columns after the first column
-                                    header.index > 0 && 'border-l border-[#e0e0e0]',
+                                    header.index > 0 && variant !== 'minimal' && 'border-l border-[#e0e0e0]',
                                     'hover:bg-[#f5f5f5] transition-colors'
                                 )}
                                 style={cellStyle}

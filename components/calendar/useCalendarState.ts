@@ -5,6 +5,7 @@ export interface DragPreview {
   minutes: number;
   deltaMinutes?: number;
   isMultiDrag?: boolean;
+  blockId?: string;
 }
 
 export interface ContextMenu {

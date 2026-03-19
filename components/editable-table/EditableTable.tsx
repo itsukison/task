@@ -1,3 +1,8 @@
+/**
+ * @deprecated This component is no longer used in the main workspace view.
+ * The application has switched to the 'minimal' fast-list variant (FastSection/FastTaskRow).
+ * This file is preserved for reference or potential future restoration of the detailed table view.
+ */
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -49,6 +54,8 @@ export default function EditableTable<T extends { id: string }>({
     onToggleSubtasks,
     expandedSubtaskParentIds,
     subtaskCountMap,
+    variant = 'default',
+    minimalHeaderContent,
     ...props
 }: EditableTableProps<T>) {
     const [internalSorting, setInternalSorting] = useState<SortingState>([]);
@@ -117,12 +124,12 @@ export default function EditableTable<T extends { id: string }>({
         }
     }, [onAddSubtaskProp]);
 
-    // Clear focusRowId one frame after it is set so the virtualizer cannot
-    // re-trigger .focus() when it unmounts and remounts the row while scrolling.
+    // Clear focusRowId after a longer delay so the cell has time to mount
+    // and receive focus (server data may not have arrived yet for optimistic rows).
     useEffect(() => {
         if (!focusRowId) return;
-        const id = requestAnimationFrame(() => setFocusRowId(null));
-        return () => cancelAnimationFrame(id);
+        const id = setTimeout(() => setFocusRowId(null), 500);
+        return () => clearTimeout(id);
     }, [focusRowId]);
 
     const columns = useTableColumns({
@@ -146,6 +153,7 @@ export default function EditableTable<T extends { id: string }>({
         focusRowId,
         onEnter: handleAddRow,
         onDeleteRow,
+        variant,
     });
 
     const table = useReactTable({
@@ -167,10 +175,18 @@ export default function EditableTable<T extends { id: string }>({
 
     return (
         <EditableTableProvider>
-            <div className="w-full overflow-hidden">
+            <div className={`w-full overflow-hidden ${variant === 'minimal' ? 'border border-[#e0e0e0] rounded-xl' : ''}`}>
                 <div className="w-full">
                     {/* Header */}
-                    <TableHeader headerGroups={table.getHeaderGroups()} />
+                    {variant === 'minimal' ? (
+                        <div className="border-b border-[#e0e0e0]">
+                            <div className="flex items-center justify-between px-2 py-2 h-[42px] text-[11px] font-semibold">
+                                {minimalHeaderContent}
+                            </div>
+                        </div>
+                    ) : (
+                        <TableHeader headerGroups={table.getHeaderGroups()} variant={variant} />
+                    )}
 
                     {/* Body */}
                     <TableBody
@@ -183,13 +199,13 @@ export default function EditableTable<T extends { id: string }>({
                         onRejectRow={onRejectRow}
                         isAssigned={props.isAssigned}
                         enableSeparator={props.isAssigned && !externalSorting} // Only show separator when using default sort
+                        variant={variant}
                     />
 
                     {/* Add Row Button - aligned with first column */}
                     <div
-                        className="flex items-center gap-1.5 py-2 text-[#9e9e9e] text-sm cursor-pointer hover:bg-[#f5f5f5] transition-colors"
+                        className="flex items-center justify-end gap-1.5 py-2 px-4 text-[#9e9e9e] text-sm cursor-pointer hover:bg-[#f5f5f5] transition-colors"
                         onClick={handleAddRow}
-                        style={{ paddingLeft: 8 }}
                     >
                         <Plus size={14} />
                         <span>New</span>

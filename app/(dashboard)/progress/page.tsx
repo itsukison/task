@@ -82,7 +82,6 @@ export default function ProgressPage() {
                         ['planned', 'in_progress', 'overrun'].includes(t.status)
                     ).length,
                     estimatedMinutes: memberTasks.reduce((sum, t) => sum + t.expectedTime, 0),
-                    actualMinutes: memberTasks.reduce((sum, t) => sum + (t.actualTime || 0), 0),
                     currentTasks: inProgressTasks,
                 };
             });

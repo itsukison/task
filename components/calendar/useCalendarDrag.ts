@@ -66,9 +66,16 @@ export function useCalendarDrag({
         isMultiDrag = dragStartDataRef.current.isMultiDrag;
       }
 
-      setDragPreview({ dateStr, minutes: snapped, deltaMinutes, isMultiDrag });
+      setDragPreview({
+        dateStr,
+        minutes: snapped,
+        deltaMinutes,
+        isMultiDrag,
+        blockId: dragStartDataRef.current?.blockId,
+      });
+      e.dataTransfer.dropEffect = 'move';
     },
-    [draggingTask, hourHeight, snapInterval, setDragPreview]
+    [draggingTask, hourHeight, snapInterval, setDragPreview, startHour]
   );
 
   const handleDragStartInternal = useCallback(
@@ -78,6 +85,7 @@ export function useCalendarDrag({
       e.dataTransfer.setData('duration', task.expectedTime.toString());
       if (blockId) {
         e.dataTransfer.setData('blockId', blockId);
+        e.dataTransfer.setData('calendar-block', '1');
         if (startTimeStr) {
           e.dataTransfer.setData('startTime', startTimeStr);
           dragStartDataRef.current = {
@@ -94,6 +102,7 @@ export function useCalendarDrag({
         setDragSource('task-list');
       }
       e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+      e.dataTransfer.effectAllowed = 'move';
     },
     [onDragStart, setDragSource, selectedBlockIds]
   );
@@ -167,16 +176,9 @@ export function useCalendarDrag({
     ]
   );
 
-  const formatMinutesToTime = useCallback((totalMinutes: number) => {
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-  }, []);
-
   return {
     handleDragOverDay,
     handleDragStartInternal,
     handleDrop,
-    formatMinutesToTime,
   };
 }

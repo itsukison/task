@@ -37,6 +37,8 @@ export function useCalendarHorizontalScroll({
     // Track if we've already centered on mount
     const hasCenteredRef = useRef(false);
     const previousScrollAlignmentRef = useRef<'center' | 'left'>(scrollAlignment);
+    const previousOccludedRightPxRef = useRef(occludedRightPx);
+    const hasCenteredWithOcclusionRef = useRef(false);
 
     // Compute 3 weeks of days centered on viewDate
     const allDisplayedDays = useMemo(() => {
@@ -85,8 +87,11 @@ export function useCalendarHorizontalScroll({
                 previousViewDateRef.current?.getTime() !== viewDate.getTime();
             const alignmentJustBecameCenter =
                 previousScrollAlignmentRef.current !== 'center' && scrollAlignment === 'center';
+            const occlusionJustAppeared =
+                previousOccludedRightPxRef.current === 0 && occludedRightPx > 0;
             const needsCentering =
                 !hasCenteredRef.current ||
+                (scrollAlignment === 'center' && occlusionJustAppeared && !hasCenteredWithOcclusionRef.current) ||
                 (scrollAlignment === 'center' && (alignmentJustBecameCenter || viewDateChanged));
 
             if (needsCentering) {
@@ -106,11 +111,15 @@ export function useCalendarHorizontalScroll({
                 el.scrollLeft = targetCol * dayColumnWidth;
                 firstVisibleColRef.current = targetCol;
                 hasCenteredRef.current = true;
+                if (occlusionJustAppeared && scrollAlignment === 'center') {
+                    hasCenteredWithOcclusionRef.current = true;
+                }
             }
         }
 
         previousViewDateRef.current = viewDate;
         previousScrollAlignmentRef.current = scrollAlignment;
+        previousOccludedRightPxRef.current = occludedRightPx;
     }, [viewDate, view, scrollAlignment, dayColumnWidth, occludedRightPx]);
 
     // Handle Resize: suppress snapping during active resize without re-anchoring scroll

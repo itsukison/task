@@ -43,6 +43,7 @@ export default function WorkspaceView({
     selectedBlockIds,
     onSelectBlocks,
     onUpdateMultipleBlocks,
+    tableVariant = 'default',
 }: WorkspaceViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
@@ -58,6 +59,7 @@ export default function WorkspaceView({
     const [dayColumnWidth, setDayColumnWidth] = useState(FIXED_COLUMN_WIDTH);
     const [isTaskPaneCollapsed, setIsTaskPaneCollapsed] = useState(false);
     const [occludedRightPx, setOccludedRightPx] = useState(0);
+    const [blockOverTaskList, setBlockOverTaskList] = useState(false);
     const calendarViewportWidthRef = useRef(0);
 
     const handlePrev = useCallback(() => {
@@ -109,6 +111,16 @@ export default function WorkspaceView({
         setSortConfig(null);
     }, []);
 
+    const handleDropCalendarBlock = useCallback((blockId: string, dateKey: string) => {
+        const block = calendarBlocks.find(b => b.id === blockId);
+        onDeleteBlock?.(blockId);
+        if (block) {
+            const task = tasks.find(t => t.id === block.taskId);
+            if (task) onUpdateTask({ ...task, scheduledDate: dateKey });
+        }
+        onDragStart(null);
+    }, [calendarBlocks, tasks, onDeleteBlock, onUpdateTask, onDragStart]);
+
     // Calculate stats for the current view
     const stats = React.useMemo(() => {
         // Filter tasks that belong to the current view (week or day)
@@ -129,13 +141,10 @@ export default function WorkspaceView({
         ).length;
 
         const estimatedMinutes = dailyTasks.reduce((sum, t) => sum + t.expectedTime, 0);
-        const actualMinutes = dailyTasks.reduce((sum, t) => sum + (t.actualTime || 0), 0);
-
         return {
             totalTasks,
             tasksLeft,
-            estimatedHours: Math.round((estimatedMinutes / 60) * 10) / 10,
-            actualHours: Math.round((actualMinutes / 60) * 10) / 10
+            estimatedHours: Math.round((estimatedMinutes / 60) * 10) / 10
         };
     }, [tasks, selectedDate]);
 
@@ -192,6 +201,7 @@ export default function WorkspaceView({
                             selectedBlockIds={selectedBlockIds}
                             onSelectBlocks={onSelectBlocks}
                             onUpdateMultipleBlocks={onUpdateMultipleBlocks}
+                            blockOverTaskList={blockOverTaskList}
                             dayColumnWidth={dayColumnWidth}
                             occludedRightPx={occludedRightPx}
                             onDayViewportWidthChange={(width) => {
@@ -203,7 +213,7 @@ export default function WorkspaceView({
                             }}
                         />
                     }
-                    rightMinWidth={430}
+                    rightMinWidth={520}
                     right={
                         <TaskList
                             tasks={tasks}
@@ -232,6 +242,10 @@ export default function WorkspaceView({
                             onCreateSubtask={onCreateSubtask}
                             onAddSubtask={onAddSubtask}
                             onFocusDayFromTaskView={handleFocusDayFromTaskView}
+                            onDropCalendarBlock={handleDropCalendarBlock}
+                            draggingTask={draggingTask}
+                            onCalendarBlockDragActiveChange={setBlockOverTaskList}
+                            tableVariant={tableVariant}
                         />
                     }
                 />

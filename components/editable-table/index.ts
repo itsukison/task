@@ -1,4 +1,5 @@
-// Re-export the main component
+// Re-export the main component (Deprecated)
+/** @deprecated Use FastSection/FastTaskRow instead for the main workspace view */
 export { default as EditableTable } from './EditableTable';
 
 // Re-export public types from lib/types

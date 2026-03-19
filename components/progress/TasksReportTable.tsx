@@ -109,7 +109,6 @@ export function TasksReportTable({
                         <th className="px-6 py-3 text-center">{t('headers.status')}</th>
                         <th className="px-6 py-3">{t('headers.owners')}</th>
                         <th className="px-6 py-3 text-right">{t('headers.est_time')}</th>
-                        <th className="px-6 py-3 text-right">{t('headers.act_time')}</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9E9E7]">
@@ -145,9 +144,6 @@ export function TasksReportTable({
                                 </td>
                                 <td className="px-6 py-4 text-right font-mono text-sm text-[#37352F]">
                                     {task.expectedTime > 0 ? formatTime(task.expectedTime) : '—'}
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-sm text-[#37352F]">
-                                    {task.actualTime > 0 ? formatTime(task.actualTime) : '—'}
                                 </td>
                             </tr>
                         );

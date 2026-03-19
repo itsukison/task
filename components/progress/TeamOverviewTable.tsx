@@ -10,7 +10,6 @@ export interface MemberStats {
     tasksToday: number;
     tasksLeft: number;
     estimatedMinutes: number;
-    actualMinutes: number;
     currentTasks: { id: string; title: string }[];  // Tasks with in_progress status, sorted by updatedAt desc
 }
 
@@ -73,7 +72,6 @@ export function TeamOverviewTable({
                         <th className="px-6 py-3 text-center">{t('headers.tasks_today')}</th>
                         <th className="px-6 py-3 text-center">{t('headers.tasks_left')}</th>
                         <th className="px-6 py-3 text-right">{t('headers.est_time')}</th>
-                        <th className="px-6 py-3 text-right">{t('headers.act_time')}</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9E9E7]">
@@ -129,9 +127,6 @@ export function TeamOverviewTable({
                             </td>
                             <td className="px-6 py-4 text-right font-mono text-sm text-[#37352F]">
                                 {member.estimatedMinutes > 0 ? formatTime(member.estimatedMinutes) : '—'}
-                            </td>
-                            <td className="px-6 py-4 text-right font-mono text-sm text-[#37352F]">
-                                {member.actualMinutes > 0 ? formatTime(member.actualMinutes) : '—'}
                             </td>
                         </tr>
                     ))}

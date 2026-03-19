@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Database } from './database.types';
 
 // ============================================================================
@@ -162,6 +163,8 @@ export interface Document {
  */
 export interface Task {
     id: string;
+    realId?: string;           // Set after background persist completes; used for API calls
+    persistError?: boolean;    // Set if background persist failed
     title: string;
     description: string | null;
     status: TaskStatus;
@@ -217,7 +220,7 @@ export interface BlockLayoutInfo {
 /**
  * Data types supported by editable table cells
  */
-export type DataType = 'text' | 'number' | 'select' | 'people' | 'timerNumber' | 'combinedTime' | 'subtask' | 'document';
+export type DataType = 'text' | 'number' | 'select' | 'people' | 'timerNumber' | 'combinedTime' | 'estimatedTime' | 'subtask' | 'document';
 
 /**
  * Option for select-type columns
@@ -315,6 +318,10 @@ export interface EditableTableProps<T extends { id: string }> {
     subtaskCountMap?: Map<string, number>;
     // Row separator logic (Assigned vs Unassigned)
     isAssigned?: (row: T) => boolean;
+    // Visual variant
+    variant?: 'default' | 'minimal';
+    // Minimal variant header replacement content
+    minimalHeaderContent?: ReactNode;
 }
 
 /**
@@ -372,6 +379,8 @@ export interface WorkspaceViewProps {
     previewBlock?: CalendarBlock | null;
     // Optimistic UI
     optimisticBlock?: CalendarBlock | null;
+    // Task table visual variant
+    tableVariant?: 'default' | 'minimal';
 }
 
 export interface CalendarProps {
@@ -414,6 +423,8 @@ export interface CalendarProps {
     previewBlock?: CalendarBlock | null;
     // Optimistic UI
     optimisticBlock?: CalendarBlock | null;
+    // True when a calendar block is being dragged over the task list panel
+    blockOverTaskList?: boolean;
     // Fixed day column width used in week view
     dayColumnWidth?: number;
     // Emits the available width for day columns (excluding time column)
@@ -457,6 +468,14 @@ export interface TaskListProps {
     previewTask?: Task | null;
     // Notify parent when user starts interacting with a different day section in expanded mode
     onFocusDayFromTaskView?: (date: Date) => void;
+    // Drop a calendar block onto a day section (deletes block + reschedules task)
+    onDropCalendarBlock?: (blockId: string, dateKey: string) => void;
+    // The task currently being dragged (from calendar block), for ghost preview
+    draggingTask?: Task | null;
+    // Notify parent when a calendar-block drag enters/leaves the task list panel
+    onCalendarBlockDragActiveChange?: (active: boolean) => void;
+    // Task table visual variant
+    tableVariant?: 'default' | 'minimal';
 }
 
 export interface TaskModalProps {

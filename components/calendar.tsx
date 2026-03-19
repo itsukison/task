@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef, useMemo, useCallback, useState } from 'react';
-import { format, addDays, startOfWeek, addMinutes, isSameDay } from 'date-fns';
+import React, { useRef, useMemo, useCallback, useState, useLayoutEffect, useEffect } from 'react';
+import { format, addMinutes, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar as UiCalendar } from '@/components/ui/calendar';
@@ -25,6 +25,12 @@ import { useCalendarHorizontalScroll } from './calendar/useCalendarHorizontalScr
 import { useCalendarDrag } from './calendar/useCalendarDrag';
 import { useLanguage } from '@/lib/i18n';
 
+type CalendarPreviewGhost = {
+  block: CalendarBlock | MultiMemberBlock;
+  task: Task;
+  layout: BlockLayoutInfo;
+};
+
 /**
  * Main Calendar Component
  *
@@ -43,7 +49,6 @@ const Calendar = React.memo(function Calendar({
   onTaskClick,
   draggingTask,
   onDragStart,
-  onDeleteTask,
   view,
   viewDate,
   startHour = 0,
@@ -65,6 +70,7 @@ const Calendar = React.memo(function Calendar({
   selectedBlockIds,
   onSelectBlocks,
   onUpdateMultipleBlocks,
+  blockOverTaskList = false,
   dayColumnWidth = FIXED_COLUMN_WIDTH,
   occludedRightPx = 0,
   onDayViewportWidthChange,
@@ -82,6 +88,7 @@ const Calendar = React.memo(function Calendar({
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [now, setNow] = React.useState(new Date());
+  const hasAutoCenteredRef = useRef(false);
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
@@ -109,6 +116,11 @@ const Calendar = React.memo(function Calendar({
 
   const { dragPreview, setDragPreview, contextMenu, setContextMenu, quickAdd, setQuickAdd, dragSource, setDragSource } =
     useCalendarState();
+
+  useEffect(() => {
+    if (!blockOverTaskList) return;
+    setDragPreview(null);
+  }, [blockOverTaskList, setDragPreview]);
   // Wrap handlers to intercept quick-add block updates
   const handleUpdateBlockInternal = useCallback((blockId: string, startTime: Date, endTime: Date) => {
     // Check for quick-add block
@@ -144,7 +156,7 @@ const Calendar = React.memo(function Calendar({
     if (onTaskClick) onTaskClick(task);
   }, [onTaskClick]);
 
-  const { handleDragOverDay, handleDragStartInternal, handleDrop, formatMinutesToTime } =
+  const { handleDragOverDay, handleDragStartInternal, handleDrop } =
     useCalendarDrag({
       draggingTask,
       hourHeight,
@@ -163,7 +175,41 @@ const Calendar = React.memo(function Calendar({
     });
 
   // displayedDays is now driven by the horizontal scroll hook
-  const displayedDays = view === 'week' ? allDisplayedDays : [viewDate];
+  const displayedDays = useMemo(
+    () => (view === 'week' ? allDisplayedDays : [viewDate]),
+    [allDisplayedDays, view, viewDate]
+  );
+
+  useLayoutEffect(() => {
+    if (hasAutoCenteredRef.current) return;
+    const el = bodyScrollRef.current;
+    if (!el) return;
+
+    const frame = requestAnimationFrame(() => {
+      if (hasAutoCenteredRef.current) return;
+      if (!bodyScrollRef.current) return;
+
+      const nowLocal = new Date();
+      const minutesFromStart = Math.max(
+        0,
+        (nowLocal.getHours() - startHour) * 60 + nowLocal.getMinutes()
+      );
+      const topPx = minutesFromStart * (hourHeight / 60);
+
+      const containerHeight = el.clientHeight;
+      const maxScrollTop = Math.max(0, el.scrollHeight - containerHeight);
+      const desiredLineY = containerHeight / 2 - hourHeight;
+      const targetScrollTop = Math.min(
+        Math.max(0, topPx - desiredLineY),
+        maxScrollTop
+      );
+
+      el.scrollTop = targetScrollTop;
+      hasAutoCenteredRef.current = true;
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [bodyScrollRef, hourHeight, startHour]);
 
   const getTaskStyle = useCallback(
     (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => {
@@ -208,7 +254,7 @@ const Calendar = React.memo(function Calendar({
       return {
         top: `${top}px`,
         height: `${Math.max(height - 1, snapInterval * (hourHeight / 60))}px`,
-        position: 'absolute' as 'absolute',
+        position: 'absolute' as const,
         // Notion-style: side-by-side layout using percentages
         left: `calc(${layout.leftPercent}% + ${padding}px)`,
         width: `calc(${layout.widthPercent}% - ${padding * 2}px)`,
@@ -286,7 +332,7 @@ const Calendar = React.memo(function Calendar({
     }
 
     return blocks;
-  }, [calendarBlocks, multiMemberBlocks, selectedMemberIds, user?.id, previewBlock, optimisticBlock, quickAdd, currentOrg]);
+  }, [calendarBlocks, currentOrg, multiMemberBlocks, optimisticBlock, previewBlock, quickAdd, selectedMemberIds, t, user]);
 
   // Stable string key: changes only when a block is created, deleted, or time-shifted.
   // Does NOT change on task title/status edits — prevents redundant O(n²) layout runs.
@@ -311,6 +357,137 @@ const Calendar = React.memo(function Calendar({
   // skips layout recomputation when only non-layout fields (title, status) change
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockLayoutKey]);
+
+  const { previewBlocksByDay, activeDragBlockIds } = useMemo(() => {
+    const emptyState = {
+      previewBlocksByDay: new Map<string, CalendarPreviewGhost[]>(),
+      activeDragBlockIds: new Set<string>(),
+    };
+
+    if (!dragPreview || !draggingTask || blockOverTaskList) {
+      return emptyState;
+    }
+
+    const taskById = new Map(tasks.map((task) => [task.id, task]));
+    const movingIds = new Set<string>();
+    const previewBlocks: (CalendarBlock | MultiMemberBlock)[] = [];
+    const previewTaskByBlockId = new Map<string, Task>();
+
+    const buildStartDate = (dateStr: string, minutes: number) => {
+      const startDate = new Date(dateStr);
+      startDate.setHours(0, 0, 0, 0);
+      startDate.setMinutes(minutes);
+      return startDate;
+    };
+
+    if (dragSource === 'calendar' && dragPreview.isMultiDrag && dragPreview.deltaMinutes !== undefined && selectedBlockIds?.size) {
+      const selectedBlocks = allBlocks.filter((block) => selectedBlockIds.has(block.id));
+      selectedBlocks.forEach((block) => {
+        const task = block.task || taskById.get(block.taskId);
+        if (!task) return;
+
+        movingIds.add(block.id);
+
+        const newStart = new Date(new Date(block.startTime).getTime() + dragPreview.deltaMinutes! * 60_000);
+        const newEnd = new Date(new Date(block.endTime).getTime() + dragPreview.deltaMinutes! * 60_000);
+        const previewBlock = {
+          ...block,
+          startTime: newStart.toISOString(),
+          endTime: newEnd.toISOString(),
+          task,
+        };
+
+        previewBlocks.push(previewBlock);
+        previewTaskByBlockId.set(previewBlock.id, task);
+      });
+    } else if (dragSource === 'calendar' && dragPreview.blockId) {
+      const sourceBlock = allBlocks.find((block) => block.id === dragPreview.blockId);
+      const sourceTask = sourceBlock ? (sourceBlock.task || taskById.get(sourceBlock.taskId)) : null;
+
+      if (sourceBlock && sourceTask) {
+        movingIds.add(sourceBlock.id);
+
+        const newStart = buildStartDate(dragPreview.dateStr, dragPreview.minutes);
+        const newEnd = new Date(newStart.getTime() + sourceTask.expectedTime * 60_000);
+        const previewBlock = {
+          ...sourceBlock,
+          startTime: newStart.toISOString(),
+          endTime: newEnd.toISOString(),
+          task: sourceTask,
+        };
+
+        previewBlocks.push(previewBlock);
+        previewTaskByBlockId.set(previewBlock.id, sourceTask);
+      }
+    } else {
+      const previewId = `drag-preview-${draggingTask.id}`;
+      const newStart = buildStartDate(dragPreview.dateStr, dragPreview.minutes);
+      const newEnd = new Date(newStart.getTime() + draggingTask.expectedTime * 60_000);
+      const previewBlock: CalendarBlock = {
+        id: previewId,
+        taskId: previewId,
+        startTime: newStart.toISOString(),
+        endTime: newEnd.toISOString(),
+        ownerId: user?.id ?? draggingTask.ownerId,
+        organizationId: currentOrg?.id ?? draggingTask.organizationId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        task: draggingTask,
+      };
+
+      previewBlocks.push(previewBlock);
+      previewTaskByBlockId.set(previewId, draggingTask);
+    }
+
+    if (previewBlocks.length === 0) {
+      return emptyState;
+    }
+
+    const previewDays = new Set(previewBlocks.map((block) => format(new Date(block.startTime), 'yyyy-MM-dd')));
+    const stationaryBlocksByDay = new Map<string, (CalendarBlock | MultiMemberBlock)[]>();
+
+    allBlocks.forEach((block) => {
+      if (movingIds.has(block.id)) return;
+
+      const dayKey = format(new Date(block.startTime), 'yyyy-MM-dd');
+      if (!previewDays.has(dayKey)) return;
+
+      const dayBlocks = stationaryBlocksByDay.get(dayKey) ?? [];
+      dayBlocks.push(block);
+      stationaryBlocksByDay.set(dayKey, dayBlocks);
+    });
+
+    const previewBlocksByDay = new Map<string, CalendarPreviewGhost[]>();
+
+    previewDays.forEach((dayKey) => {
+      const dayPreviewBlocks = previewBlocks.filter((block) => format(new Date(block.startTime), 'yyyy-MM-dd') === dayKey);
+      const combinedBlocks = [...(stationaryBlocksByDay.get(dayKey) ?? []), ...dayPreviewBlocks];
+      const layoutEntries = getBlocksWithLayout(combinedBlocks);
+
+      const previewEntries = layoutEntries.flatMap(({ block, layout }) => {
+        const task = previewTaskByBlockId.get(block.id);
+        if (!task) return [];
+        return [{ block, task, layout }];
+      });
+
+      previewBlocksByDay.set(dayKey, previewEntries);
+    });
+
+    return {
+      previewBlocksByDay,
+      activeDragBlockIds: movingIds,
+    };
+  }, [
+    allBlocks,
+    blockOverTaskList,
+    currentOrg?.id,
+    dragPreview,
+    dragSource,
+    draggingTask,
+    selectedBlockIds,
+    tasks,
+    user?.id,
+  ]);
 
   // Selection Handlers
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -392,7 +569,7 @@ const Calendar = React.memo(function Calendar({
 
       onSelectBlocks(newSelected);
     });
-  }, [view, allBlocks, displayedDays, hourHeight, startHour, onSelectBlocks, dayColumnWidth]);
+  }, [view, allBlocks, displayedDays, hourHeight, startHour, onSelectBlocks, dayColumnWidth, bodyScrollRef]);
 
   React.useEffect(() => {
     if (!onDayViewportWidthChange || !bodyScrollRef.current) return;
@@ -467,7 +644,7 @@ const Calendar = React.memo(function Calendar({
           {/* Date Picker */}
           <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
             <PopoverTrigger asChild>
-              <button className="p-1.5 hover:bg-[#EFEFED] text-[#787774] border border-[#E9E9E7] rounded-md bg-white shadow-sm">
+              <button className="p-1.5 hover:bg-[#EFEFED] text-[#787774] border border-[#E9E9E7] rounded-md bg-white shadow-sm cursor-pointer">
                 <CalendarIcon size={14} />
               </button>
             </PopoverTrigger>
@@ -491,7 +668,7 @@ const Calendar = React.memo(function Calendar({
               {onPrev && (
                 <button
                   onClick={onPrev}
-                  className="p-1 hover:bg-[#EFEFED] text-[#787774] border-r border-[#E9E9E7]"
+                  className="p-1 hover:bg-[#EFEFED] text-[#787774] border-r border-[#E9E9E7] cursor-pointer"
                 >
                   <ChevronLeft size={14} />
                 </button>
@@ -499,7 +676,7 @@ const Calendar = React.memo(function Calendar({
               {onToday && (
                 <button
                   onClick={onToday}
-                  className="px-2 py-1 text-xs font-medium hover:bg-[#EFEFED] text-[#37352F]"
+                  className="px-2 py-1 text-xs font-medium hover:bg-[#EFEFED] text-[#37352F] cursor-pointer"
                 >
                   {t('calendar.today')}
                 </button>
@@ -507,7 +684,7 @@ const Calendar = React.memo(function Calendar({
               {onNext && (
                 <button
                   onClick={onNext}
-                  className="p-1 hover:bg-[#EFEFED] text-[#787774] border-l border-[#E9E9E7]"
+                  className="p-1 hover:bg-[#EFEFED] text-[#787774] border-l border-[#E9E9E7] cursor-pointer"
                 >
                   <ChevronRight size={14} />
                 </button>
@@ -519,7 +696,7 @@ const Calendar = React.memo(function Calendar({
           <div className="flex items-center gap-1 ml-2">
             <button
               onClick={resetZoom}
-              className="text-xs px-2 py-1 text-[#787774] hover:bg-[#EFEFED] rounded-md transition-colors"
+              className="text-xs px-2 py-1 text-[#787774] hover:bg-[#EFEFED] rounded-md transition-colors cursor-pointer"
               title={t('calendar.reset_zoom')}
             >
               {t('calendar.reset_zoom')}
@@ -615,7 +792,6 @@ const Calendar = React.memo(function Calendar({
                     draggingTask={draggingTask}
                     dragPreview={dragPreview}
                     getTaskStyle={getTaskStyle}
-                    formatMinutesToTime={formatMinutesToTime}
                     onDragOverDay={handleDragOverDay}
                     onDrop={handleDrop}
                     onTaskClick={handleTaskClickInternal}
@@ -631,6 +807,9 @@ const Calendar = React.memo(function Calendar({
                     currentUserId={user?.id}
                     selectedBlockIds={selectedBlockIds}
                     onSelectBlocks={onSelectBlocks}
+                    blockOverTaskList={blockOverTaskList}
+                    previewBlocks={previewBlocksByDay.get(dateStr) ?? []}
+                    activeDragBlockIds={activeDragBlockIds}
                   />
                 );
               })}

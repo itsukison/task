@@ -168,7 +168,7 @@ export function MemberSelector({
         triggerContent = (
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#37352F] bg-white border border-[#E9E9E7] rounded-md hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#37352F] bg-white border border-[#E9E9E7] rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
             >
                 {selectedMembers.length > 0 && (
                     <div className="w-5 h-5 rounded-full bg-[#f0f0f0] text-[#37352f] flex items-center justify-center text-[9px] font-medium">

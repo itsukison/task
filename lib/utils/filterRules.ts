@@ -26,7 +26,7 @@ export type FilterOperator =
 /**
  * Column field types for filtering
  */
-export type FilterColumn = 'title' | 'status' | 'ownerIds' | 'expectedTime' | 'actualTime';
+export type FilterColumn = 'title' | 'status' | 'ownerIds' | 'expectedTime';
 
 /**
  * Column metadata for filter UI
@@ -73,12 +73,6 @@ export const FILTER_COLUMNS: Record<FilterColumn, ColumnMeta> = {
     expectedTime: {
         id: 'expectedTime',
         label: 'Est. Time',
-        type: 'number',
-        operators: ['equals', 'not_equals', 'greater_than', 'less_than', 'greater_equal', 'less_equal', 'is_empty', 'is_not_empty'],
-    },
-    actualTime: {
-        id: 'actualTime',
-        label: 'Act. Time',
         type: 'number',
         operators: ['equals', 'not_equals', 'greater_than', 'less_than', 'greater_equal', 'less_equal', 'is_empty', 'is_not_empty'],
     },
@@ -154,8 +148,6 @@ function getTaskValue(task: Task, column: FilterColumn): any {
             return task.owners.map(o => o.id);
         case 'expectedTime':
             return task.expectedTime;
-        case 'actualTime':
-            return task.actualTime;
         default:
             return null;
     }

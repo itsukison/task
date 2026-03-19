@@ -21,6 +21,7 @@ interface TableBodyProps<T extends { id: string }> {
     // Row separator logic
     isAssigned?: (row: T) => boolean;
     enableSeparator?: boolean;
+    variant?: 'default' | 'minimal';
 }
 
 export function TableBody<T extends { id: string }>({
@@ -31,10 +32,16 @@ export function TableBody<T extends { id: string }>({
     isPendingRow,
     onAcceptRow,
     onRejectRow,
+    variant = 'default',
 }: TableBodyProps<T>) {
     const handleDragStart = (e: React.DragEvent, row: Row<T>) => {
         onDragStart?.(row.original.id);
-        e.dataTransfer.setData('rowId', row.original.id);
+        const task = row.original as any;
+        e.dataTransfer.setData('task-row', '1');
+        e.dataTransfer.setData('rowId', task.id);
+        if (task.expectedTime) {
+            e.dataTransfer.setData('duration', String(task.expectedTime));
+        }
         e.dataTransfer.effectAllowed = 'copyMove';
         e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
     };
@@ -48,18 +55,21 @@ export function TableBody<T extends { id: string }>({
             {rows.map((row) => {
                 const isPending = isPendingRow?.(row.original) ?? false;
                 const isSubtask = !!(row.original as any).parentTaskId;
-                const isCompleted = (row.original as any).status === 'completed';
+                const isCompleted = (row.original as any).status === 'completed' || !!(row.original as any).parentCompleted;
 
                 return (
                     <React.Fragment key={row.original.id}>
                         <div
-                            draggable={!isPending}  // Don't allow dragging pending rows
-                            onDragStart={(e) => !isPending && handleDragStart(e, row)}
+                            data-row-id={row.original.id}
+                            data-subtask={isSubtask ? 'true' : 'false'}
+                            draggable={!isPending && !isSubtask}  // Don't allow dragging pending rows or subtasks
+                            onDragStart={(e) => !isPending && !isSubtask && handleDragStart(e, row)}
                             onDragEnd={handleDragEnd}
                             className={cn(
                                 'flex group border-b border-[#e0e0e0]',
                                 'transition-colors',
                                 isSubtask && 'bg-[#fafafa]',
+                                isSubtask && "h-10 [&_[data-table-cell='true']>div]:!py-2 [&_[data-table-cell='true']>input]:!py-2",
                                 isCompleted && 'bg-[#f7f7f5]',
                                 isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#f7f7f5] cursor-pointer',
                                 // Strikethrough + muted text for completed rows
@@ -99,7 +109,7 @@ export function TableBody<T extends { id: string }>({
                                         data-table-cell="true"
                                         className={cn(
                                             'flex items-center',
-                                            cellIndex > 0 && 'border-l border-[#e0e0e0]'
+                                            cellIndex > 0 && variant !== 'minimal' && 'border-l border-[#e0e0e0]'
                                         )}
                                         style={cellStyle}
                                         onClick={(e) => {

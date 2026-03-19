@@ -2,27 +2,15 @@
 
 import React, { useMemo, useRef, useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { ChevronUp, ChevronDown, ChevronRight, Plus, Check, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Plus, Check, Trash2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TableColumn, AssignmentStatus } from '@/lib/types';
 import { Cell } from './cells';
 import { DataTypeIcon } from './utils';
 import { useLanguage } from '@/lib/i18n';
+import { formatTimeRange } from '@/lib/utils/time-helpers';
 
-const formatTimeRange = (startTime: unknown, expectedTime: unknown): string | undefined => {
-    if (typeof startTime !== 'string') return undefined;
 
-    const startDate = new Date(startTime);
-    if (Number.isNaN(startDate.getTime())) return undefined;
-
-    const durationMinutes = typeof expectedTime === 'number' ? expectedTime : Number(expectedTime);
-    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) return undefined;
-
-    const endDate = new Date(startDate.getTime() + durationMinutes * 60_000);
-    const formatPart = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-
-    return `${formatPart(startDate)}–${formatPart(endDate)}`;
-};
 
 interface UseTableColumnsProps<T> {
     tableColumns: TableColumn<T>[];
@@ -57,6 +45,8 @@ interface UseTableColumnsProps<T> {
     // Row focus management
     focusRowId?: string | null;
     onEnter?: () => void;
+    // Visual variant
+    variant?: 'default' | 'minimal';
 }
 
 export function useTableColumns<T extends { id: string }>({
@@ -80,21 +70,48 @@ export function useTableColumns<T extends { id: string }>({
     focusRowId,
     onEnter,
     onDeleteRow,
+    variant = 'default',
 }: UseTableColumnsProps<T>) {
     const { t } = useLanguage();
     // Refs for high-churn values so they don't trigger useMemo recomputation
     const focusRowIdRef = useRef(focusRowId);
+    // Sync focusRowId during render so cells see the new value on the first render pass
+    focusRowIdRef.current = focusRowId;
     const expandedRef = useRef(expandedSubtaskParentIds);
     const subtaskCountRef = useRef(subtaskCountMap);
+    // Ref-ify all callback props to prevent column definition recomputation
+    const onCellChangeRef = useRef(onCellChange);
+    const onDeleteRowRef = useRef(onDeleteRow);
+    const onAddSubtaskRef = useRef(onAddSubtask);
+    const onToggleSubtasksRef = useRef(onToggleSubtasks);
+    const onOpenRowRef = useRef(onOpenRow);
+    const getOwnerStatusesRef = useRef(getOwnerStatuses);
+    const onCreateSubtaskRef = useRef(onCreateSubtask);
+    const setActiveHeaderMenuRef = useRef(setActiveHeaderMenu);
+    const handleSortRef = useRef(handleSort);
+    const onHideColumnRef = useRef(onHideColumn);
+    const onEnterRef = useRef(onEnter);
+    const handleRowActionClickRef = useRef(handleRowActionClick);
+    const onRemoveCustomColumnRef = useRef(onRemoveCustomColumn);
     useEffect(() => {
-        focusRowIdRef.current = focusRowId;
         expandedRef.current = expandedSubtaskParentIds;
         subtaskCountRef.current = subtaskCountMap;
+        onCellChangeRef.current = onCellChange;
+        onDeleteRowRef.current = onDeleteRow;
+        onAddSubtaskRef.current = onAddSubtask;
+        onToggleSubtasksRef.current = onToggleSubtasks;
+        onOpenRowRef.current = onOpenRow;
+        getOwnerStatusesRef.current = getOwnerStatuses;
+        onCreateSubtaskRef.current = onCreateSubtask;
+        setActiveHeaderMenuRef.current = setActiveHeaderMenu;
+        handleSortRef.current = handleSort;
+        onHideColumnRef.current = onHideColumn;
+        onEnterRef.current = onEnter;
+        handleRowActionClickRef.current = handleRowActionClick;
+        onRemoveCustomColumnRef.current = onRemoveCustomColumn;
     });
 
     return useMemo<ColumnDef<T>[]>(() => {
-        // dragColumn removed — actions moved to right-side actionsColumn
-
         // Data columns
         const dataColumns: ColumnDef<T>[] = tableColumns.map((col) => ({
             id: String(col.id),
@@ -105,19 +122,17 @@ export function useTableColumns<T extends { id: string }>({
 
                 const handleHeaderClick = (e: React.MouseEvent) => {
                     if (isMenuOpen) {
-                        setActiveHeaderMenu(null);
+                        setActiveHeaderMenuRef.current(null);
                     } else {
                         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        setActiveHeaderMenu({
+                        setActiveHeaderMenuRef.current({
                             columnId: String(col.id),
                             position: { top: rect.bottom + 4, left: rect.left },
                             label: col.label,
                             dataType: col.dataType,
-                            onSortAsc: () => handleSort(String(col.id), false),
-                            onSortDesc: () => handleSort(String(col.id), true),
-                            onHide: () => onHideColumn?.(String(col.id)),
-                            // Standard columns cannot be deleted via this menu usually, or maybe they can?
-                            // For now assuming standard columns don't have delete option here or it's disabled.
+                            onSortAsc: () => handleSortRef.current(String(col.id), false),
+                            onSortDesc: () => handleSortRef.current(String(col.id), true),
+                            onHide: () => onHideColumnRef.current?.(String(col.id)),
                             onDelete: undefined
                         });
                     }
@@ -127,77 +142,76 @@ export function useTableColumns<T extends { id: string }>({
                     <div className="relative">
                         <div
                             className={cn(
-                                'flex items-center gap-1.5 px-2 py-2 h-[42px] cursor-pointer select-none font-medium text-sm',
+                                'flex items-center gap-1.5 px-2 py-2 h-[42px] cursor-pointer select-none font-medium text-[12px]',
                                 isMenuOpen ? 'bg-[#ebebea] text-[#37352F]' : 'text-[#9e9e9e]'
                             )}
                             onClick={handleHeaderClick}
                         >
                             <DataTypeIcon dataType={col.dataType} />
-                            <span>{col.label}</span>
+                            <span className="whitespace-nowrap">{col.label}</span>
                             {isSorted === 'asc' && <ChevronUp size={14} />}
                             {isSorted === 'desc' && <ChevronDown size={14} />}
                         </div>
                     </div>
                 );
             },
-            // In the cell definition for data columns, replace the cell render function:
 
             cell: ({ row, column }) => {
                 const isFirstDataCol = tableColumns.findIndex(c => String(c.id) === column.id) === 0;
-                const isCompleted = isFirstDataCol && (row.original as any).status === 'completed';
-                const scheduleTimeRange = isFirstDataCol
-                    ? formatTimeRange((row.original as any).startTime, (row.original as any).expectedTime) || '-'
-                    : undefined;
                 const parentTaskId = (row.original as any).parentTaskId as string | undefined;
                 const isSubtask = !!parentTaskId;
+                const isCompleted = isFirstDataCol && (row.original as any).status === 'completed';
+                const scheduleTimeRange = isFirstDataCol && !isSubtask
+                    ? formatTimeRange((row.original as any).startTime, (row.original as any).expectedTime) || '-'
+                    : undefined;
                 const hasSubtasks = isFirstDataCol && !isSubtask && (subtaskCountRef.current?.get(row.original.id) ?? 0) > 0;
                 const isExpanded = isFirstDataCol && (expandedRef.current?.has(row.original.id) ?? false);
 
                 return (
                     <div
-                        className="relative flex items-center w-full h-full overflow-hidden pl-1"
-                        style={isSubtask && isFirstDataCol ? { paddingLeft: '36px' } : undefined}
-                    >
-                        {/* Chevron toggle — visible whenever task has subtasks */}
-                        {hasSubtasks && (
-                            <button
-                                className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-1 text-[#9e9e9e] hover:text-[#37352F] transition-colors"
-                                onClick={(e) => { e.stopPropagation(); onToggleSubtasks?.(row.original.id); }}
-                            >
-                                {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                            </button>
+                        className={cn(
+                            'relative flex items-center w-full h-full',
+                            variant === 'minimal' ? 'pl-0' : 'pl-0',
+                            variant === 'minimal' && isFirstDataCol && col.dataType === 'text'
+                                ? 'overflow-visible'
+                                : 'overflow-hidden'
                         )}
-                        {/* Add-subtask button in left slot when no subtasks exist */}
-                        {isFirstDataCol && !hasSubtasks && !isSubtask && subtaskCountRef.current !== undefined && (
-                            onAddSubtask ? (
-                                <button
-                                    className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 mr-1 text-[#9e9e9e] hover:text-[#37352F] transition-colors opacity-0 group-hover:opacity-100"
-                                    onClick={(e) => { e.stopPropagation(); onAddSubtask(row.original.id); }}
-                                >
-                                    <Plus size={11} />
-                                </button>
-                            ) : (
-                                <span className="flex-shrink-0 w-3.5 mr-1" />
-                            )
+                        style={isSubtask && isFirstDataCol ? { paddingLeft: variant === 'minimal' ? '40px' : '40px' } : undefined}
+                    >
+                        {/* Drag Handle Affordance */}
+                        {isFirstDataCol && (
+                            <div 
+                                className={cn(
+                                    "flex-shrink-0 flex items-center justify-center w-4 h-4 text-[#c0c0c0] opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing",
+                                    variant === 'minimal' ? "mr-[3px]" : "mr-0.5"
+                                )}
+                            >
+                                <GripVertical size={14} />
+                            </div>
                         )}
                         {/* Completion checkbox — only in title column */}
                         {isFirstDataCol && (
                             <button
-                                className="flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 ml-0 mr-1 rounded-[4px] border border-[#c0c0c0] hover:border-[#7a7a7a] transition-colors bg-white"
+                                className={cn(
+                                    "flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 ml-0 mr-2 rounded-[4px] border transition-colors",
+                                    isCompleted
+                                        ? "bg-[#FF5500] border-[#FF5500]"
+                                        : "bg-white border-[#c0c0c0] hover:border-[#7a7a7a]"
+                                )}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onCellChange(
+                                    onCellChangeRef.current(
                                         row.original.id,
                                         'status',
                                         (row.original as any).status === 'completed' ? 'planned' : 'completed'
                                     );
                                 }}
                             >
-                                {isCompleted && <Check size={9} className="text-green-500" />}
+                                {isCompleted && <Check size={9} className="text-white" />}
                             </button>
                         )}
                         {/* Text */}
-                        <div className={cn('w-full min-w-0 transition-[padding] duration-200', isFirstDataCol && onOpenRow && 'pr-2 group-hover:pr-[70px] group-has-[input:focus]:!pr-2')}>
+                        <div className={cn('w-full min-w-0', isFirstDataCol && 'pr-2')}>
                             <Cell
                                 value={col.dataType === 'combinedTime' ? row.original : row.getValue(column.id)}
                                 rowId={row.original.id}
@@ -206,35 +220,24 @@ export function useTableColumns<T extends { id: string }>({
                                 secondaryText={col.dataType === 'text' && isFirstDataCol ? scheduleTimeRange : undefined}
                                 options={col.options}
                                 peopleOptions={col.peopleOptions}
-                                ownerStatuses={col.dataType === 'people' && getOwnerStatuses ? getOwnerStatuses(row.original) : undefined}
-                                onChange={onCellChange}
-                                onCreateSubtask={col.dataType === 'subtask' ? onCreateSubtask : undefined}
+                                ownerStatuses={col.dataType === 'people' && getOwnerStatusesRef.current ? getOwnerStatusesRef.current(row.original) : undefined}
+                                onChange={onCellChangeRef.current}
+                                onCreateSubtask={col.dataType === 'subtask' ? onCreateSubtaskRef.current : undefined}
                                 autoFocus={focusRowIdRef.current === row.original.id && isFirstDataCol}
-                                preventBlurOnEnter={isFirstDataCol && col.dataType === 'text' && isSubtask && !!onAddSubtask}
+                                preventBlurOnEnter={isFirstDataCol && col.dataType === 'text' && isSubtask && !!onAddSubtaskRef.current}
+                                hideNames={column.id === 'ownerIds'}
+                                editMode={variant === 'minimal' && isFirstDataCol && col.dataType === 'text' ? 'pencil' : 'direct'}
+                                onDeleteEmptyRow={isFirstDataCol && col.dataType === 'text' ? onDeleteRowRef.current : undefined}
                                 onEnter={
                                     isFirstDataCol && col.dataType === 'text'
-                                        ? (isSubtask && onAddSubtask
-                                            ? () => onAddSubtask(parentTaskId!)
-                                            : onEnter)
+                                        ? (isSubtask && onAddSubtaskRef.current
+                                            ? () => onAddSubtaskRef.current!(parentTaskId!)
+                                            : onEnterRef.current)
                                         : undefined
                                 }
                             />
                         </div>
-                        {/* OPEN button — absolutely positioned, overlays the text on hover */}
-                        {isFirstDataCol && onOpenRow && (
-                            <button
-                                className="absolute right-1 opacity-0 group-hover:opacity-100 group-has-[input:focus]:!opacity-0 group-has-[input:focus]:pointer-events-none transition-opacity flex items-center gap-1 px-2 py-0.5 text-xs text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded border border-gray-200 whitespace-nowrap bg-white"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenRow(row.original.id);
-                                }}
-                            >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                </svg>
-                                {t('common.open')}
-                            </button>
-                        )}
+                        {/* Right Slot Actions moved to actions column */}
                     </div>
                 );
             },
@@ -254,27 +257,20 @@ export function useTableColumns<T extends { id: string }>({
 
                     const handleHeaderClick = (e: React.MouseEvent) => {
                         if (isMenuOpen) {
-                            setActiveHeaderMenu(null);
+                            setActiveHeaderMenuRef.current(null);
                         } else {
                             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                            setActiveHeaderMenu({
+                            setActiveHeaderMenuRef.current({
                                 columnId: col.id,
                                 position: { top: rect.bottom + 4, left: rect.left },
                                 label: col.label,
                                 dataType: col.type,
-                                onSortAsc: () => handleSort(col.id, false),
-                                onSortDesc: () => handleSort(col.id, true),
-                                onHide: () => onHideColumn?.(col.id),
+                                onSortAsc: () => handleSortRef.current(col.id, false),
+                                onSortDesc: () => handleSortRef.current(col.id, true),
+                                onHide: () => onHideColumnRef.current?.(col.id),
                                 onDelete: () => {
-                                    // Custom columns can be deleted
-                                    // We need to pass a callback here. 
-                                    // For now we don't have a direct removeCustomColumn prop passed to useTableColumns.
-                                    // We should probably add it to the props if we want to delete meaningful columns.
-                                    // But wait, the task is to FIX "Delete Property".
-                                    // If we don't have the function, we can't delete.
-                                    // Use onAddCustomColumn as a proxy signal for now, but ideally we need onRemoveCustomColumn.
-                                    if (onRemoveCustomColumn) {
-                                        onRemoveCustomColumn(col.id);
+                                    if (onRemoveCustomColumnRef.current) {
+                                        onRemoveCustomColumnRef.current(col.id);
                                     } else {
                                         console.warn('onRemoveCustomColumn not available');
                                     }
@@ -287,7 +283,7 @@ export function useTableColumns<T extends { id: string }>({
                         <div className="relative">
                             <div
                                 className={cn(
-                                    'flex items-center gap-1.5 px-2 py-2 h-[42px] cursor-pointer select-none font-medium text-sm',
+                                    'flex items-center gap-1.5 px-2 py-2 h-[42px] cursor-pointer select-none font-medium text-[12px]',
                                     isMenuOpen ? 'bg-[#ebebea] text-[#37352F]' : 'text-[#9e9e9e]'
                                 )}
                                 onClick={handleHeaderClick}
@@ -304,18 +300,18 @@ export function useTableColumns<T extends { id: string }>({
                     <div className="relative flex items-center w-full h-full">
                         <div className="flex-1 min-w-0">
                             <Cell
-                                value={(row.original as any)[col.id] || (col.type === 'subtask' ? [] : undefined)} // specific fallback for subtasks
+                                value={(row.original as any)[col.id] || (col.type === 'subtask' ? [] : undefined)}
                                 rowId={row.original.id}
                                 columnId={column.id}
-                                dataType={col.type} // custom columns use 'type'
+                                dataType={col.type}
                                 options={col.options}
-                                onChange={onCellChange}
-                                onCreateSubtask={col.type === 'subtask' ? onCreateSubtask : undefined}
+                                onChange={onCellChangeRef.current}
+                                onCreateSubtask={col.type === 'subtask' ? onCreateSubtaskRef.current : undefined}
                             />
                         </div>
                     </div>
                 ),
-                size: 180, // Default size for custom columns
+                size: 180,
                 enableResizing: true,
                 minSize: 140,
             });
@@ -326,21 +322,51 @@ export function useTableColumns<T extends { id: string }>({
             id: 'actions',
             header: () => null,
             cell: ({ row }) => {
+                const parentTaskId = (row.original as any).parentTaskId as string | undefined;
+                const isSubtask = !!parentTaskId;
+                const hasSubtasks = !isSubtask && (subtaskCountRef.current?.get(row.original.id) ?? 0) > 0;
+                const isExpanded = expandedRef.current?.has(row.original.id) ?? false;
                 return (
-                    <div className="flex items-center justify-end h-full opacity-0 group-hover:opacity-100 transition-opacity px-1">
+                    <div className="flex items-center justify-end h-full px-1 gap-0.5">
+                        {isSubtask ? (
+                            onAddSubtaskRef.current && (
+                                <button
+                                    className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-5 h-5 text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded transition-all cursor-pointer"
+                                    onClick={(e) => { e.stopPropagation(); onAddSubtaskRef.current!(parentTaskId!); }}
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            )
+                        ) : hasSubtasks ? (
+                            <button
+                                className="flex items-center justify-center w-5 h-5 text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                                onClick={(e) => { e.stopPropagation(); onToggleSubtasksRef.current?.(row.original.id); }}
+                            >
+                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </button>
+                        ) : (
+                            onAddSubtaskRef.current && (
+                                <button
+                                    className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-5 h-5 text-[#9e9e9e] hover:text-[#37352F] hover:bg-gray-100 rounded transition-all cursor-pointer"
+                                    onClick={(e) => { e.stopPropagation(); onAddSubtaskRef.current!(row.original.id); }}
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            )
+                        )}
                         <button
-                            className="flex items-center justify-center w-5 h-5 rounded hover:bg-red-50 text-[#9e9e9e] hover:text-red-400 transition-colors"
-                            onClick={(e) => { e.stopPropagation(); onDeleteRow?.(row.original.id); }}
+                            className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-5 h-5 rounded hover:bg-red-50 text-[#9e9e9e] hover:text-red-400 transition-colors cursor-pointer"
+                            onClick={(e) => { e.stopPropagation(); onDeleteRowRef.current?.(row.original.id); }}
                         >
                             <Trash2 size={12} />
                         </button>
                     </div>
                 );
             },
-            size: 32,
+            size: 56,
             enableResizing: false,
         };
 
         return [...dataColumns, actionsColumn];
-    }, [tableColumns, onCellChange, activeHeaderMenu, onHideColumn, onOpenRow, setActiveHeaderMenu, handleSort, handleRowActionClick, getOwnerStatuses, customColumns, onAddCustomColumn, onRemoveCustomColumn, onCreateSubtask, onAddSubtask, onToggleSubtasks, onDeleteRow]);
+    }, [tableColumns, activeHeaderMenu, customColumns]);
 }

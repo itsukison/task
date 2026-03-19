@@ -62,6 +62,16 @@ export interface TranslationDictionary {
         tomorrow: string;
         open: string;
         error_delete_block: string;
+        add_task_placeholder: string;
+        create_task: string;
+        drop_to_reschedule_here: string;
+        completed_short: string;
+        total_hours_short: string;
+        add_subtask: string;
+        expand_subtasks: string;
+        collapse_subtasks: string;
+        accept: string;
+        reject: string;
     };
     filter_operators: {
         contains: string;

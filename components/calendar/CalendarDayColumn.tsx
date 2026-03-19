@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format, isSameDay } from 'date-fns';
 import { Clock } from 'lucide-react';
 import { Task, CalendarBlock, MultiMemberBlock } from '@/lib/types';
@@ -16,9 +16,8 @@ interface CalendarDayColumnProps {
   tasks: Task[];
   calendarBlocks: (CalendarBlock | MultiMemberBlock | CalendarBlockWithPending)[];
   draggingTask: Task | null;
-  dragPreview: { dateStr: string; minutes: number; deltaMinutes?: number; isMultiDrag?: boolean } | null;
-  getTaskStyle: (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => any;
-  formatMinutesToTime: (minutes: number) => string;
+  dragPreview: { dateStr: string; minutes: number; deltaMinutes?: number; isMultiDrag?: boolean; blockId?: string } | null;
+  getTaskStyle: (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => React.CSSProperties & { className: string; zIndex?: number | string };
   onDragOverDay: (e: React.DragEvent, dateStr: string) => void;
   onDrop: (e: React.DragEvent, dateStr: string) => void;
   onTaskClick: (task: Task) => void;
@@ -36,6 +35,13 @@ interface CalendarDayColumnProps {
   selectedBlockIds?: Set<string>;
   onSelectBlocks?: (blockIds: Set<string>) => void;
   startHour?: number;
+  blockOverTaskList?: boolean;
+  previewBlocks?: Array<{
+    block: CalendarBlock | MultiMemberBlock;
+    task: Task;
+    layout: BlockLayoutInfo;
+  }>;
+  activeDragBlockIds?: Set<string>;
 }
 
 function CurrentTimeLine({ startHour, hourHeight }: { startHour: number; hourHeight: number }) {
@@ -66,7 +72,6 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   draggingTask,
   dragPreview,
   getTaskStyle,
-  formatMinutesToTime,
   onDragOverDay,
   onDrop,
   onTaskClick,
@@ -81,6 +86,9 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   selectedBlockIds,
   onSelectBlocks,
   startHour = 0,
+  blockOverTaskList = false,
+  previewBlocks = [],
+  activeDragBlockIds,
 }: CalendarDayColumnProps) {
   // Resize state
   const [resizingBlockId, setResizingBlockId] = useState<string | null>(null);
@@ -107,6 +115,13 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   }); // no dep array — cheap sync on every render
 
   // Global resize handlers — dep array is [resizingBlockId] only; all other values read via refs
+  useEffect(() => {
+    document.body.style.cursor = resizingBlockId ? 'ns-resize' : '';
+    return () => {
+      document.body.style.cursor = '';
+    };
+  }, [resizingBlockId]);
+
   useEffect(() => {
     if (!resizingBlockId) return;
 
@@ -157,7 +172,6 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
         setOptimisticResizeBlock(null);
       }, 300);
       resizeRef.current = null;
-      document.body.style.cursor = '';
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -187,7 +201,6 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       startTime: start,
       taskId: task.id
     };
-    document.body.style.cursor = 'ns-resize';
   };
   // Use provided layout or create default layout for blocks
   const dayBlocks = blocksWithLayout || calendarBlocks
@@ -207,7 +220,6 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
 
   const isToday = isSameDay(date, new Date());
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-  const isPreviewing = dragPreview?.dateStr === dateStr && draggingTask;
 
   return (
     <div
@@ -259,73 +271,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       {/* Current Time Line — updates every 60 s so the indicator stays accurate */}
       {isToday && <CurrentTimeLine startHour={startHour} hourHeight={hourHeight} />}
 
-      {/* Ghost Blocks for Drag Preview */}
-      {dragPreview && draggingTask && (
-        <>
-          {/* Single Drag Preview */}
-          {!dragPreview.isMultiDrag && isPreviewing && (
-            <div
-              style={{
-                top: `${(dragPreview.minutes - startHour * 60) * (hourHeight / 60)}px`,
-                height: `${Math.max(draggingTask.expectedTime, 30) * (hourHeight / 60) - 1}px`,
-                left: '2px',
-                right: '2px',
-              }}
-              className="absolute z-30 rounded-md bg-accent/20 border-2 border-accent/50 pointer-events-none flex flex-col justify-start p-1.5"
-            >
-              <div className="font-medium text-accent-dark truncate leading-tight text-xs">
-                {draggingTask.title}
-              </div>
-              <div className="text-[10px] text-accent font-medium mt-0.5 flex items-center gap-1">
-                <Clock size={10} />
-                {formatMinutesToTime(dragPreview.minutes)}
-              </div>
-            </div>
-          )}
-
-          {/* Multi Drag Preview */}
-          {dragPreview.isMultiDrag && dragPreview.deltaMinutes !== undefined && calendarBlocks
-            .filter(b => selectedBlockIds?.has(b.id))
-            .map(block => {
-              const task = block.task || tasks.find(t => t.id === block.taskId);
-              if (!task) return null;
-
-              const newStart = new Date(new Date(block.startTime).getTime() + dragPreview.deltaMinutes! * 60000);
-              if (format(newStart, 'yyyy-MM-dd') !== dateStr) return null;
-
-              const duration = (new Date(block.endTime).getTime() - new Date(block.startTime).getTime()) / 60000;
-              const newMinutes = newStart.getHours() * 60 + newStart.getMinutes();
-
-              const blockPxHeight = duration * (hourHeight / 60);
-              const isMicroBlock = blockPxHeight < 14;
-              const isSmallBlock = blockPxHeight < 22;
-
-              return (
-                <div
-                  key={`ghost-${block.id}`}
-                  style={{
-                    top: `${(newMinutes - startHour * 60) * (hourHeight / 60)}px`,
-                    height: `${Math.max(duration, 15) * (hourHeight / 60) - 1}px`,
-                    left: '2px',
-                    right: '2px',
-                  }}
-                  className={`absolute z-30 rounded-md bg-accent/20 border-2 border-accent/50 pointer-events-none flex flex-col justify-start ${isMicroBlock ? 'px-1 py-0' : isSmallBlock ? 'px-1 py-0.5' : 'p-1.5'}`}
-                >
-                  <div className={`font-medium text-accent-dark truncate leading-tight ${isMicroBlock ? 'text-[8px]' : isSmallBlock ? 'text-[9px]' : 'text-xs'}`}>
-                    {task.title}
-                  </div>
-                  {!isSmallBlock && duration >= 45 && (
-                    <div className="text-[10px] text-accent font-medium mt-0.5 flex items-center gap-1">
-                      <Clock size={10} />
-                      {formatMinutesToTime(newMinutes)}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          }
-        </>
-      )}
+      {/* Ghost block previews are rendered below in the task layer using transient layouts */}
 
       {/* Tasks Layer */}
       <div className="absolute inset-0 z-10">
@@ -340,7 +286,9 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           }
 
           const style = getTaskStyle(block, task, layout);
-          const isBeingDragged = draggingTask?.id === task.id;
+          const isBeingDragged = activeDragBlockIds && activeDragBlockIds.size > 0
+            ? activeDragBlockIds.has(block.id)
+            : draggingTask?.id === task.id;
           const isMultiMember = 'ownerName' in block;
           const isPendingBlock = 'isPendingAssignment' in block && block.isPendingAssignment;
           const isPreviewBlock = block.id === 'preview-block-temp';
@@ -413,7 +361,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             <div
               key={`${block.id}-${task.expectedTime}`}
               style={style}
-              className={`${style.className} ${isPreviewBlock ? 'pointer-events-none' : 'pointer-events-auto'} ${isBeingDragged ? 'opacity-50' : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''} ${isPreviewBlock ? 'opacity-50 cursor-not-allowed' : ''} group/block`}
+              className={`${style.className} ${isPreviewBlock ? 'pointer-events-none' : 'pointer-events-auto'} ${isBeingDragged ? (blockOverTaskList ? 'opacity-0' : '!bg-orange-500/20 !border-orange-500/30 !text-orange-700 !backdrop-blur-sm') : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''} ${isPreviewBlock ? 'opacity-50 cursor-not-allowed' : ''} group/block`}
               onClick={(e) => {
                 e.stopPropagation();
                 // Disable clicking on preview blocks
@@ -473,6 +421,33 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
                 >
                   {/* Visual indicator (optional, like small handle lines) */}
                   <div className="w-4 h-0.5 bg-gray-400/50 rounded-full mb-0.5"></div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {previewBlocks.map(({ block, task, layout }) => {
+          const style = getTaskStyle(block, task, layout);
+          style.className = `${style.className} !bg-orange-500/20 !border-orange-500/30 !text-orange-700 !backdrop-blur-sm pointer-events-none`;
+          style.zIndex = 60;
+
+          const blockDurationMin = (new Date(block.endTime).getTime() - new Date(block.startTime).getTime()) / 60000;
+          const blockPxHeight = blockDurationMin * (hourHeight / 60);
+          const isSmallBlock = blockPxHeight < 22;
+
+          return (
+            <div
+              key={`preview-${block.id}`}
+              style={style}
+              className={style.className}
+            >
+              <div className={`font-medium truncate leading-none flex items-center gap-1 ${blockPxHeight < 14 ? 'text-[8px]' : isSmallBlock ? 'text-[9px]' : 'text-xs'}`}>
+                {task.title}
+              </div>
+              {!isSmallBlock && (
+                <div className="opacity-80 truncate mt-0.5 text-[10px] flex items-center gap-1">
+                  <Clock size={10} /> {format(new Date(block.startTime), 'HH:mm')}
                 </div>
               )}
             </div>

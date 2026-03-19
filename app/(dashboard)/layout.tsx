@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/sidebar';
 import { useRequireOrg } from '@/lib/auth/hooks';
 import { AIContextProvider, useAI } from '@/lib/ai/AIContextProvider';
@@ -9,9 +9,29 @@ import { AIChatPanel } from '@/components/ai/AIChatPanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const sidebarStorageKey = 'taskos_sidebar_open';
+    const [sidebarOpen, setSidebarOpen] = useState(() => {
+        if (typeof window === 'undefined') return true;
+        try {
+            const stored = localStorage.getItem(sidebarStorageKey);
+            if (stored === 'true' || stored === 'false') {
+                return stored === 'true';
+            }
+        } catch (error) {
+            console.error('Error reading sidebar state from localStorage:', error);
+        }
+        return true;
+    });
     const { loading } = useRequireOrg();
     const { agentViewMode } = useAI();
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(sidebarStorageKey, String(sidebarOpen));
+        } catch (error) {
+            console.error('Error saving sidebar state to localStorage:', error);
+        }
+    }, [sidebarOpen, sidebarStorageKey]);
 
     // Show loading state while checking auth/org
     if (loading) {
