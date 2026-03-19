@@ -470,6 +470,8 @@ export interface TaskListProps {
     onFocusDayFromTaskView?: (date: Date) => void;
     // Drop a calendar block onto a day section (deletes block + reschedules task)
     onDropCalendarBlock?: (blockId: string, dateKey: string) => void;
+    // Delete a calendar block (used when task row moves to a different date)
+    onDeleteBlock?: (blockId: string) => void;
     // The task currently being dragged (from calendar block), for ghost preview
     draggingTask?: Task | null;
     // Notify parent when a calendar-block drag enters/leaves the task list panel

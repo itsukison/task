@@ -243,6 +243,7 @@ export default function WorkspaceView({
                             onAddSubtask={onAddSubtask}
                             onFocusDayFromTaskView={handleFocusDayFromTaskView}
                             onDropCalendarBlock={handleDropCalendarBlock}
+                            onDeleteBlock={onDeleteBlock}
                             draggingTask={draggingTask}
                             onCalendarBlockDragActiveChange={setBlockOverTaskList}
                             tableVariant={tableVariant}

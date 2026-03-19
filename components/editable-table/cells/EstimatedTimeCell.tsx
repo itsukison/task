@@ -91,7 +91,7 @@ export function EstimatedTimeCell({ value, rowId, columnId, onChange }: CellProp
                     onChange={(e) => setLocalValue(e.target.value)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    className="w-full h-full bg-transparent border-none outline-none text-[#424242] text-sm px-2 py-1.5 text-center font-mono"
+                    className="w-full h-full bg-orange-50/30 border-none outline-none text-[#424242] text-sm px-2 py-1.5 text-center font-mono ring-1 ring-orange-200 rounded-sm transition-all"
                 />
             </PopoverTrigger>
             <PopoverContent

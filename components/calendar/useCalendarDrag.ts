@@ -46,10 +46,15 @@ export function useCalendarDrag({
 }: UseCalendarDragParams) {
   const dragStartDataRef = useRef<{ blockId: string, startTime: Date, isMultiDrag: boolean } | null>(null);
 
+  // Use a ref so handleDragOverDay always reads the latest value
+  // instead of relying on a potentially stale useCallback closure
+  const draggingTaskRef = useRef(draggingTask);
+  draggingTaskRef.current = draggingTask;
+
   const handleDragOverDay = useCallback(
     (e: React.DragEvent, dateStr: string) => {
       e.preventDefault();
-      if (!draggingTask) return;
+      if (!draggingTaskRef.current) return;
 
       const rect = e.currentTarget.getBoundingClientRect();
       const offsetY = e.clientY - rect.top;
@@ -75,7 +80,7 @@ export function useCalendarDrag({
       });
       e.dataTransfer.dropEffect = 'move';
     },
-    [draggingTask, hourHeight, snapInterval, setDragPreview, startHour]
+    [hourHeight, snapInterval, setDragPreview, startHour]
   );
 
   const handleDragStartInternal = useCallback(

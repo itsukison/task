@@ -90,7 +90,7 @@ export const FastEstTimeInput = React.memo(function FastEstTimeInput({
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-[44px] h-[24px] px-1 rounded-[3px] bg-white text-[#42526e] text-[12px] text-center font-semibold outline-none shadow-[0_0_0_2px_#f97316] transition-all"
+                    className="w-[38px] h-[24px] px-0.5 rounded-[3px] bg-white text-[#42526e] text-[12px] text-center font-semibold outline-none ring-1 ring-orange-400 shadow-sm transition-all"
                 />
             </div>
             {typeof document !== 'undefined' && createPortal(

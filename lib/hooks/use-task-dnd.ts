@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
-import { Task } from '@/lib/types';
+import { Task, CalendarBlock } from '@/lib/types';
 
 interface UseTaskDndProps {
     tasks: Task[];
     onUpdateTask: (task: Task) => void;
     onDragStart: (taskId: string | null) => void;
     onDropCalendarBlock?: (blockId: string, dateKey: string) => void;
+    calendarBlocks?: CalendarBlock[];
+    onDeleteBlock?: (blockId: string) => void;
 }
 
 export function useTaskDnd({
@@ -13,6 +15,8 @@ export function useTaskDnd({
     onUpdateTask,
     onDragStart,
     onDropCalendarBlock,
+    calendarBlocks,
+    onDeleteBlock,
 }: UseTaskDndProps) {
     const [isDraggingTaskRow, setIsDraggingTaskRow] = useState(false);
     const [dragOverDateKey, setDragOverDateKey] = useState<string | null>(null);
@@ -60,11 +64,17 @@ export function useTaskDnd({
             if (rowId) {
                 const task = tasks.find(t => t.id === rowId);
                 if (task && task.scheduledDate !== dateKey) {
+                    // Delete calendar blocks on the old date before moving the task
+                    if (calendarBlocks && onDeleteBlock) {
+                        calendarBlocks
+                            .filter(b => b.taskId === rowId)
+                            .forEach(b => onDeleteBlock(b.id));
+                    }
                     onUpdateTask({ ...task, scheduledDate: dateKey });
                 }
             }
         }
-    }, [onDropCalendarBlock, onUpdateTask, tasks]);
+    }, [onDropCalendarBlock, onUpdateTask, tasks, calendarBlocks, onDeleteBlock]);
 
     return {
         isDraggingTaskRow,

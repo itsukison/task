@@ -121,6 +121,17 @@ const Calendar = React.memo(function Calendar({
     if (!blockOverTaskList) return;
     setDragPreview(null);
   }, [blockOverTaskList, setDragPreview]);
+
+  // Global dragend listener — clears preview state as a safety net
+  // when the source element unmounts before dragend fires on it
+  useEffect(() => {
+    const handleGlobalDragEnd = () => {
+      setDragPreview(null);
+      setDragSource(null);
+    };
+    window.addEventListener('dragend', handleGlobalDragEnd);
+    return () => window.removeEventListener('dragend', handleGlobalDragEnd);
+  }, [setDragPreview, setDragSource]);
   // Wrap handlers to intercept quick-add block updates
   const handleUpdateBlockInternal = useCallback((blockId: string, startTime: Date, endTime: Date) => {
     // Check for quick-add block
@@ -693,9 +704,13 @@ const Calendar = React.memo(function Calendar({
           )}
 
           {/* Zoom Controls */}
-          <div className="flex items-center gap-1 ml-2">
+          <div className="flex items-center">
             <button
-              onClick={resetZoom}
+              onClick={() => {
+                resetZoom(startHour);
+                // Reuse "today" handler to horizontally center and select today
+                onToday?.();
+              }}
               className="text-xs px-2 py-1 text-[#787774] hover:bg-[#EFEFED] rounded-md transition-colors cursor-pointer"
               title={t('calendar.reset_zoom')}
             >
@@ -755,6 +770,12 @@ const Calendar = React.memo(function Calendar({
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseUp}
+              onDragLeave={(e) => {
+                // Only clear if leaving the calendar entirely (not moving between day columns)
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragPreview(null);
+                }
+              }}
             >
               {/* Faint current-time line spanning all visible day columns */}
               {displayedDays.some(d => isSameDay(d, now)) && (() => {

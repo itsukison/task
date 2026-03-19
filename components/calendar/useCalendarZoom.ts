@@ -61,11 +61,24 @@ export function useCalendarZoom(containerRef: React.RefObject<HTMLDivElement | n
 
   const snapInterval = hourHeight >= 80 ? 5 : 15;
 
-  const resetZoom = useCallback(() => {
+  const resetZoom = useCallback((startHour = 0) => {
     zoomAnchorRef.current = null;
-    setHourHeight(64);
-    if (containerRef.current) {
-      containerRef.current.scrollTop = 8 * 64;
+    const defaultHeight = 64;
+    setHourHeight(defaultHeight);
+
+    const el = containerRef.current;
+    if (el) {
+      // Vertically center on current time (same logic as initial auto-center)
+      const nowLocal = new Date();
+      const minutesFromStart = Math.max(
+        0,
+        (nowLocal.getHours() - startHour) * 60 + nowLocal.getMinutes()
+      );
+      const topPx = minutesFromStart * (defaultHeight / 60);
+      const containerHeight = el.clientHeight;
+      const maxScrollTop = Math.max(0, el.scrollHeight - containerHeight);
+      const desiredLineY = containerHeight / 2 - defaultHeight;
+      el.scrollTop = Math.min(Math.max(0, topPx - desiredLineY), maxScrollTop);
     }
   }, [containerRef]);
 

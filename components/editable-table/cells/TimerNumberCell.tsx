@@ -133,7 +133,7 @@ export const TimerNumberCell = React.memo(function TimerNumberCell({ value, rowI
                     onChange={(e) => setLocalValue(parseFloat(e.target.value) || 0)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    className="w-full h-full bg-transparent border-none outline-none text-[#37352F] text-sm px-2 py-1.5 text-right font-mono"
+                    className="w-full h-full bg-orange-50/30 border-none outline-none text-[#37352F] text-sm px-2 py-1.5 text-right font-mono ring-1 ring-orange-200 rounded-sm transition-all"
                     autoFocus
                 />
             ) : (

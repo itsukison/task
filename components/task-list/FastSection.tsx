@@ -191,13 +191,14 @@ export const FastSection = React.memo(function FastSection({
                                 })}
 
                                 <div
-                                    className="flex items-center px-2 py-1 text-[#5e6c84] hover:bg-[#f4f5f7] bg-white cursor-pointer rounded-b-[6px] text-[14px] transition-colors border-t border-[#dfe1e6]"
+                                    className="flex items-center px-1 py-1 text-[#5e6c84] hover:bg-[#f4f5f7] bg-white cursor-pointer rounded-b-[6px] text-[14px] transition-colors border-t border-[#dfe1e6]"
                                     onClick={(e) => { e.stopPropagation(); onAddRow(); }}
                                 >
-                                    <div className="w-4" />
-                                    <div className="w-5" />
+                                    <div className="w-4 flex-shrink-0" />
+                                    <div className="w-5 flex-shrink-0 flex justify-center">
+                                        <Plus size={16} />
+                                    </div>
                                     <div className="flex-1 flex items-center px-1 py-1">
-                                        <Plus size={16} className="mr-1" />
                                         <span>{t('common.create_task')}</span>
                                     </div>
                                 </div>
@@ -263,13 +264,14 @@ export const FastSection = React.memo(function FastSection({
 
                                     {/* Add row button */}
                                     <div
-                                        className="flex items-center px-2 py-1 text-[#5e6c84] hover:bg-[#f4f5f7] bg-white cursor-pointer rounded-b-[6px] text-[14px] transition-colors border-t border-[#dfe1e6]"
+                                        className="flex items-center px-1 py-1 text-[#5e6c84] hover:bg-[#f4f5f7] bg-white cursor-pointer rounded-b-[6px] text-[14px] transition-colors border-t border-[#dfe1e6]"
                                         onClick={(e) => { e.stopPropagation(); onAddRow(); }}
                                     >
-                                        <div className="w-4" />
-                                        <div className="w-5" />
+                                        <div className="w-4 flex-shrink-0" />
+                                        <div className="w-5 flex-shrink-0 flex justify-center">
+                                            <Plus size={16} />
+                                        </div>
                                         <div className="flex-1 flex items-center px-1 py-1">
-                                            <Plus size={16} className="mr-1" />
                                             <span>{t('common.create_task')}</span>
                                         </div>
                                     </div>

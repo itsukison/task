@@ -103,7 +103,10 @@ export const PeopleAvatar = React.memo(function PeopleAvatar({
     return (
         <div ref={triggerRef}>
             <div
-                className="flex items-center justify-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity"
+                className={cn(
+                    "flex items-center justify-center gap-0.5 cursor-pointer transition-all px-1 py-0.5 rounded-full",
+                    isOpen ? "bg-orange-50 ring-1 ring-orange-200" : "hover:opacity-80"
+                )}
                 onClick={handleClick}
             >
                 {selectedPeople.length === 0 && peopleIcon}
@@ -127,9 +130,9 @@ export const PeopleAvatar = React.memo(function PeopleAvatar({
                     );
                 })}
                 {selectedPeople.length > 1 && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
                         {peopleIcon}
-                        <span className="text-[11px] font-semibold text-[#5e6c84]">
+                        <span className="text-[10px] pr-0.5 font-semibold text-[#5e6c84]">
                             {selectedPeople.length}
                         </span>
                     </div>

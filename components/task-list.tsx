@@ -36,6 +36,7 @@ export default function TaskList({
     onAddSubtask,
     onFocusDayFromTaskView,
     onDropCalendarBlock,
+    onDeleteBlock,
     draggingTask,
     onCalendarBlockDragActiveChange,
     tableVariant = 'default',
@@ -75,6 +76,8 @@ export default function TaskList({
         onUpdateTask,
         onDragStart,
         onDropCalendarBlock,
+        calendarBlocks,
+        onDeleteBlock,
     });
 
     const {
@@ -223,14 +226,14 @@ export default function TaskList({
                 sortFields={SORT_FIELDS}
             />
 
-            <div className={cn("flex-1 overflow-auto pt-2 pr-4", tableVariant === 'minimal' ? "pl-4" : "pl-1")}>
+            <div className={cn("flex-1 overflow-auto", tableVariant === 'minimal' ? "pl-4" : "pl-1")}>
                 <div ref={daySectionsViewportRef} className="h-full min-h-0 flex flex-col">
                     <div className="relative w-full h-full">
                         <div
                             ref={daySectionsScrollRef}
-                            className="h-full pr-1 overflow-y-auto [overflow-anchor:none]"
+                            className="h-full overflow-y-auto [overflow-anchor:none]"
                         >
-                            <div className="flex flex-col">
+                            <div className="flex flex-col pr-4">
                                 {daySections.map((section) => {
                                     const isDropActive = dragOverDateKey === section.dateKey;
                                     return (

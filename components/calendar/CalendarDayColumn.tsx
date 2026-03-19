@@ -435,6 +435,15 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
           const blockDurationMin = (new Date(block.endTime).getTime() - new Date(block.startTime).getTime()) / 60000;
           const blockPxHeight = blockDurationMin * (hourHeight / 60);
           const isSmallBlock = blockPxHeight < 22;
+          const isMicroBlock = blockPxHeight < 14;
+
+          // Apply the same padding reduction as regular blocks so short preview
+          // blocks don't clip their text during drag.
+          if (isMicroBlock) {
+            style.className = style.className.replace('p-1.5', 'px-1 py-0');
+          } else if (isSmallBlock) {
+            style.className = style.className.replace('p-1.5', 'px-1 py-0.5');
+          }
 
           return (
             <div
@@ -442,7 +451,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
               style={style}
               className={style.className}
             >
-              <div className={`font-medium truncate leading-none flex items-center gap-1 ${blockPxHeight < 14 ? 'text-[8px]' : isSmallBlock ? 'text-[9px]' : 'text-xs'}`}>
+              <div className={`font-medium truncate leading-none flex items-center gap-1 ${isMicroBlock ? 'text-[8px]' : isSmallBlock ? 'text-[9px]' : 'text-xs'}`}>
                 {task.title}
               </div>
               {!isSmallBlock && (

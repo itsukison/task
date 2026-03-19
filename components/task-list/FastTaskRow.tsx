@@ -58,7 +58,8 @@ export const FastTaskRow = React.memo(function FastTaskRow({
     onDelete,
     onDragStart,
     onDragEnd,
-    onClick,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onClick: _onClick,
     onAddSubtask,
     onToggleSubtasks,
     orgMembers,
@@ -92,11 +93,7 @@ export const FastTaskRow = React.memo(function FastTaskRow({
         onToggleComplete(task.id);
     }, [task.id, onToggleComplete]);
 
-    const handleRowClick = useCallback(() => {
-        if (isPending) return;
-        if (task.id === 'preview-task-temp') return;
-        onClick(task);
-    }, [task, isPending, onClick]);
+    // Row-level click intentionally removed – task modal is not opened from the workspace table.
 
     const handleOwnerChange = useCallback((ownerIds: string[]) => {
         onOwnerChange(task.id, ownerIds);
@@ -112,8 +109,7 @@ export const FastTaskRow = React.memo(function FastTaskRow({
             draggable={!isPending && !isSubtask}
             onDragStart={handleDragStart}
             onDragEnd={onDragEnd}
-            onClick={handleRowClick}
-        className={cn(
+            className={cn(
                 'group flex items-start px-1 py-1 border-b border-[#dfe1e6] bg-white transition-colors',
                 isSubtask && 'bg-[#fafafa]',
                 isEditing ? 'bg-[#f4f5f7] relative z-40' : 'relative z-10',
@@ -125,13 +121,13 @@ export const FastTaskRow = React.memo(function FastTaskRow({
             <div className="w-4 flex justify-center self-center flex-shrink-0">
                 {task.persistError ? (
                     <AlertCircle size={14} className="text-red-500" />
-                ) : (
+                ) : !isSubtask ? (
                     <GripVertical size={16} className="text-[#a5adba] opacity-0 group-hover:opacity-100 cursor-grab" />
-                )}
+                ) : null}
             </div>
 
             {/* Checkbox */}
-            <div className="w-5 flex justify-center self-center flex-shrink-0">
+            <div className={cn("w-5 flex justify-center self-center flex-shrink-0", isSubtask && "ml-6")}>
                 <input
                     type="checkbox"
                     checked={isCompleted}
@@ -147,10 +143,7 @@ export const FastTaskRow = React.memo(function FastTaskRow({
                 isCompleted && 'opacity-60 line-through',
             )}>
                 <div className="flex items-start w-full relative">
-                    {isSubtask && (
-                        <CornerDownRight size={14} className="text-[#a5adba] ml-6 mr-2 flex-shrink-0 mt-1.5" />
-                    )}
-                    <div className="relative flex-1 min-w-0">
+                    <div className={cn("relative flex-1 min-w-0 min-h-[36px]")}>
                         {/* Display mode */}
                         <div
                             className={cn(
@@ -206,7 +199,7 @@ export const FastTaskRow = React.memo(function FastTaskRow({
                 </div>
 
                 {/* People avatar */}
-                <div className="w-[32px] flex justify-center overflow-hidden">
+                <div className="w-[36px] flex justify-center ml-1">
                     <PeopleAvatar
                         ownerIds={task.ownerIds}
                         orgMembers={orgMembers}

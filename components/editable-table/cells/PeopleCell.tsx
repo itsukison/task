@@ -126,7 +126,10 @@ export function PeopleCell({ value, rowId, columnId, peopleOptions = [], ownerSt
     return (
         <div className="relative w-full h-full" ref={triggerRef}>
             <div
-                className="w-full h-full px-2 py-1.5 cursor-pointer flex items-center justify-center gap-1"
+                className={cn(
+                    "w-full h-full px-2 py-1.5 cursor-pointer flex items-center justify-center gap-1 transition-colors",
+                    isOpen && "bg-orange-50"
+                )}
                 onClick={handleToggleDropdown}
             >
                 {selectedPeople.length > 0 ? (
