@@ -57,11 +57,13 @@ export function useCalendarBlocksQuery() {
                 pendingBlocks = (otherBlocks || []) as DbCalendarBlock[];
             }
 
-            // Step 4: Transform and combine
-            const ownTransformed = (ownBlocks as DbCalendarBlock[] || []).map(row => {
-                const status = assignmentMap.get(row.task_id);
-                return dbToCalendarBlock(row, { isPending: status === 'pending', status });
-            });
+            // Step 4: Transform and combine (filter out stale blocks with optimistic task IDs)
+            const ownTransformed = (ownBlocks as DbCalendarBlock[] || [])
+                .filter(row => !row.task_id.startsWith('optimistic-'))
+                .map(row => {
+                    const status = assignmentMap.get(row.task_id);
+                    return dbToCalendarBlock(row, { isPending: status === 'pending', status });
+                });
 
             const pendingTransformed = pendingBlocks.map(row => {
                 const status = assignmentMap.get(row.task_id);

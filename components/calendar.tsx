@@ -244,7 +244,7 @@ const Calendar = React.memo(function Calendar({
       if (task.status === 'overrun') bgColor = 'bg-red-50 border-red-100 text-red-800';
 
       // Optimistic block styling (orange/amber)
-      if (block.id.startsWith('optimistic-') || task.id.startsWith('optimistic-')) {
+      if (block.id.startsWith('optimistic-')) {
         bgColor = 'bg-amber-100 border-amber-200 text-amber-800 opacity-90';
       }
 

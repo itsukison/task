@@ -82,6 +82,7 @@ export interface UseTasksReturn {
     deleteTask: (id: string) => Promise<void>;
     acceptAssignment: (taskId: string) => Promise<void>;
     rejectAssignment: (taskId: string) => Promise<void>;
+    resolveApiId: (id: string) => string | null;
     refetch: () => Promise<void>;
 }
 
@@ -90,6 +91,10 @@ export function useTasks(): UseTasksReturn {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Keep a ref in sync with tasks so callbacks can read the latest snapshot
+    const tasksRef = useRef<Task[]>(tasks);
+    tasksRef.current = tasks;
 
     // Flag to suppress realtime refetches during our own mutations
     const isMutatingRef = useRef(false);
@@ -398,15 +403,16 @@ export function useTasks(): UseTasksReturn {
         return optimisticTask;
     }, [user, currentOrg, profile, persistTaskInBackground]);
 
-    // Resolve the Supabase-side ID for a task (realId if set, else id)
+    // Resolve the Supabase-side ID for a task (realId if set, else id).
+    // Reads from tasksRef so polling callers always see the latest state.
     const resolveApiId = useCallback((id: string): string | null => {
-        const task = tasks.find(t => t.id === id);
-        if (!task) return id;
+        const task = tasksRef.current.find(t => t.id === id);
+        if (!task) return id.startsWith('optimistic-') ? null : id;
         if (task.realId) return task.realId;
         // Still optimistic — no server ID yet
         if (id.startsWith('optimistic-')) return null;
         return id;
-    }, [tasks]);
+    }, []);
 
     // Update a task
     const updateTask = useCallback(async (id: string, input: UpdateTaskInput): Promise<void> => {
@@ -648,6 +654,7 @@ export function useTasks(): UseTasksReturn {
         deleteTask,
         acceptAssignment,
         rejectAssignment,
+        resolveApiId,
         refetch: fetchTasks,
     };
 }

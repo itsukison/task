@@ -30,7 +30,7 @@ export default function WorkspacePage() {
     const { user, currentOrg } = useAuth();
     const { preferences, loading: preferencesLoading } = useUserPreferences();
     const { setSelectedDate: setAISelectedDate, pendingAction } = useAI();
-    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment, refetch: refetchTasks } = useTasks();
+    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment, resolveApiId, refetch: refetchTasks } = useTasks();
     const {
         calendarBlocks,
         loading: blocksLoading,
@@ -226,18 +226,31 @@ export default function WorkspacePage() {
             });
 
             // If created from calendar context menu (Date object provided), create a time block.
-            // We use the optimistic task ID — createCalendarBlock handles optimistic IDs too.
+            // Wait for the task to persist so we use the real server ID.
             if (isCalendarContextMenu) {
                 const startTime = initialData.scheduledDate as Date;
                 const duration = initialData.expectedTime ?? 30;
                 const endTime = addMinutes(startTime, duration);
 
-                // Create the block linked to the new task (uses optimistic ID)
-                await createCalendarBlock({
-                    taskId: newTask.id,
-                    startTime,
-                    endTime
-                });
+                // Resolve optimistic ID to real server ID before creating block
+                let blockTaskId: string | null = resolveApiId(newTask.id);
+                if (blockTaskId === null) {
+                    for (let i = 0; i < 6; i++) {
+                        await new Promise(r => setTimeout(r, 500));
+                        blockTaskId = resolveApiId(newTask.id);
+                        if (blockTaskId !== null) break;
+                    }
+                }
+
+                if (blockTaskId && !blockTaskId.startsWith('optimistic-')) {
+                    await createCalendarBlock({
+                        taskId: blockTaskId,
+                        startTime,
+                        endTime
+                    });
+                } else {
+                    console.error('Context-menu block creation skipped: task not yet persisted');
+                }
             }
 
             const shouldOpen = initialData?.shouldOpenModal ?? false;
@@ -308,7 +321,28 @@ export default function WorkspacePage() {
     // Calendar block handlers
     const handleCreateBlock = async (taskId: string, startTime: Date, endTime: Date) => {
         try {
-            await createCalendarBlock({ taskId, startTime, endTime });
+            // Resolve optimistic ID to real server ID; if still pending, wait briefly and retry
+            let resolvedId = resolveApiId(taskId);
+            if (resolvedId === null) {
+                // Task hasn't persisted yet — wait up to 3s for the server ID
+                for (let i = 0; i < 6; i++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    resolvedId = resolveApiId(taskId);
+                    if (resolvedId !== null) break;
+                }
+                if (resolvedId === null) {
+                    console.error('Task has not persisted yet, cannot create calendar block');
+                    return;
+                }
+            }
+
+            // Final guard: never send an optimistic ID to the database
+            if (resolvedId.startsWith('optimistic-')) {
+                console.error('Resolved ID is still optimistic, cannot create calendar block');
+                return;
+            }
+
+            await createCalendarBlock({ taskId: resolvedId, startTime, endTime });
 
             // Sync task's scheduledDate to match the block's date
             const newDateISO = formatDateToLocalISO(startTime);

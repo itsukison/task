@@ -277,7 +277,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       <div className="absolute inset-0 z-10">
         {dayBlocks.map(({ block, layout }) => {
           // Use embedded task from block (for multi-member mode) or fallback to tasks array
-          const task = block.task || tasks.find(t => t.id === block.taskId);
+          const task = block.task || tasks.find(t => t.id === block.taskId || t.realId === block.taskId);
           if (!task) {
             if (process.env.NODE_ENV === 'development') {
               console.warn('⚠️ Block has no task data:', { blockId: block.id, taskId: block.taskId, startTime: block.startTime, hasEmbeddedTask: !!block.task });
@@ -331,8 +331,8 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
               .replace('transition-colors', '');
           }
 
-          // Optimistic block styling (translucent orange)
-          if (block.id.startsWith('optimistic-') || task.id.startsWith('optimistic-')) {
+          // Optimistic block styling (translucent orange) — only when the block itself is pending
+          if (block.id.startsWith('optimistic-')) {
             style.className = `${style.className} bg-orange-500/20 border-orange-500/30 text-orange-700 backdrop-blur-sm quick-add-target`;
           }
 
