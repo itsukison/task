@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meishi API</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c0c;
+  --bg1:#141414;
+  --bg2:#1c1c1c;
+  --line:#222;
+  --line2:#2e2e2e;
+  --t0:#ffffff;
+  --t1:#a0a09a;
+  --t2:#555550;
+  --accent:#4a8cf5;
+  --green:#22c55e;
+  --red:#ef4444;
+  --mono:'JetBrains Mono','Fira Mono',monospace;
+  --sans:'Noto Sans JP','Hiragino Sans',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{height:52px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 48px;gap:40px;background:var(--bg);position:sticky;top:0;z-index:50}
+.logo{font-family:var(--mono);font-size:13px;color:var(--t0);letter-spacing:.04em;margin-right:auto}
+nav a{font-size:13px;color:var(--t2);text-decoration:none;transition:color .12s}
+nav a:hover{color:var(--t1)}
+.nav-btn{margin-left:16px;padding:7px 18px;background:var(--t0);color:#0c0c0c;border:none;border-radius:6px;font-size:12px;font-weight:700;font-family:var(--sans);cursor:pointer;letter-spacing:.02em;transition:opacity .12s}
+.nav-btn:hover{opacity:.85}
+
+/* ── HERO ── */
+.hero{padding:120px 48px 100px;max-width:860px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--t2);text-transform:uppercase;margin-bottom:28px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:clamp(40px,5.5vw,68px);font-weight:300;color:var(--t0);letter-spacing:-0.03em;line-height:1.08;margin-bottom:28px}
+h1 em{font-style:normal;font-weight:700}
+.hero-desc{font-size:17px;color:var(--t1);max-width:520px;line-height:1.8;margin-bottom:44px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn-a{padding:12px 26px;background:var(--t0);color:#0c0c0c;border:none;border-radius:7px;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:opacity .12s}
+.btn-a:hover{opacity:.85}
+.btn-b{padding:12px 26px;background:transparent;color:var(--t1);border:1px solid var(--line2);border-radius:7px;font-size:13px;font-family:var(--sans);cursor:pointer;transition:border-color .12s,color .12s}
+.btn-b:hover{border-color:#555;color:var(--t0)}
+
+/* ── THREE NUMBERS ── */
+.trio{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.trio-item{padding:44px 48px;border-right:1px solid var(--line)}
+.trio-item:last-child{border-right:none}
+.trio-num{font-size:52px;font-weight:200;color:var(--t0);letter-spacing:-0.04em;line-height:1;margin-bottom:6px}
+.trio-num b{font-size:22px;font-weight:300;color:var(--t2)}
+.trio-label{font-size:12px;color:var(--t2);letter-spacing:.04em}
+
+/* ── CODE BLOCK ── */
+.code-wrap{border-bottom:1px solid var(--line);padding:64px 48px;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start}
+.code-left h2{font-size:32px;font-weight:300;color:var(--t0);letter-spacing:-0.02em;line-height:1.25;margin-bottom:16px}
+.code-left p{font-size:14px;color:var(--t2);line-height:1.8;max-width:340px}
+.code-block{background:var(--bg1);border:1px solid var(--line2);border-radius:10px;overflow:hidden}
+.code-bar{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);gap:6px}
+.dot{width:9px;height:9px;border-radius:50%}
+.dr{background:#ff5f57}.dy{background:#febc2e}.dg{background:#28c840}
+.code-route{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--t2)}
+pre{padding:22px 20px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto}
+.ck{color:#7dd3fc}.cs{color:#86efac}.cn{color:#fbbf24}.cc{color:#3f4a3a}.cp{color:#6b7b8d}.cm{color:#c4b5fd}
+.badge{display:inline-block;background:rgba(74,140,245,.14);border:1px solid rgba(74,140,245,.28);color:#7dd3fc;font-size:10px;padding:1px 6px;border-radius:3px;font-family:var(--mono);vertical-align:middle}
+
+/* ── SECTION HEADER ── */
+.sec-head{padding:14px 48px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.sec-pip{width:8px;height:8px;background:var(--t0);border-radius:1px;flex-shrink:0}
+.sec-label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--t2);text-transform:uppercase}
+
+/* ── COMPARISON ── */
+.comp-wrap{border-bottom:1px solid var(--line);display:grid;grid-template-columns:380px 1fr;align-items:start}
+.comp-left{padding:64px 48px;border-right:1px solid var(--line)}
+.comp-left h2{font-size:26px;font-weight:300;color:var(--t0);letter-spacing:-0.01em;line-height:1.35;margin-bottom:14px}
+.comp-left p{font-size:13px;color:var(--t2);line-height:1.8}
+.comp-note{margin-top:28px;padding:14px 16px;background:var(--bg1);border-radius:7px;border:1px solid var(--line2);font-size:12px;color:var(--t2);line-height:1.7}
+.comp-note strong{color:#ef4444}
+.comp-right{padding:48px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);padding:0 0 14px;text-align:left;border-bottom:1px solid var(--line);font-weight:400}
+tbody td{padding:14px 0;border-bottom:1px solid var(--line);color:var(--t1);vertical-align:middle}
+tbody td:first-child{color:var(--t0)}
+tbody tr:last-child td{border-bottom:none}
+tr.hi td{color:var(--t0)}
+tr.hi td:first-child{font-weight:500}
+.ok{color:var(--green)}.no{color:var(--red)}.dim{color:var(--t2)}
+.hi-bar{display:flex;align-items:center;gap:8px}
+.hi-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
+/* ── PERSONA ── */
+.persona-wrap{border-bottom:1px solid var(--line)}
+.persona-grid{display:grid;grid-template-columns:1fr 1fr}
+.pc{padding:52px 48px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pc:nth-child(even){border-right:none}
+.pc:nth-child(3),.pc:nth-child(4){border-bottom:none}
+.pc-role{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--t2);margin-bottom:14px}
+.pc-quote{font-size:22px;font-weight:300;color:var(--t0);letter-spacing:-0.01em;line-height:1.3;margin-bottom:18px}
+.pc-pain{font-size:13px;color:var(--t2);line-height:1.75}
+.pc-line{display:flex;align-items:baseline;gap:8px;margin-top:10px;font-size:13px;color:var(--t2)}
+.pc-line::before{content:'→';color:var(--t2);flex-shrink:0}
+
+/* ── FEATURES ── */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+.fc{padding:44px 48px;border-right:1px solid var(--line)}
+.fc:nth-child(3n){border-right:none}
+.fc:nth-child(n+4){border-top:1px solid var(--line)}
+.fc-num{font-family:var(--mono);font-size:10px;color:var(--t2);letter-spacing:.12em;margin-bottom:24px}
+.fc-title{font-size:16px;font-weight:500;color:var(--t0);margin-bottom:10px}
+.fc-desc{font-size:13px;color:var(--t2);line-height:1.75}
+
+/* ── PRICING ── */
+.price-grid{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line)}
+.pc2{padding:40px 32px;border-right:1px solid var(--line);display:flex;flex-direction:column}
+.pc2:last-child{border-right:none}
+.pc2.pop{border-top:2px solid var(--accent)}
+.plan-name{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin-bottom:16px}
+.plan-price{font-size:30px;font-weight:200;color:var(--t0);letter-spacing:-0.03em;line-height:1;margin-bottom:4px}
+.plan-price small{font-size:13px;font-weight:400;color:var(--t2)}
+.plan-parses{font-size:12px;color:var(--t2);margin-top:14px;line-height:1.65}
+.plan-btn{margin-top:auto;padding-top:24px}
+.plan-btn button{width:100%;padding:9px;border:1px solid var(--line2);background:transparent;color:var(--t2);border-radius:6px;font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .12s}
+.plan-btn button:hover,.pc2.pop .plan-btn button{border-color:var(--accent);color:var(--accent)}
+
+/* ── WAITLIST ── */
+.wl-wrap{display:grid;grid-template-columns:1fr 1fr;min-height:420px}
+.wl-left{padding:72px 56px;border-right:1px solid var(--line);background:var(--bg1)}
+.wl-right{padding:72px 56px}
+.wl-tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);border:1px solid rgba(74,140,245,.3);border-radius:100px;padding:4px 12px;margin-bottom:24px}
+.wl-left h2{font-size:36px;font-weight:300;color:var(--t0);letter-spacing:-0.02em;line-height:1.2;margin-bottom:16px}
+.wl-left p{font-size:14px;color:var(--t2);line-height:1.8;max-width:360px}
+.wl-perks{margin-top:40px;display:flex;flex-direction:column;gap:16px}
+.perk{display:flex;gap:14px;align-items:flex-start}
+.perk-num{font-family:var(--mono);font-size:11px;color:var(--t2);padding-top:2px;flex-shrink:0;width:20px}
+.perk-text{font-size:13px;color:var(--t2);line-height:1.7}
+.perk-text strong{color:var(--t1);font-weight:500}
+.form{display:flex;flex-direction:column;gap:10px}
+.form input,.form select,.form textarea{width:100%;padding:11px 14px;background:var(--bg1);border:1px solid var(--line2);border-radius:8px;font-size:13px;color:var(--t0);font-family:var(--sans);outline:none;transition:border-color .12s;appearance:none;-webkit-appearance:none}
+.form input::placeholder,.form textarea::placeholder{color:var(--t2)}
+.form input:focus,.form select:focus,.form textarea:focus{border-color:#444}
+.form select option{background:var(--bg1)}
+.form textarea{resize:vertical;min-height:72px}
+.form-title{font-size:14px;color:var(--t0);margin-bottom:6px}
+.form-sub{font-size:12px;color:var(--t2);margin-bottom:20px}
+.submit-btn{width:100%;padding:13px;background:var(--t0);color:#0c0c0c;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:opacity .12s;letter-spacing:.01em}
+.submit-btn:hover{opacity:.88}
+.form-note{text-align:center;font-size:11px;color:var(--t2);margin-top:8px}
+
+/* ── FOOTER ── */
+footer{padding:28px 48px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.f-left{font-family:var(--mono);font-size:12px;color:var(--t2)}
+.f-links{display:flex;gap:28px}
+.f-links a{font-size:12px;color:var(--t2);text-decoration:none;transition:color .12s}
+.f-links a:hover{color:var(--t1)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  nav{padding:0 20px;gap:20px}
+  nav a.hide{display:none}
+  .hero{padding:72px 24px 64px}
+  .trio,.feat-grid,.price-grid{grid-template-columns:1fr}
+  .trio-item,.fc,.pc2{border-right:none!important;border-bottom:1px solid var(--line)}
+  .code-wrap,.comp-wrap,.wl-wrap{grid-template-columns:1fr}
+  .comp-left,.code-left,.wl-left,.wl-right{border-right:none;padding:40px 24px}
+  .comp-right{padding:32px 24px}
+  .persona-grid{grid-template-columns:1fr}
+  .pc{border-right:none!important}
+  .sec-head{padding:12px 24px}
+  footer{padding:24px 20px;flex-direction:column;gap:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="logo">Meishi API</span>
+  <a href="#why" class="hide">なぜ？</a>
+  <a href="#features" class="hide">機能</a>
+  <a href="#pricing" class="hide">料金</a>
+  <a href="#" class="hide">Docs</a>
+  <button class="nav-btn" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">ウェイトリスト登録</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="eyebrow">ベータ版 — 先着50名受付中</div>
+  <h1>名刺を、<em>一瞬</em>で、<br>JSON に。</h1>
+  <p class="hero-desc">縦書き・ふりがな・混在レイアウト。<br>日本語名刺が苦手だったOCRの時代は終わりです。</p>
+  <div class="hero-actions">
+    <button class="btn-a" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">無料で始める</button>
+    <button class="btn-b" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">機能を見る</button>
+  </div>
+</section>
+
+<!-- THREE NUMBERS -->
+<div class="trio">
+  <div class="trio-item">
+    <div class="trio-num">95<b>%+</b></div>
+    <div class="trio-label">フィールド抽出精度</div>
+  </div>
+  <div class="trio-item">
+    <div class="trio-num">&lt;2.5<b>秒</b></div>
+    <div class="trio-label">p95 レイテンシ</div>
+  </div>
+  <div class="trio-item">
+    <div class="trio-num">100<b>パース</b></div>
+    <div class="trio-label">無料 / 月（CC不要）</div>
+  </div>
+</div>
+
+<!-- CODE DEMO -->
+<div class="code-wrap">
+  <div class="code-left">
+    <h2>POST /api/v1/parse<br>一行で完結</h2>
+    <p>APIキー一本。OAuth 不要。画像を送るだけで、構造化 JSON が返ってきます。</p>
+  </div>
+  <div class="code-block">
+    <div class="code-bar">
+      <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+      <span class="code-route">POST /api/v1/parse</span>
+    </div>
+    <pre><span class="cc">// リクエスト</span>
+<span class="cm">fetch</span>(<span class="cs">'https://api.meishi.dev/v1/parse'</span>, {
+  <span class="ck">method</span>: <span class="cs">'POST'</span>,
+  <span class="ck">headers</span>: { <span class="cs">'X-API-Key'</span>: <span class="cs">'mk_live_...'</span> },
+  <span class="ck">body</span>: formData
+})
+
+<span class="cc">// レスポンス</span>
+{
+  <span class="ck">"name"</span>:       <span class="cs">"山田 太郎"</span>,
+  <span class="ck">"name_kana"</span>:  <span class="cs">"やまだ たろう"</span>  <span class="badge">AI推定</span>
+  <span class="ck">"name_roman"</span>: <span class="cs">"Taro Yamada"</span>,
+  <span class="ck">"title"</span>:      <span class="cs">"代表取締役社長"</span>,
+  <span class="ck">"company"</span>:    <span class="cs">"株式会社テック"</span>,
+  <span class="ck">"email"</span>:      <span class="cs">"yamada@tech.co.jp"</span>,
+  <span class="ck">"confidence"</span>: { <span class="ck">"overall"</span>: <span class="cn">0.97</span> }
+}</pre>
+  </div>
+</div>
+
+<!-- WHY -->
+<div id="why">
+  <div class="sec-head">
+    <div class="sec-pip"></div>
+    <span class="sec-label">既存ツールの問題</span>
+  </div>
+  <div class="comp-wrap">
+    <div class="comp-left">
+      <h2>なぜ既存ツールは<br>日本の名刺で失敗するのか</h2>
+      <p>縦書き・ふりがな・漢字とローマ字の混在。日本の名刺は、海外向け OCR が前提としない構造を持っています。</p>
+      <div class="comp-note">
+        <strong>Sansan の問題点：</strong><br>
+        API なし・¥10,000+/ユーザー/月・プログラムから呼び出せない
+      </div>
+    </div>
+    <div class="comp-right">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:30%">サービス</th>
+            <th style="width:22%">縦書き</th>
+            <th style="width:22%">ふりがな</th>
+            <th>総合精度</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Google Vision</td>
+            <td><span class="no">✗</span> <span class="dim">不可</span></td>
+            <td><span class="no">✗</span> <span class="dim">非対応</span></td>
+            <td class="dim">~78%</td>
+          </tr>
+          <tr>
+            <td>AWS Textract</td>
+            <td><span class="no">✗</span> <span class="dim">不可</span></td>
+            <td><span class="no">✗</span> <span class="dim">非対応</span></td>
+            <td class="dim">~81%</td>
+          </tr>
+          <tr>
+            <td>Sansan</td>
+            <td><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+            <td style="color:#fbbf24">高精度・APIなし</td>
+          </tr>
+          <tr class="hi">
+            <td>
+              <div class="hi-bar"><div class="hi-dot"></div>Meishi API</div>
+            </td>
+            <td><span class="ok">✓</span> 完全対応</td>
+            <td><span class="ok">✓</span> AI推定</td>
+            <td style="color:var(--green)">95%+</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONAS -->
+<div>
+  <div class="sec-head">
+    <div class="sec-pip"></div>
+    <span class="sec-label">こんな方のために</span>
+  </div>
+  <div class="persona-grid">
+    <div class="pc">
+      <div class="pc-role">ソロ開発者</div>
+      <div class="pc-quote">「デモまで3日しかない」</div>
+      <p class="pc-pain">CRM に名刺取り込みを実装したい。Sansan を使えばいいが API がない。自社実装は3スプリント以上かかる。</p>
+      <div class="pc-line">今日から本番相当の精度で動く</div>
+    </div>
+    <div class="pc">
+      <div class="pc-role">プロダクトエンジニア</div>
+      <div class="pc-quote">「Q3 のロードマップに入ってる」</div>
+      <p class="pc-pain">Google Vision で PoC を試した。縦書きは全滅。ふりがなは推定すらされない。精度 78% では本番に出せない。</p>
+      <div class="pc-line">95%+ の精度と信頼スコアで判断できる</div>
+    </div>
+    <div class="pc">
+      <div class="pc-role">IT 管理者・製造業</div>
+      <div class="pc-quote">「ERP 移行で名刺が1万枚ある」</div>
+      <p class="pc-pain">Sansan は人手ありきで高額。プログラムから呼べる API が必要。社内チームに日本語 OCR は作れない。</p>
+      <div class="pc-line">バッチ API で一括処理に対応予定</div>
+    </div>
+    <div class="pc">
+      <div class="pc-role">フリーランス</div>
+      <div class="pc-quote">「Make.com で繋げたい」</div>
+      <p class="pc-pain">名刺 → Google スプレッドシートを小規模企業向けに作りたい。日本語が正しく読める API が一つもない。</p>
+      <div class="pc-line">APIキー一本で即日連携できる</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div id="features">
+  <div class="sec-head">
+    <div class="sec-pip"></div>
+    <span class="sec-label">機能</span>
+  </div>
+  <div class="feat-grid">
+    <div class="fc">
+      <div class="fc-num">01</div>
+      <div class="fc-title">縦書き完全対応</div>
+      <p class="fc-desc">縦書きと横書きが混在する名刺も正確に処理します。</p>
+    </div>
+    <div class="fc">
+      <div class="fc-num">02</div>
+      <div class="fc-title">ふりがな推定</div>
+      <p class="fc-desc">名刺に記載がなくても、氏名・会社名の読み方を AI で推定。CRM 登録時のソートに即使えます。</p>
+    </div>
+    <div class="fc">
+      <div class="fc-num">03</div>
+      <div class="fc-title">構造化 JSON で返却</div>
+      <p class="fc-desc">氏名・会社・役職・住所・電話・メールをフィールド単位で分離。各フィールドに信頼スコア付き。</p>
+    </div>
+    <div class="fc">
+      <div class="fc-num">04</div>
+      <div class="fc-title">ローマ字変換</div>
+      <p class="fc-desc">name_roman / company_roman を自動生成。Salesforce 等の英語 CRM との連携に対応。</p>
+    </div>
+    <div class="fc">
+      <div class="fc-num">05</div>
+      <div class="fc-title">高速レスポンス</div>
+      <p class="fc-desc">同期 API で p95 2.5 秒以内。バッチエンドポイントで 100 枚の非同期処理にも対応予定。</p>
+    </div>
+    <div class="fc">
+      <div class="fc-num">06</div>
+      <div class="fc-title">シンプルな認証</div>
+      <p class="fc-desc">APIキー一本。OAuth 不要。ヘッダーに X-API-Key をセットするだけ。</p>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div id="pricing">
+  <div class="sec-head">
+    <div class="sec-pip"></div>
+    <span class="sec-label">料金</span>
+  </div>
+  <div class="price-grid">
+    <div class="pc2">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">¥0<small> /月</small></div>
+      <div class="plan-parses">100 パース<br>全機能を試せる<br>CC 不要</div>
+      <div class="plan-btn"><button>始める</button></div>
+    </div>
+    <div class="pc2 pop">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">¥5,000<small> /月</small></div>
+      <div class="plan-parses">500 パース<br>超過 ¥18 / パース</div>
+      <div class="plan-btn"><button>登録する</button></div>
+    </div>
+    <div class="pc2">
+      <div class="plan-name">Growth</div>
+      <div class="plan-price">¥15,000<small> /月</small></div>
+      <div class="plan-parses">2,000 パース<br>超過 ¥15 / パース</div>
+      <div class="plan-btn"><button>登録する</button></div>
+    </div>
+    <div class="pc2">
+      <div class="plan-name">Scale</div>
+      <div class="plan-price">¥40,000<small> /月</small></div>
+      <div class="plan-parses">7,000 パース<br>超過 ¥12 / パース</div>
+      <div class="plan-btn"><button>登録する</button></div>
+    </div>
+    <div class="pc2">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-price" style="font-size:22px;line-height:1.4">要相談</div>
+      <div class="plan-parses">SLA 対応<br>請求書払い<br>専任サポート</div>
+      <div class="plan-btn"><button>お問い合わせ</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- WAITLIST -->
+<div id="waitlist">
+  <div class="sec-head">
+    <div class="sec-pip"></div>
+    <span class="sec-label">ウェイトリスト</span>
+  </div>
+  <div class="wl-wrap">
+    <div class="wl-left">
+      <div class="wl-tag">先着50名限定</div>
+      <h2>500 パース<br>無料で進呈</h2>
+      <p>ベータ版ユーザーには 500 パースを無料進呈。フィードバックをくれた方には、Starter プランを3ヶ月間無料でご提供します。</p>
+      <div class="wl-perks">
+        <div class="perk">
+          <span class="perk-num">01</span>
+          <span class="perk-text"><strong>スパムなし</strong> — リリース時のみご連絡します</span>
+        </div>
+        <div class="perk">
+          <span class="perk-num">02</span>
+          <span class="perk-text"><strong>「何を作っていますか？」</strong>とお聞きします。回答は任意ですが、プロダクトに反映させていただきます</span>
+        </div>
+        <div class="perk">
+          <span class="perk-num">03</span>
+          <span class="perk-text"><strong>フィードバック歓迎</strong> — Starter プラン 3 ヶ月無料でご提供します</span>
+        </div>
+      </div>
+    </div>
+    <div class="wl-right">
+      <div class="form-title">ウェイトリストに登録</div>
+      <div class="form-sub">メールアドレスだけで登録できます</div>
+      <div class="form">
+        <input type="email" placeholder="your@email.com">
+        <input type="text" placeholder="お名前（任意）">
+        <select>
+          <option value="" disabled selected>何を作っていますか？（任意）</option>
+          <option>CRM / 顧客管理ツール</option>
+          <option>社内ツール・ERP 連携</option>
+          <option>Make.com / Zapier で自動化</option>
+          <option>モバイルアプリ</option>
+          <option>SaaS プロダクト</option>
+          <option>その他</option>
+        </select>
+        <textarea placeholder="使いたいシーンを教えてください（任意）"></textarea>
+        <button class="submit-btn">無料でウェイトリストに登録 →</button>
+        <p class="form-note">クレジットカード不要。スパムなし。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span class="f-left">© 2025 Meishi API</span>
+  <div class="f-links">
+    <a href="#">Docs</a>
+    <a href="#">プライバシーポリシー</a>
+    <a href="#">利用規約</a>
+    <a href="#">お問い合わせ</a>
+  </div>
+</footer>
+
+</body>
+</html>

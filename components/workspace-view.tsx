@@ -26,6 +26,7 @@ export default function WorkspaceView({
     onDeleteTask,
     draggingTask,
     onDragStart,
+    resolveId,
     onCreateBlock,
     onUpdateBlock,
     onDeleteBlock,
@@ -247,6 +248,7 @@ export default function WorkspaceView({
                             draggingTask={draggingTask}
                             onCalendarBlockDragActiveChange={setBlockOverTaskList}
                             tableVariant={tableVariant}
+                            resolveId={resolveId}
                         />
                     }
                 />

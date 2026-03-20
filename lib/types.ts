@@ -163,7 +163,7 @@ export interface Document {
  */
 export interface Task {
     id: string;
-    realId?: string;           // Set after background persist completes; used for API calls
+    _reactKey?: string;        // Stable key for React rendering across ID swaps
     persistError?: boolean;    // Set if background persist failed
     title: string;
     description: string | null;
@@ -358,6 +358,8 @@ export interface WorkspaceViewProps {
     onAddSubtask?: (parentTaskId: string, scheduledDate: string) => Promise<Task | void>;
     draggingTask: Task | null;
     onDragStart: (taskId: string | null) => void;
+    // Resolve an optimistic ID to the current canonical ID (real if swapped, else passthrough)
+    resolveId?: (id: string) => string;
     // Calendar block CRUD callbacks
     onCreateBlock?: (taskId: string, startTime: Date, endTime: Date) => void;
     onUpdateBlock?: (blockId: string, startTime: Date, endTime: Date) => void;
@@ -478,6 +480,8 @@ export interface TaskListProps {
     onCalendarBlockDragActiveChange?: (active: boolean) => void;
     // Task table visual variant
     tableVariant?: 'default' | 'minimal';
+    // Resolve an optimistic ID to the current canonical ID
+    resolveId?: (id: string) => string;
 }
 
 export interface TaskModalProps {

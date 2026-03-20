@@ -40,6 +40,7 @@ export default function TaskList({
     draggingTask,
     onCalendarBlockDragActiveChange,
     tableVariant = 'default',
+    resolveId,
 }: TaskListProps) {
     const { t } = useLanguage();
 
@@ -54,6 +55,25 @@ export default function TaskList({
 
     // Expand/collapse state for subtask rows
     const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
+
+    // When an optimistic ID is swapped to a real ID, update local editing state
+    // so the user's in-progress edit isn't silently dropped.
+    // Done synchronously during render (not in useEffect) to avoid a one-frame gap
+    // where isEditing would be false between the ID swap and the state update.
+    const resolvedEditingTaskId = (() => {
+        if (!resolveId || !editingTaskId || !editingTaskId.startsWith('optimistic-')) return editingTaskId;
+        const resolved = resolveId(editingTaskId);
+        if (resolved !== editingTaskId) {
+            // Schedule the state update for after render — but return the resolved
+            // value immediately so this render uses the correct ID.
+            queueMicrotask(() => {
+                setEditingTaskId(resolved);
+                if (newRowId === editingTaskId) setNewRowId(resolved);
+            });
+            return resolved;
+        }
+        return editingTaskId;
+    })();
 
     // Refs for stable callbacks
     const tasksRef = useRef(tasks);
@@ -240,7 +260,7 @@ export default function TaskList({
                                         <FastSection
                                             key={section.dateKey}
                                             section={section}
-                                            editingTaskId={editingTaskId}
+                                            editingTaskId={resolvedEditingTaskId}
                                             onEditStart={handleEditStart}
                                             onEditSave={handleEditSave}
                                             onEditCancel={handleEditCancel}

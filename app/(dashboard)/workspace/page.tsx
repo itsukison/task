@@ -30,7 +30,7 @@ export default function WorkspacePage() {
     const { user, currentOrg } = useAuth();
     const { preferences, loading: preferencesLoading } = useUserPreferences();
     const { setSelectedDate: setAISelectedDate, pendingAction } = useAI();
-    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment, resolveApiId, refetch: refetchTasks } = useTasks();
+    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment, resolveApiId, resolveId, refetch: refetchTasks } = useTasks();
     const {
         calendarBlocks,
         loading: blocksLoading,
@@ -135,7 +135,15 @@ export default function WorkspacePage() {
         return createPreviewCalendarBlock(pendingAction, user.id, currentOrg.id, fallbackDate);
     }, [pendingAction, user, currentOrg, selectedDate]);
 
-    const draggingTask = tasks.find(t => t.id === draggingTaskId) || null;
+    const draggingTask = (() => {
+        if (!draggingTaskId) return null;
+        const task = tasks.find(t => t.id === draggingTaskId);
+        if (task) return task;
+        // ID might have been swapped from optimistic to real during the drag
+        const resolved = resolveId(draggingTaskId);
+        if (resolved !== draggingTaskId) return tasks.find(t => t.id === resolved) || null;
+        return null;
+    })();
 
     const handleTaskUpdate = async (updatedTask: Task & { ownerIds?: string[] }) => {
         try {
@@ -464,6 +472,7 @@ export default function WorkspacePage() {
                 onDeleteTask={handleDeleteTask}
                 draggingTask={draggingTask}
                 onDragStart={setDraggingTaskId}
+                resolveId={resolveId}
                 onCreateBlock={handleCreateBlock}
                 onUpdateBlock={handleUpdateBlock}
                 onDeleteBlock={handleDeleteBlock}

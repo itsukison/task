@@ -161,7 +161,7 @@ export const FastSection = React.memo(function FastSection({
 
                                     return (
                                         <FastTaskRow
-                                            key={task.id}
+                                            key={task._reactKey ?? task.id}
                                             task={task}
                                             isEditing={editingTaskId === task.id}
                                             isSubtask={isSubtask}
@@ -233,7 +233,7 @@ export const FastSection = React.memo(function FastSection({
 
                                         return (
                                             <FastTaskRow
-                                                key={task.id}
+                                                key={task._reactKey ?? task.id}
                                                 task={task}
                                                 isEditing={editingTaskId === task.id}
                                                 isSubtask={isSubtask}

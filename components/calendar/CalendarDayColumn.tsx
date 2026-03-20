@@ -277,7 +277,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
       <div className="absolute inset-0 z-10">
         {dayBlocks.map(({ block, layout }) => {
           // Use embedded task from block (for multi-member mode) or fallback to tasks array
-          const task = block.task || tasks.find(t => t.id === block.taskId || t.realId === block.taskId);
+          const task = block.task || tasks.find(t => t.id === block.taskId);
           if (!task) {
             if (process.env.NODE_ENV === 'development') {
               console.warn('⚠️ Block has no task data:', { blockId: block.id, taskId: block.taskId, startTime: block.startTime, hasEmbeddedTask: !!block.task });

@@ -83,6 +83,8 @@ export interface UseTasksReturn {
     acceptAssignment: (taskId: string) => Promise<void>;
     rejectAssignment: (taskId: string) => Promise<void>;
     resolveApiId: (id: string) => string | null;
+    /** Resolve an optimistic ID to the current canonical ID (real if swapped, else passthrough). */
+    resolveId: (id: string) => string;
     refetch: () => Promise<void>;
 }
 
@@ -102,6 +104,8 @@ export function useTasks(): UseTasksReturn {
     const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Track optimistic IDs cancelled before insert resolves
     const cancelledOptimisticIdsRef = useRef<Set<string>>(new Set());
+    // Maps optimistic ID → real server ID after persist completes
+    const optimisticToRealRef = useRef<Map<string, string>>(new Map());
 
     // Fetch tasks with owner JOIN
     const fetchTasks = useCallback(async () => {
@@ -153,18 +157,9 @@ export function useTasks(): UseTasksReturn {
             setTasks(prev => {
                 const serverIds = new Set(transformedTasks.map((t: Task) => t.id));
                 const pendingOptimistic = prev.filter(
-                    t => t.id.startsWith('optimistic-') && !t.realId && !serverIds.has(t.id)
+                    t => t.id.startsWith('optimistic-') && !serverIds.has(t.id)
                 );
-                // For tasks that already have a realId, find the server version and
-                // preserve the stable optimistic id
-                const reconciledServer = transformedTasks.map((st: Task) => {
-                    const match = prev.find(t => t.realId === st.id);
-                    if (match) {
-                        return { ...st, id: match.id, realId: st.id };
-                    }
-                    return st;
-                });
-                return [...reconciledServer, ...pendingOptimistic];
+                return [...transformedTasks, ...pendingOptimistic];
             });
         } catch (err: unknown) {
             console.error('Full tasks error:', JSON.stringify(err, null, 2));
@@ -325,12 +320,18 @@ export function useTasks(): UseTasksReturn {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const serverTask = dbToTask(data as any);
 
-            // Replace optimistic task with server data, keeping the optimistic ID stable.
+            // Swap optimistic ID → real server ID.
+            // Record the mapping so in-flight references (drag data, editing state)
+            // can resolve the stale optimistic ID to the canonical one.
+            optimisticToRealRef.current.set(optimisticId, serverTask.id);
+
+            // Replace optimistic task with server data using the real ID.
+            // Preserve the optimistic ID as _reactKey so React doesn't unmount/remount the row.
             // If the server row hasn't populated owners yet, preserve the optimistic owners.
             setTasks(prev => prev.map(t => {
                 if (t.id !== optimisticId) return t;
                 const owners = serverTask.owners.length > 0 ? serverTask.owners : t.owners;
-                return { ...serverTask, owners, id: optimisticId, realId: serverTask.id };
+                return { ...serverTask, owners, _reactKey: optimisticId };
             }));
 
             // Flush any updates that were queued while the task was still optimistic
@@ -403,14 +404,21 @@ export function useTasks(): UseTasksReturn {
         return optimisticTask;
     }, [user, currentOrg, profile, persistTaskInBackground]);
 
-    // Resolve the Supabase-side ID for a task (realId if set, else id).
-    // Reads from tasksRef so polling callers always see the latest state.
+    // Resolve an optimistic ID to the real server ID, or null if not yet persisted.
+    // After swap-on-persist, non-optimistic IDs are always real — return as-is.
     const resolveApiId = useCallback((id: string): string | null => {
-        const task = tasksRef.current.find(t => t.id === id);
-        if (!task) return id.startsWith('optimistic-') ? null : id;
-        if (task.realId) return task.realId;
-        // Still optimistic — no server ID yet
-        if (id.startsWith('optimistic-')) return null;
+        if (id.startsWith('optimistic-')) {
+            return optimisticToRealRef.current.get(id) ?? null;
+        }
+        return id;
+    }, []);
+
+    // Resolve an optimistic ID to the current canonical ID (real if swapped, else passthrough).
+    // Never returns null — safe for UI lookups and prop plumbing.
+    const resolveId = useCallback((id: string): string => {
+        if (id.startsWith('optimistic-')) {
+            return optimisticToRealRef.current.get(id) ?? id;
+        }
         return id;
     }, []);
 
@@ -420,9 +428,12 @@ export function useTasks(): UseTasksReturn {
             throw new Error('Must be authenticated with an organization');
         }
 
+        // Resolve to the canonical ID — handles stale optimistic IDs from closures
+        const canonicalId = resolveId(id);
+
         // Optimistic update so UI responds immediately
         setTasks(prev => prev.map(t => {
-            if (t.id !== id) return t;
+            if (t.id !== canonicalId) return t;
             return {
                 ...t,
                 ...(input.title !== undefined && { title: input.title }),
@@ -522,7 +533,7 @@ export function useTasks(): UseTasksReturn {
                 isMutatingRef.current = false;
             }, 500);
         }
-    }, [currentOrg, user, fetchTasks, resolveApiId]);
+    }, [currentOrg, user, fetchTasks, resolveApiId, resolveId]);
 
     // Soft delete a task using RPC function — optimistic removal first
     const deleteTask = useCallback(async (id: string): Promise<void> => {
@@ -530,21 +541,26 @@ export function useTasks(): UseTasksReturn {
             throw new Error('Must be authenticated with an organization');
         }
 
-        // Check if this is a still-optimistic task (no realId yet)
-        const taskToDelete = tasks.find(t => t.id === id);
-        if (id.startsWith('optimistic-') && (!taskToDelete || !taskToDelete.realId)) {
-            cancelledOptimisticIdsRef.current.add(id);
-            pendingUpdatesRef.current.delete(id);
-            setTasks(prev => prev.filter(task => task.id !== id));
+        // Resolve stale optimistic IDs that have already been swapped to real IDs.
+        const canonicalId = resolveId(id);
+
+        // If the ID is still optimistic (persist hasn't completed yet),
+        // cancel it so persistTaskInBackground cleans up on completion.
+        if (canonicalId.startsWith('optimistic-')) {
+            cancelledOptimisticIdsRef.current.add(canonicalId);
+            pendingUpdatesRef.current.delete(canonicalId);
+            setTasks(prev => prev.filter(task => task.id !== canonicalId));
             return;
         }
 
-        // Resolve the server-side ID for API calls
-        const apiId = taskToDelete?.realId ?? id;
+        const taskToDelete = tasks.find(t => t.id === canonicalId);
+
+        // The ID is a real server UUID (post-swap or never-optimistic)
+        const apiId = canonicalId;
 
         // Optimistically remove from state BEFORE async operations
         const previousTasks = tasks;
-        setTasks(prev => prev.filter(task => task.id !== id));
+        setTasks(prev => prev.filter(task => task.id !== canonicalId));
 
         // Suppress realtime refetches during deletion
         isMutatingRef.current = true;
@@ -583,7 +599,7 @@ export function useTasks(): UseTasksReturn {
                 isMutatingRef.current = false;
             }, 500);
         }
-    }, [currentOrg, tasks]);
+    }, [currentOrg, tasks, resolveId]);
 
     // Accept a pending assignment
     const acceptAssignment = useCallback(async (taskId: string): Promise<void> => {
@@ -655,6 +671,7 @@ export function useTasks(): UseTasksReturn {
         acceptAssignment,
         rejectAssignment,
         resolveApiId,
+        resolveId,
         refetch: fetchTasks,
     };
 }

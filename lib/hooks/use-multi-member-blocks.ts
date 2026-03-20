@@ -116,7 +116,7 @@ export function useMultiMemberBlocks({
                 .lte('start_time', fetchEnd.toISOString())
                 .order('start_time', { ascending: true });
 
-            if (ownedError) throw ownedError;
+            if (ownedError) { throw ownedError; }
 
             // Step 2: Fetch task assignments for selected members
             const { data: taskAssignments, error: assignmentError } = await supabase
@@ -125,30 +125,52 @@ export function useMultiMemberBlocks({
                 .in('user_id', selectedMemberIds)
                 .eq('organization_id', currentOrg.id);
 
-            if (assignmentError) throw assignmentError;
+            if (assignmentError) { throw assignmentError; }
 
             // Step 3: Fetch blocks from OTHER users for tasks where selected members are assigned
             const assignedTaskIds = [...new Set((taskAssignments || []).map(a => a.task_id))];
             let assignedBlocks: typeof ownedBlocks = [];
 
             if (assignedTaskIds.length > 0) {
-                const { data: otherBlocks, error: otherError } = await supabase
-                    .from('calendar_blocks')
-                    .select('*')
-                    .eq('organization_id', currentOrg.id)
-                    .not('owner_id', 'in', `(${selectedMemberIds.join(',')})`)
-                    .in('task_id', assignedTaskIds)
-                    .gte('start_time', fetchStart.toISOString())
-                    .lte('start_time', fetchEnd.toISOString())
-                    .order('start_time', { ascending: true });
+                // Batch into chunks of 10 to avoid URL length limits in the API gateway
+                const CHUNK_SIZE = 10;
+                const chunks: string[][] = [];
+                for (let i = 0; i < assignedTaskIds.length; i += CHUNK_SIZE) {
+                    chunks.push(assignedTaskIds.slice(i, i + CHUNK_SIZE));
+                }
 
-                if (otherError) throw otherError;
-                assignedBlocks = otherBlocks || [];
+                const chunkResults = await Promise.all(
+                    chunks.map(chunk =>
+                        supabase
+                            .from('calendar_blocks')
+                            .select('*')
+                            .eq('organization_id', currentOrg.id)
+                            .in('task_id', chunk)
+                            .gte('start_time', fetchStart.toISOString())
+                            .lte('start_time', fetchEnd.toISOString())
+                            .order('start_time', { ascending: true })
+                    )
+                );
+
+                for (const { error } of chunkResults) {
+                    if (error) throw error;
+                }
+
+                const allTaskBlocks = chunkResults.flatMap(r => r.data || []);
+
+                // Exclude blocks already captured in ownedBlocks (those owned by selectedMembers)
+                const ownedBlockIds = new Set((ownedBlocks || []).map(b => b.id));
+                assignedBlocks = allTaskBlocks.filter(b => !ownedBlockIds.has(b.id));
             }
 
             // Combine owned and assigned blocks
             // DB RLS already enforces visibility — no client-side filter needed
             const allBlocks = [...(ownedBlocks || []), ...assignedBlocks];
+
+            if (allBlocks.length === 0) {
+                setMultiMemberBlocks([]);
+                return;
+            }
 
             // Step 3.5: Fetch tasks for all blocks
             const blockTaskIds = [...new Set(allBlocks.map(b => b.task_id))];
@@ -157,7 +179,7 @@ export function useMultiMemberBlocks({
                 .select('id, title, status, expected_time_minutes, visibility')
                 .in('id', blockTaskIds);
 
-            if (tasksError) throw tasksError;
+            if (tasksError) { throw tasksError; }
 
             const tasksMap = new Map(
                 (tasksData || []).map(task => [task.id, task])
@@ -170,7 +192,7 @@ export function useMultiMemberBlocks({
                 .select('id, display_name, email, default_schedule_visibility')
                 .in('id', allOwnerIds);
 
-            if (profilesError) throw profilesError;
+            if (profilesError) { throw profilesError; }
 
             // Step 5: Fetch all task owners for the tasks in blocks
             const allTaskIds = [...new Set(allBlocks.map(b => b.task_id))];
@@ -188,7 +210,7 @@ export function useMultiMemberBlocks({
                 `)
                 .in('task_id', allTaskIds);
 
-            if (taskOwnersError) throw taskOwnersError;
+            if (taskOwnersError) { throw taskOwnersError; }
 
             // Create lookup maps
             const profilesMap = new Map(
@@ -238,9 +260,9 @@ export function useMultiMemberBlocks({
 
             setMultiMemberBlocks(transformedBlocks);
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Failed to fetch multi-member blocks';
+            const pgErr = err as { code?: string; message?: string; details?: string; hint?: string };
+            const message = pgErr?.message || (err instanceof Error ? err.message : 'Failed to fetch multi-member blocks');
             setError(message);
-            console.error('Error fetching multi-member blocks:', err);
         } finally {
             setLoading(false);
         }

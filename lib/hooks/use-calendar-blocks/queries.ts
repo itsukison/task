@@ -45,16 +45,30 @@ export function useCalendarBlocksQuery() {
             let pendingBlocks: DbCalendarBlock[] = [];
 
             if (assignedTaskIds.length > 0) {
-                const { data: otherBlocks, error: otherError } = await supabase
-                    .from('calendar_blocks')
-                    .select('*')
-                    .eq('organization_id', currentOrg.id)
-                    .neq('owner_id', user.id)
-                    .in('task_id', assignedTaskIds)
-                    .order('start_time', { ascending: true });
+                // Chunk to avoid URL length limits in PostgREST (400 error with many IDs)
+                const CHUNK_SIZE = 50;
+                const chunks: string[][] = [];
+                for (let i = 0; i < assignedTaskIds.length; i += CHUNK_SIZE) {
+                    chunks.push(assignedTaskIds.slice(i, i + CHUNK_SIZE));
+                }
 
-                if (otherError) return { data: null, error: otherError };
-                pendingBlocks = (otherBlocks || []) as DbCalendarBlock[];
+                const chunkResults = await Promise.all(
+                    chunks.map(chunk =>
+                        supabase
+                            .from('calendar_blocks')
+                            .select('*')
+                            .eq('organization_id', currentOrg.id)
+                            .neq('owner_id', user.id)
+                            .in('task_id', chunk)
+                            .order('start_time', { ascending: true })
+                    )
+                );
+
+                for (const { error: chunkError } of chunkResults) {
+                    if (chunkError) return { data: null, error: chunkError };
+                }
+
+                pendingBlocks = chunkResults.flatMap(r => r.data || []) as DbCalendarBlock[];
             }
 
             // Step 4: Transform and combine (filter out stale blocks with optimistic task IDs)

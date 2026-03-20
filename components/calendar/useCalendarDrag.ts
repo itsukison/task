@@ -51,6 +51,15 @@ export function useCalendarDrag({
   const draggingTaskRef = useRef(draggingTask);
   draggingTaskRef.current = draggingTask;
 
+  // When a drag ends (draggingTask becomes null), clear stale drag-start data.
+  // This prevents the next task-list drag from inheriting a blockId that pointed
+  // to a now-deleted calendar block (e.g. after dropping a block onto the task list,
+  // the source element is removed before dragend fires on window, so the global
+  // dragend listener never resets this ref).
+  if (!draggingTask) {
+    dragStartDataRef.current = null;
+  }
+
   const handleDragOverDay = useCallback(
     (e: React.DragEvent, dateStr: string) => {
       e.preventDefault();
