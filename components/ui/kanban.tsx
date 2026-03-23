@@ -27,8 +27,9 @@ import tunnel from "tunnel-rat"
 import { Card } from "@/components/ui/card"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/i18n"
 
-const t = tunnel()
+const kanbanTunnel = tunnel()
 
 export type { DragEndEvent } from "@dnd-kit/core"
 
@@ -118,7 +119,7 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
         </Card>
       </div>
       {activeCardId === id && (
-        <t.In>
+        <kanbanTunnel.In>
           <Card
             className={cn(
               "cursor-grab gap-4 rounded-md p-3 shadow-sm ring-1 ring-primary",
@@ -128,7 +129,7 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
           >
             {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
           </Card>
-        </t.In>
+        </kanbanTunnel.In>
       )}
     </>
   )
@@ -197,6 +198,7 @@ export const KanbanProvider = <
   onDataChange,
   ...props
 }: KanbanProviderProps<T, C>) => {
+  const { t } = useLanguage()
   const [activeCardId, setActiveCardId] = useState<string | null>(null)
 
   const sensors = useSensors(
@@ -275,30 +277,30 @@ export const KanbanProvider = <
     onDataChange?.(newData)
   }
 
-  const announcements: Announcements = {
-    onDragStart({ active }) {
-      const { name, column } = data.find(item => item.id === active.id) ?? {}
+    const announcements: Announcements = {
+        onDragStart({ active }) {
+            const { name, column } = data.find(item => item.id === active.id) ?? {}
 
-      return `Picked up the card "${name}" from the "${column}" column`
-    },
-    onDragOver({ active, over }) {
-      const { name } = data.find(item => item.id === active.id) ?? {}
-      const newColumn = columns.find(column => column.id === over?.id)?.name
+            return t('common.announcement_picked_up', { name: name || '', column: column || '' })
+        },
+        onDragOver({ active, over }) {
+            const { name } = data.find(item => item.id === active.id) ?? {}
+            const newColumn = columns.find(column => column.id === over?.id)?.name
 
-      return `Dragged the card "${name}" over the "${newColumn}" column`
-    },
-    onDragEnd({ active, over }) {
-      const { name } = data.find(item => item.id === active.id) ?? {}
-      const newColumn = columns.find(column => column.id === over?.id)?.name
+            return t('common.announcement_dragged_over', { name: name || '', column: newColumn || '' })
+        },
+        onDragEnd({ active, over }) {
+            const { name } = data.find(item => item.id === active.id) ?? {}
+            const newColumn = columns.find(column => column.id === over?.id)?.name
 
-      return `Dropped the card "${name}" into the "${newColumn}" column`
-    },
-    onDragCancel({ active }) {
-      const { name } = data.find(item => item.id === active.id) ?? {}
+            return t('common.announcement_dropped_into', { name: name || '', column: newColumn || '' })
+        },
+        onDragCancel({ active }) {
+            const { name } = data.find(item => item.id === active.id) ?? {}
 
-      return `Cancelled dragging the card "${name}"`
-    },
-  }
+            return t('common.announcement_cancelled', { name: name || '' })
+        },
+    }
 
   return (
     <KanbanContext.Provider value={{ columns, data, activeCardId }}>
@@ -317,7 +319,7 @@ export const KanbanProvider = <
         {typeof window !== "undefined" &&
           createPortal(
             <DragOverlay>
-              <t.Out />
+              <kanbanTunnel.Out />
             </DragOverlay>,
             document.body,
           )}
@@ -326,30 +328,30 @@ export const KanbanProvider = <
   )
 }
 
-// Demo
-const demoColumns = [
-  { id: "backlog", name: "Backlog" },
-  { id: "todo", name: "To Do" },
-  { id: "in-progress", name: "In Progress" },
-  { id: "done", name: "Done" },
-]
-
 const initialDemoData = [
-  { id: "1", name: "Research competitors", column: "done" },
-  { id: "2", name: "Define user personas", column: "done" },
-  { id: "3", name: "Create wireframes", column: "in-progress" },
-  { id: "4", name: "Design system setup", column: "in-progress" },
-  { id: "5", name: "Build component library", column: "todo" },
-  { id: "6", name: "Implement authentication", column: "todo" },
-  { id: "7", name: "API integration", column: "todo" },
-  { id: "8", name: "Write documentation", column: "backlog" },
-  { id: "9", name: "Set up CI/CD", column: "backlog" },
-  { id: "10", name: "Performance testing", column: "backlog" },
+    { id: "1", name: "Research competitors", column: "done" },
+    { id: "2", name: "Define user personas", column: "done" },
+    { id: "3", name: "Create wireframes", column: "in-progress" },
+    { id: "4", name: "Design system setup", column: "in-progress" },
+    { id: "5", name: "Build component library", column: "todo" },
+    { id: "6", name: "Implement authentication", column: "todo" },
+    { id: "7", name: "API integration", column: "todo" },
+    { id: "8", name: "Write documentation", column: "backlog" },
+    { id: "9", name: "Set up CI/CD", column: "backlog" },
+    { id: "10", name: "Performance testing", column: "backlog" },
 ]
 
 export function KanbanDemo() {
-  const [mounted, setMounted] = useState(false)
-  const [data, setData] = useState(initialDemoData)
+    const { t } = useLanguage();
+    const [mounted, setMounted] = useState(false)
+    const [data, setData] = useState(initialDemoData)
+
+    const demoColumns = [
+        { id: "backlog", name: t('common.backlog') },
+        { id: "todo", name: t('common.todo') },
+        { id: "in-progress", name: t('common.in_progress') },
+        { id: "done", name: t('common.done') },
+    ]
 
   // Prevent SSR to avoid dnd-kit hydration mismatch
   useEffect(() => {

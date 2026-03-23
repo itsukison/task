@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Trash2, Plus } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 
 interface CalendarContextMenuProps {
   contextMenu: { x: number; y: number; taskId?: string; blockId?: string; date?: Date } | null;
@@ -16,6 +17,7 @@ export const CalendarContextMenu = React.memo(function CalendarContextMenu({
   onCreateTask,
   onClose
 }: CalendarContextMenuProps) {
+  const { t } = useLanguage();
   if (!contextMenu) return null;
 
   return (
@@ -36,7 +38,7 @@ export const CalendarContextMenu = React.memo(function CalendarContextMenu({
           className="w-full text-left px-3 py-1.5 text-sm text-[#37352F] hover:bg-[#EFEFED] flex items-center gap-2 transition-colors"
         >
           <Plus size={14} className="text-[#5F5E5B]" />
-          Create Task
+          {t('common.create_task')}
         </button>
       )}
 
@@ -50,7 +52,7 @@ export const CalendarContextMenu = React.memo(function CalendarContextMenu({
           }}
           className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
         >
-          <Trash2 size={14} /> Remove
+          <Trash2 size={14} /> {t('common.delete')}
         </button>
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -19,14 +20,18 @@ export function ConfirmationModal({
     isOpen,
     title,
     description,
-    confirmLabel = 'Confirm',
-    cancelLabel = 'Cancel',
+    confirmLabel,
+    cancelLabel,
     isDangerous = false,
     isLoading = false,
     onConfirm,
     onCancel,
 }: ConfirmationModalProps) {
+    const { t } = useLanguage();
     if (!isOpen) return null;
+
+    const displayConfirmLabel = confirmLabel || t('common.confirm');
+    const displayCancelLabel = cancelLabel || t('common.cancel');
 
     return (
         <>
@@ -68,7 +73,7 @@ export function ConfirmationModal({
                                 disabled={isLoading}
                                 className="px-3 py-1.5 text-sm font-medium text-[#5F5E5B] hover:bg-[#EFEFED] rounded transition-colors"
                             >
-                                {cancelLabel}
+                                {displayCancelLabel}
                             </button>
                             <button
                                 onClick={onConfirm}
@@ -82,7 +87,7 @@ export function ConfirmationModal({
                                     ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
                                 `}
                             >
-                                {isLoading ? 'Processing...' : confirmLabel}
+                                {isLoading ? t('common.processing') : displayConfirmLabel}
                             </button>
                         </div>
                     </div>

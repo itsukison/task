@@ -5,6 +5,7 @@ import "./globals.css";
 import { QueryProvider } from "@/lib/query/QueryProvider";
 import { LanguageProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { DEFAULT_OG_IMAGE, SITE_NAME_EN, SITE_NAME_JA, SITE_URL } from "@/lib/seo/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,6 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = cookies();
   const languageCookie = (await cookieStore).get('taskos-language');
   const isJapanese = languageCookie?.value !== 'en';
+  const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
   
   const title = isJapanese 
     ? {
@@ -36,8 +38,28 @@ export async function generateMetadata(): Promise<Metadata> {
     : "The workspace designed for the AI era. Simple task management for non-engineers, with timeboxing and progress tracking.";
 
   return {
+    metadataBase: new URL(SITE_URL),
     title,
     description,
+    alternates: {
+      canonical: SITE_URL,
+    },
+    openGraph: {
+      title,
+      description,
+      url: SITE_URL,
+      type: "website",
+      siteName: isJapanese ? SITE_NAME_JA : SITE_NAME_EN,
+      locale: isJapanese ? "ja_JP" : "en_US",
+      images: [DEFAULT_OG_IMAGE],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [DEFAULT_OG_IMAGE],
+    },
+    verification: googleVerification ? { google: googleVerification } : undefined,
     icons: {
       icon: "/logo.png",
       shortcut: "/logo.png",

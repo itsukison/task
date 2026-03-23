@@ -30,7 +30,7 @@ export default function WorkspacePage() {
     const { user, currentOrg } = useAuth();
     const { preferences, loading: preferencesLoading } = useUserPreferences();
     const { setSelectedDate: setAISelectedDate, pendingAction } = useAI();
-    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment, resolveApiId, resolveId, refetch: refetchTasks } = useTasks();
+    const { tasks, loading: tasksLoading, error: tasksError, createTask, updateTask, deleteTask, acceptAssignment, rejectAssignment, resolveApiId, resolveId, waitForPersist, refetch: refetchTasks } = useTasks();
     const {
         calendarBlocks,
         loading: blocksLoading,
@@ -241,14 +241,7 @@ export default function WorkspacePage() {
                 const endTime = addMinutes(startTime, duration);
 
                 // Resolve optimistic ID to real server ID before creating block
-                let blockTaskId: string | null = resolveApiId(newTask.id);
-                if (blockTaskId === null) {
-                    for (let i = 0; i < 6; i++) {
-                        await new Promise(r => setTimeout(r, 500));
-                        blockTaskId = resolveApiId(newTask.id);
-                        if (blockTaskId !== null) break;
-                    }
-                }
+                const blockTaskId = await waitForPersist(newTask.id);
 
                 if (blockTaskId && !blockTaskId.startsWith('optimistic-')) {
                     await createCalendarBlock({
@@ -329,15 +322,10 @@ export default function WorkspacePage() {
     // Calendar block handlers
     const handleCreateBlock = async (taskId: string, startTime: Date, endTime: Date) => {
         try {
-            // Resolve optimistic ID to real server ID; if still pending, wait briefly and retry
+            // Resolve optimistic ID to real server ID; await persist if still pending
             let resolvedId = resolveApiId(taskId);
             if (resolvedId === null) {
-                // Task hasn't persisted yet — wait up to 3s for the server ID
-                for (let i = 0; i < 6; i++) {
-                    await new Promise(r => setTimeout(r, 500));
-                    resolvedId = resolveApiId(taskId);
-                    if (resolvedId !== null) break;
-                }
+                resolvedId = await waitForPersist(taskId);
                 if (resolvedId === null) {
                     console.error('Task has not persisted yet, cannot create calendar block');
                     return;

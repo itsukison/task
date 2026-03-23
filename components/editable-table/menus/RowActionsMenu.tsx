@@ -5,11 +5,13 @@ import { createPortal } from 'react-dom';
 import { Copy, Link, ListPlus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RowActionsMenuProps } from '../types';
+import { useLanguage } from '@/lib/i18n';
 
 /**
  * Row context menu for duplicate/delete/copy actions
  */
 export function RowActionsMenu({ rowId, position, onDuplicate, onDelete, onCopyLink, onClose, onAddSubtask }: RowActionsMenuProps) {
+    const { t } = useLanguage();
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -21,28 +23,27 @@ export function RowActionsMenu({ rowId, position, onDuplicate, onDelete, onCopyL
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
-
     const menuItems = [
         ...(onAddSubtask ? [{
             icon: <ListPlus size={16} />,
-            label: 'Add subtask',
+            label: t('common.add_subtask'),
             onClick: () => { onAddSubtask(); onClose(); },
         }] : []),
         {
             icon: <Copy size={16} />,
-            label: 'Duplicate',
+            label: t('common.duplicate'),
             onClick: () => { onDuplicate(); onClose(); },
             shortcut: '⌘D'
         },
         {
             icon: <Link size={16} />,
-            label: 'Copy link',
+            label: t('common.copy_link'),
             onClick: () => { onCopyLink(); onClose(); }
         },
         { divider: true },
         {
             icon: <Trash2 size={16} />,
-            label: 'Delete',
+            label: t('common.delete'),
             onClick: () => { onDelete(); onClose(); },
             shortcut: 'Del',
             danger: true

@@ -70,8 +70,23 @@ export interface TranslationDictionary {
         add_subtask: string;
         expand_subtasks: string;
         collapse_subtasks: string;
+        duplicate: string;
+        copy_link: string;
+        processing: string;
+        rename: string;
+        visibility: string;
+        private: string;
+        team: string;
         accept: string;
         reject: string;
+        backlog: string;
+        todo: string;
+        in_progress: string;
+        done: string;
+        announcement_picked_up: string;
+        announcement_dragged_over: string;
+        announcement_dropped_into: string;
+        announcement_cancelled: string;
     };
     filter_operators: {
         contains: string;
@@ -256,6 +271,7 @@ export interface TranslationDictionary {
         delete_task: string;
         delete_confirmation: string;
         estimated: string;
+        placeholder_ai: string;
     };
     ai: {
         preview_create_task: string;

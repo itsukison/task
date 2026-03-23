@@ -3,7 +3,7 @@ import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AdvancedFilterMenu } from './AdvancedFilterMenu';
 import { FilterRule } from '@/lib/utils/filterRules';
-import { SortConfig } from '../editable-table';
+import { SortConfig } from '@/lib/types';
 
 interface TaskListToolbarProps {
     t: any;

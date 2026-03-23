@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { addDays } from 'date-fns';
 import { Task, CalendarBlock } from '@/lib/types';
 import { FilterRule, evaluateFilterRules } from '@/lib/utils/filterRules';
-import { SortConfig } from '@/components/editable-table';
+import { SortConfig } from '@/lib/types';
 import { formatDateToLocalISO, getRelativeDayLabel } from '@/lib/utils/task-helpers';
 
 export type TaskWithExtras = Task & {

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { format, isSameDay } from 'date-fns';
 import { Clock } from 'lucide-react';
 import { Task, CalendarBlock, MultiMemberBlock } from '@/lib/types';
 import { CalendarBlockWithPending } from '@/lib/hooks/use-calendar-blocks';
 import { BlockLayoutInfo } from './overlap-layout';
+import { useBlockResize } from './useBlockResize';
 
 interface CalendarDayColumnProps {
   date: Date;
@@ -17,7 +18,6 @@ interface CalendarDayColumnProps {
   calendarBlocks: (CalendarBlock | MultiMemberBlock | CalendarBlockWithPending)[];
   draggingTask: Task | null;
   dragPreview: { dateStr: string; minutes: number; deltaMinutes?: number; isMultiDrag?: boolean; blockId?: string } | null;
-  getTaskStyle: (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo) => React.CSSProperties & { className: string; zIndex?: number | string };
   onDragOverDay: (e: React.DragEvent, dateStr: string) => void;
   onDrop: (e: React.DragEvent, dateStr: string) => void;
   onTaskClick: (task: Task) => void;
@@ -71,7 +71,6 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   calendarBlocks,
   draggingTask,
   dragPreview,
-  getTaskStyle,
   onDragOverDay,
   onDrop,
   onTaskClick,
@@ -90,118 +89,72 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
   previewBlocks = [],
   activeDragBlockIds,
 }: CalendarDayColumnProps) {
-  // Resize state
-  const [resizingBlockId, setResizingBlockId] = useState<string | null>(null);
-  const [resizeHeight, setResizeHeight] = useState<number | null>(null);
-  const [justResized, setJustResized] = useState(false);
-  // Store optimistic resize state to keep height after mouseup
-  const [optimisticResizeBlock, setOptimisticResizeBlock] = useState<{ blockId: string, height: number } | null>(null);
-  const resizeRef = useRef<{ startY: number, startHeight: number, expectedTime: number, startTime: Date, taskId: string } | null>(null);
+  // Block resize logic extracted to hook
+  const { resizingBlockId, resizeHeight, justResized, optimisticResizeBlock, handleResizeStart } = useBlockResize({
+    hourHeight,
+    snapInterval,
+    onUpdateBlock,
+    onUpdateTask,
+    tasks,
+  });
 
-  // Refs for values used inside resize handlers — prevents listener re-registration on every render
-  const tasksRef = useRef(tasks);
-  const onUpdateTaskRef = useRef(onUpdateTask);
-  const onUpdateBlockRef = useRef(onUpdateBlock);
-  const hourHeightRef = useRef(hourHeight);
-  const snapIntervalRef = useRef(snapInterval);
-  const resizeHeightRef = useRef(resizeHeight);
-  useEffect(() => {
-    tasksRef.current = tasks;
-    onUpdateTaskRef.current = onUpdateTask;
-    onUpdateBlockRef.current = onUpdateBlock;
-    hourHeightRef.current = hourHeight;
-    snapIntervalRef.current = snapInterval;
-    resizeHeightRef.current = resizeHeight;
-  }); // no dep array — cheap sync on every render
+  // Compute block position and styling locally — removed from parent to prevent
+  // all 7 columns re-rendering when parent state (drag, lasso) changes.
+  const getTaskStyle = useCallback(
+    (block: CalendarBlock | MultiMemberBlock, task: Task, layout: BlockLayoutInfo): React.CSSProperties & { className: string; zIndex?: number | string } => {
+      const start = new Date(block.startTime);
+      const end = new Date(block.endTime);
+      const hours = start.getHours();
+      const minutes = start.getMinutes();
+      const duration = (end.getTime() - start.getTime()) / (1000 * 60); // minutes
 
-  // Global resize handlers — dep array is [resizingBlockId] only; all other values read via refs
-  useEffect(() => {
-    document.body.style.cursor = resizingBlockId ? 'ns-resize' : '';
-    return () => {
-      document.body.style.cursor = '';
-    };
-  }, [resizingBlockId]);
+      const top = ((hours - startHour) * 60 + minutes) * (hourHeight / 60);
+      const height = duration * (hourHeight / 60);
 
-  useEffect(() => {
-    if (!resizingBlockId) return;
+      // Notion-style: percentage-based positioning for side-by-side layout
+      const padding = 2; // px padding on each side
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!resizeRef.current) return;
+      let bgColor = 'bg-white border-[#E9E9E7] shadow-sm text-[#37352F]';
+      if (task.status === 'in_progress')
+        bgColor = 'bg-orange-50 border-orange-100 text-orange-800';
+      if (task.status === 'completed')
+        bgColor = 'bg-[#F7F7F5] border-[#E9E9E7] text-[#9B9A97] line-through decoration-gray-400';
+      if (task.status === 'overrun') bgColor = 'bg-red-50 border-red-100 text-red-800';
 
-      const hh = hourHeightRef.current;
-      const snap = snapIntervalRef.current;
-      const deltaY = e.clientY - resizeRef.current.startY;
-      const rawCurrentHeight = Math.max(resizeRef.current.startHeight + deltaY, 15);
-
-      const minutes = Math.round((rawCurrentHeight / (hh / 60)) / snap) * snap;
-      const snappedHeight = minutes * (hh / 60);
-
-      setResizeHeight(Math.max(snappedHeight, Math.max(16, snap * (hh / 60))));
-    };
-
-    const handleMouseUp = () => {
-      const hh = hourHeightRef.current;
-      if (resizingBlockId && resizeRef.current && onUpdateBlockRef.current) {
-        const currentHeight = resizeHeightRef.current ?? resizeRef.current.startHeight;
-        const durationMinutes = Math.round(currentHeight / (hh / 60));
-
-        const endTime = new Date(resizeRef.current.startTime);
-        endTime.setMinutes(endTime.getMinutes() + durationMinutes);
-
-        onUpdateBlockRef.current(resizingBlockId, resizeRef.current.startTime, endTime);
-
-        if (onUpdateTaskRef.current && durationMinutes !== resizeRef.current.expectedTime) {
-          const task = tasksRef.current.find(t => t.id === resizeRef.current?.taskId);
-          if (task) {
-            onUpdateTaskRef.current({ ...task, expectedTime: durationMinutes });
-          }
-        }
-
-        setJustResized(true);
-        setTimeout(() => setJustResized(false), 100);
+      // Optimistic block styling (orange/amber)
+      if (block.id.startsWith('optimistic-')) {
+        bgColor = 'bg-amber-100 border-amber-200 text-amber-800 opacity-90';
       }
 
-      const finalHeight = resizeHeightRef.current;
-      if (finalHeight !== null && resizingBlockId) {
-        setOptimisticResizeBlock({ blockId: resizingBlockId, height: finalHeight });
+      // Check if this is the current user's block
+      const isOwnBlock = block.ownerId === currentUserId;
+
+      // Only apply colored background to OTHER users' blocks in multi-member mode
+      let backgroundColor = undefined;
+      if ('ownerColor' in block && block.ownerColor && isMultiMemberMode && !isOwnBlock) {
+        // Convert hex color to rgba with 20% opacity
+        const hex = block.ownerColor;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        backgroundColor = `rgba(${r}, ${g}, ${b}, 0.2)`;
       }
 
-      setResizingBlockId(null);
-      setTimeout(() => {
-        setResizeHeight(null);
-        setOptimisticResizeBlock(null);
-      }, 300);
-      resizeRef.current = null;
-    };
+      return {
+        top: `${top}px`,
+        height: `${Math.max(height - 1, snapInterval * (hourHeight / 60))}px`,
+        position: 'absolute' as const,
+        // Notion-style: side-by-side layout using percentages
+        left: `calc(${layout.leftPercent}% + ${padding}px)`,
+        width: `calc(${layout.widthPercent}% - ${padding * 2}px)`,
+        backgroundColor: backgroundColor,
+        className: `rounded-md p-1.5 text-xs border ${bgColor} hover:brightness-95 transition-colors cursor-pointer overflow-hidden flex flex-col justify-start select-none`,
+        zIndex: 10 + layout.columnIndex, // Stack columns for visual layering
+      };
+    },
+    [currentUserId, isMultiMemberMode, hourHeight, snapInterval, startHour]
+  );
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [resizingBlockId]); // resizeHeight removed — read via resizeHeightRef to prevent listener churn during resize
-
-  const handleResizeStart = (e: React.MouseEvent, block: CalendarBlock | MultiMemberBlock, task: Task) => {
-    e.stopPropagation();
-    e.preventDefault(); // Prevent drag start
-
-    const start = new Date(block.startTime);
-    const end = new Date(block.endTime);
-    const duration = (end.getTime() - start.getTime()) / (1000 * 60);
-    const startHeight = duration * (hourHeight / 60);
-
-    setResizingBlockId(block.id);
-    setResizeHeight(startHeight);
-    resizeRef.current = {
-      startY: e.clientY,
-      startHeight: startHeight,
-      expectedTime: task.expectedTime,
-      startTime: start,
-      taskId: task.id
-    };
-  };
   // Use provided layout or create default layout for blocks
   const dayBlocks = blocksWithLayout || calendarBlocks
     .filter(b => {
@@ -416,11 +369,12 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
               {/* Resize Handle */}
               {canDrag && (
                 <div
-                  className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize opacity-0 group-hover/block:opacity-100 hover:bg-black/5 transition-opacity z-20 flex justify-center items-end pb-0.5"
+                  className={`absolute bottom-0 left-0 right-0 cursor-ns-resize opacity-0 group-hover/block:opacity-100 hover:bg-black/5 transition-opacity z-20 flex justify-center items-end pb-0.5 ${
+                    isMicroBlock ? 'h-1' : isSmallBlock ? 'h-2' : 'h-3'
+                  }`}
                   onMouseDown={(e) => handleResizeStart(e, block, task)}
                 >
-                  {/* Visual indicator (optional, like small handle lines) */}
-                  <div className="w-4 h-0.5 bg-gray-400/50 rounded-full mb-0.5"></div>
+                  <div className={`bg-gray-400/50 rounded-full mb-0.5 ${isMicroBlock ? 'w-3 h-0.5' : 'w-5 h-0.5'}`}></div>
                 </div>
               )}
             </div>

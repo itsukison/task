@@ -17,7 +17,8 @@ import {
 } from '@tanstack/react-table';
 import { Plus } from 'lucide-react';
 import { EditableTableProps } from '@/lib/types';
-import { RowActionsMenu, HeaderMenu } from './menus';
+import { RowActionsMenu } from './menus/RowActionsMenu';
+import { HeaderMenu } from './menus/HeaderMenu';
 import { TableHeader } from './TableHeader';
 import { TableBody } from './TableBody';
 import { useTableColumns } from './useTableColumns';

@@ -114,9 +114,10 @@ export const FastTaskRow = React.memo(function FastTaskRow({
                 isSubtask && 'bg-[#fafafa]',
                 isEditing ? 'bg-[#f4f5f7] relative z-40' : 'relative z-10',
                 isCompleted && 'bg-[#f7f7f5]',
-                isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#f4f5f7]',
+                isPending ? 'cursor-not-allowed' : 'hover:bg-[#f4f5f7]',
             )}
         >
+            <div className={cn("flex flex-1 items-start min-w-0", isPending && "opacity-50")}>
             {/* Drag handle / persist error indicator */}
             <div className="w-4 flex justify-center self-center flex-shrink-0">
                 {task.persistError ? (
@@ -207,67 +208,69 @@ export const FastTaskRow = React.memo(function FastTaskRow({
                         onChange={handleOwnerChange}
                     />
                 </div>
-
-                {/* Subtask + delete actions */}
-                <div className="w-[44px] flex items-center justify-end gap-1 transition-opacity">
-                    {isSubtask ? (
-                        task.parentTaskId ? (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onAddSubtask(task.parentTaskId!); }}
-                                className="p-0.5 text-[#5e6c84] hover:bg-gray-200 rounded-[3px] opacity-0 group-hover:opacity-100 cursor-pointer"
-                                title={t('common.add_subtask')}
-                            >
-                                <Plus size={14} />
-                            </button>
-                        ) : null
-                    ) : (
-                        hasSubtasks ? (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onToggleSubtasks(task.id); }}
-                                className="p-0.5 text-[#5e6c84] hover:bg-gray-200 rounded-[3px] flex items-center gap-0.5 cursor-pointer"
-                                title={isExpanded ? t('common.collapse_subtasks') : t('common.expand_subtasks')}
-                            >
-                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                            </button>
-                        ) : (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onAddSubtask(task.id); }}
-                                className="p-0.5 text-[#5e6c84] hover:bg-gray-200 rounded-[3px] opacity-0 group-hover:opacity-100 cursor-pointer"
-                                title={t('common.add_subtask')}
-                            >
-                                <Plus size={14} />
-                            </button>
-                        )
-                    )}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-                        className="p-0.5 text-[#5e6c84] hover:bg-red-100 hover:text-red-600 rounded-[3px] opacity-0 group-hover:opacity-100 cursor-pointer"
-                        title={t('common.delete')}
-                    >
-                        <Trash2 size={14} />
-                    </button>
-                </div>
             </div>
+        </div>
 
-            {/* Accept/Reject for pending tasks */}
-            {isPending && onAccept && onReject && (
-                <div className="flex items-center gap-1 ml-2 self-center">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onAccept(task.id); }}
-                        className="p-1 rounded-md bg-green-50 hover:bg-green-100 text-green-600 cursor-pointer"
-                        title={t('common.accept')}
-                    >
-                        <Check size={14} />
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onReject(task.id); }}
-                        className="p-1 rounded-md bg-red-50 hover:bg-red-100 text-red-600 cursor-pointer"
-                        title={t('common.reject')}
-                    >
-                        <X size={14} />
-                    </button>
-                </div>
-            )}
+            {/* Actions area */}
+            <div className="w-[44px] flex items-center justify-end gap-1 flex-shrink-0 self-center">
+                {isPending && onAccept && onReject ? (
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onAccept(task.id); }}
+                            className="p-0.5 rounded-[3px] bg-green-50 hover:bg-green-100 text-green-600 cursor-pointer"
+                            title={t('common.accept')}
+                        >
+                            <Check size={14} />
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onReject(task.id); }}
+                            className="p-0.5 rounded-[3px] bg-red-50 hover:bg-red-100 text-red-600 cursor-pointer"
+                            title={t('common.reject')}
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        {isSubtask ? (
+                            task.parentTaskId ? (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onAddSubtask(task.parentTaskId!); }}
+                                    className="p-0.5 text-[#5e6c84] hover:bg-gray-200 rounded-[3px] opacity-0 group-hover:opacity-100 cursor-pointer"
+                                    title={t('common.add_subtask')}
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            ) : null
+                        ) : (
+                            hasSubtasks ? (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onToggleSubtasks(task.id); }}
+                                    className="p-0.5 text-[#5e6c84] hover:bg-gray-200 rounded-[3px] flex items-center gap-0.5 cursor-pointer"
+                                    title={isExpanded ? t('common.collapse_subtasks') : t('common.expand_subtasks')}
+                                >
+                                    {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onAddSubtask(task.id); }}
+                                    className="p-0.5 text-[#5e6c84] hover:bg-gray-200 rounded-[3px] opacity-0 group-hover:opacity-100 cursor-pointer"
+                                    title={t('common.add_subtask')}
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            )
+                        )}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
+                            className="p-0.5 text-[#5e6c84] hover:bg-red-100 hover:text-red-600 rounded-[3px] opacity-0 group-hover:opacity-100 cursor-pointer"
+                            title={t('common.delete')}
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    </>
+                )}
+            </div>
         </div>
     );
 }, (prev, next) => {

@@ -1,4 +1,4 @@
-import { TableColumn, ColumnOption } from '@/components/editable-table';
+import { TableColumn, ColumnOption } from '@/lib/types';
 import { Task, PeopleOption } from '@/lib/types';
 
 export const getSortFields = (t: any) => [

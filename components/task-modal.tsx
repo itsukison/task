@@ -16,9 +16,6 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
         setEditedTask(task);
     }, [task]);
 
-    if (!editedTask) return null;
-
-    // Keep a ref to the latest edited task to avoid stale closures in timeouts
     const editedTaskRef = useRef(editedTask);
     const pendingSaveRef = useRef(false);
 
@@ -33,7 +30,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                 onUpdate(editedTaskRef.current);
             }
         };
-    }, []);
+    }, [onUpdate]); // Added onUpdate to dependencies
 
     // Debounce description updates
     useEffect(() => {
@@ -53,7 +50,9 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [editedTask?.description, editedTask?.title]);
+    }, [editedTask?.description, editedTask?.title, task, onUpdate]); // Added dependencies
+
+    if (!editedTask) return null;
 
     const handleChange = (field: keyof Task, value: any) => {
         const newTask = { ...editedTask, [field]: value };
@@ -213,7 +212,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                             value={editedTask.description || ''}
                             onChange={(e) => handleChange('description', e.target.value)}
                             className="w-full h-full min-h-[200px] resize-none outline-none text-[#37352F] leading-relaxed placeholder-gray-300 bg-transparent text-base"
-                            placeholder="Press space for AI, or type '/' for commands..."
+                            placeholder={t('tasks.placeholder_ai')}
                         />
                     </div>
 

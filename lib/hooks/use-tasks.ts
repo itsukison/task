@@ -85,6 +85,8 @@ export interface UseTasksReturn {
     resolveApiId: (id: string) => string | null;
     /** Resolve an optimistic ID to the current canonical ID (real if swapped, else passthrough). */
     resolveId: (id: string) => string;
+    /** Await the real server ID for an optimistic task. Resolves null on timeout or insert failure. */
+    waitForPersist: (optimisticId: string, timeoutMs?: number) => Promise<string | null>;
     refetch: () => Promise<void>;
 }
 
@@ -106,6 +108,8 @@ export function useTasks(): UseTasksReturn {
     const cancelledOptimisticIdsRef = useRef<Set<string>>(new Set());
     // Maps optimistic ID → real server ID after persist completes
     const optimisticToRealRef = useRef<Map<string, string>>(new Map());
+    // Maps optimistic ID → array of resolve callbacks waiting for persist
+    const persistResolversRef = useRef<Map<string, Array<(realId: string) => void>>>(new Map());
 
     // Fetch tasks with owner JOIN
     const fetchTasks = useCallback(async () => {
@@ -284,12 +288,24 @@ export function useTasks(): UseTasksReturn {
                     t.id === optimisticId ? { ...t, persistError: true } : t
                 ));
                 console.error(`Failed to create task: ${insertError.message}`);
+                // Unblock any waitForPersist callers with empty string (signals failure)
+                const failResolvers = persistResolversRef.current.get(optimisticId);
+                if (failResolvers) {
+                    failResolvers.forEach(fn => fn(''));
+                    persistResolversRef.current.delete(optimisticId);
+                }
                 return;
             }
 
             // Handle deletion that happened before persist completed
             if (cancelledOptimisticIdsRef.current.has(optimisticId)) {
                 cancelledOptimisticIdsRef.current.delete(optimisticId);
+                // Unblock any waitForPersist callers (task was cancelled — signal failure)
+                const cancelResolvers = persistResolversRef.current.get(optimisticId);
+                if (cancelResolvers) {
+                    cancelResolvers.forEach(fn => fn(''));
+                    persistResolversRef.current.delete(optimisticId);
+                }
                 try {
                     await supabase
                         .from('calendar_blocks')
@@ -324,6 +340,13 @@ export function useTasks(): UseTasksReturn {
             // Record the mapping so in-flight references (drag data, editing state)
             // can resolve the stale optimistic ID to the canonical one.
             optimisticToRealRef.current.set(optimisticId, serverTask.id);
+
+            // Notify any waitForPersist callers that the real ID is available
+            const successResolvers = persistResolversRef.current.get(optimisticId);
+            if (successResolvers) {
+                successResolvers.forEach(fn => fn(serverTask.id));
+                persistResolversRef.current.delete(optimisticId);
+            }
 
             // Replace optimistic task with server data using the real ID.
             // Preserve the optimistic ID as _reactKey so React doesn't unmount/remount the row.
@@ -661,6 +684,47 @@ export function useTasks(): UseTasksReturn {
         await fetchTasks();
     }, [user, currentOrg, fetchTasks]);
 
+    // Await the real server ID for an optimistic task.
+    // Resolves the server ID when persist completes, or null on timeout/failure.
+    const waitForPersist = useCallback(
+        (optimisticId: string, timeoutMs = 5000): Promise<string | null> => {
+            // Already resolved — return immediately
+            const existing = optimisticToRealRef.current.get(optimisticId);
+            if (existing) return Promise.resolve(existing);
+            // Non-optimistic ID — pass through as-is
+            if (!optimisticId.startsWith('optimistic-')) return Promise.resolve(optimisticId);
+
+            return new Promise<string | null>((resolve) => {
+                let resolver: (realId: string) => void;
+
+                const timer = setTimeout(() => {
+                    // Timed out — clean up and resolve null
+                    const pending = persistResolversRef.current.get(optimisticId);
+                    if (pending) {
+                        const idx = pending.indexOf(resolver);
+                        if (idx >= 0) pending.splice(idx, 1);
+                        if (pending.length === 0) persistResolversRef.current.delete(optimisticId);
+                    }
+                    resolve(null);
+                }, timeoutMs);
+
+                resolver = (realId: string) => {
+                    clearTimeout(timer);
+                    resolve(realId || null); // empty string signals failure → null
+                };
+
+                // Double-check in case it resolved between the top check and now
+                const check = optimisticToRealRef.current.get(optimisticId);
+                if (check) { clearTimeout(timer); resolve(check); return; }
+
+                const list = persistResolversRef.current.get(optimisticId) ?? [];
+                list.push(resolver);
+                persistResolversRef.current.set(optimisticId, list);
+            });
+        },
+        [] // reads refs only — stable reference forever
+    );
+
     return {
         tasks,
         loading,
@@ -672,6 +736,7 @@ export function useTasks(): UseTasksReturn {
         rejectAssignment,
         resolveApiId,
         resolveId,
+        waitForPersist,
         refetch: fetchTasks,
     };
 }

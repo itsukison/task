@@ -1,0 +1,15 @@
+Taskle (タスクル) is a team timeboxing task manager built for non-engineers.
+
+Primary audience:
+- Japanese SMEs, sales teams, and non-technical teams
+
+Core capabilities:
+- Timeboxing: tasks become calendar blocks automatically
+- Team visibility: progress is visible in real time
+- Assignment clarity: owners and deadlines are explicit
+- Calendar-based tasking: plan by time, not just lists
+
+Key URLs:
+- https://www.taskle.ink/
+- https://www.taskle.ink/blog
+- https://www.taskle.ink/vision

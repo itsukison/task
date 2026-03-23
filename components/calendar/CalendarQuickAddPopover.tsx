@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Clock, Calendar, ArrowRight } from 'lucide-react';
+import { Clock, Calendar, ArrowRight } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
 import { useLanguage, dateLocales } from '@/lib/i18n';
 
@@ -130,14 +130,14 @@ export const CalendarQuickAddPopover = ({
                         onClick={onClose}
                         className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={() => handleSubmit()}
                         disabled={!title.trim()}
                         className="text-xs bg-accent text-white font-medium px-3 py-1.5 rounded flex items-center gap-1 hover:bg-accent-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Add <ArrowRight size={12} />
+                        {t('common.add')} <ArrowRight size={12} />
                     </button>
                 </div>
             </div>

@@ -5,7 +5,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Plus, Check, Trash2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TableColumn, AssignmentStatus } from '@/lib/types';
-import { Cell } from './cells';
+import { Cell } from './cells/Cell';
 import { DataTypeIcon } from './utils';
 import { useLanguage } from '@/lib/i18n';
 import { formatTimeRange } from '@/lib/utils/time-helpers';

@@ -7,7 +7,7 @@ import TaskList from './task-list';
 import Calendar from './calendar';
 import { TaskStatus, WorkspaceViewProps } from '@/lib/types';
 import { FilterRule } from '@/lib/utils/filterRules';
-import { SortConfig } from './editable-table';
+import { SortConfig } from '@/lib/types';
 import { WorkspaceHeader } from './workspace/WorkspaceHeader';
 import { FIXED_COLUMN_WIDTH } from './calendar/constants';
 
