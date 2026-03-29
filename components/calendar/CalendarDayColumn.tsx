@@ -258,8 +258,10 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             : hasOptimisticHeight
               ? optimisticResizeBlock!.height
               : blockPxHeight;
-          const isSmallBlock = liveHeight < 22;
-          const isMicroBlock = liveHeight < 14;
+          
+          const hasSpaceForTime = liveHeight >= 44;
+          const isSmallBlock = liveHeight >= 18 && liveHeight < 28;
+          const isMicroBlock = liveHeight < 18;
 
           // Check if current user is a confirmed owner of the task
           const isConfirmedOwner = task.owners?.some(
@@ -347,7 +349,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
               draggable={canDrag && !resizingBlockId}
               onDragStart={(e) => canDrag && onDragStart(e, task, block.id, block.startTime)}
             >
-              <div className={`font-medium truncate leading-none flex items-center gap-1 ${isMicroBlock ? 'text-[8px]' : isSmallBlock ? 'text-[9px]' : 'text-xs'}`}>
+              <div className={`font-medium truncate leading-none flex items-center gap-1 ${isMicroBlock ? 'text-[8px]' : isSmallBlock ? 'text-[10px]' : 'text-xs'}`}>
                 {!isMicroBlock && isMultiMember && isMultiMemberMode && (
                   <div
                     className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-medium text-white flex-shrink-0"
@@ -360,7 +362,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
                 {task.status === 'completed' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>}
                 {task.title}
               </div>
-              {!isSmallBlock && task.expectedTime >= 45 && (
+              {hasSpaceForTime && (
                 <div className="opacity-70 truncate mt-0.5 text-[10px] flex items-center gap-1">
                   <Clock size={10} /> {format(new Date(block.startTime), 'HH:mm')} ({isResizing ? Math.round((resizeHeight || 0) / (hourHeight / 60)) : task.expectedTime}m)
                 </div>
@@ -388,8 +390,10 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
 
           const blockDurationMin = (new Date(block.endTime).getTime() - new Date(block.startTime).getTime()) / 60000;
           const blockPxHeight = blockDurationMin * (hourHeight / 60);
-          const isSmallBlock = blockPxHeight < 22;
-          const isMicroBlock = blockPxHeight < 14;
+          
+          const hasSpaceForTime = blockPxHeight >= 44;
+          const isSmallBlock = blockPxHeight >= 18 && blockPxHeight < 28;
+          const isMicroBlock = blockPxHeight < 18;
 
           // Apply the same padding reduction as regular blocks so short preview
           // blocks don't clip their text during drag.
@@ -405,10 +409,10 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
               style={style}
               className={style.className}
             >
-              <div className={`font-medium truncate leading-none flex items-center gap-1 ${isMicroBlock ? 'text-[8px]' : isSmallBlock ? 'text-[9px]' : 'text-xs'}`}>
+              <div className={`font-medium truncate leading-none flex items-center gap-1 ${isMicroBlock ? 'text-[8px]' : isSmallBlock ? 'text-[10px]' : 'text-xs'}`}>
                 {task.title}
               </div>
-              {!isSmallBlock && (
+              {hasSpaceForTime && (
                 <div className="opacity-80 truncate mt-0.5 text-[10px] flex items-center gap-1">
                   <Clock size={10} /> {format(new Date(block.startTime), 'HH:mm')}
                 </div>

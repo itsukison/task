@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { X, Clock, User, CheckCircle2, Sparkles, MoreHorizontal, Calendar, ArrowUpRight } from 'lucide-react';
+import { X, Clock, User, CheckCircle2, MoreHorizontal, Calendar, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Task, TaskStatus, TaskModalProps } from '@/lib/types';
 import { useLanguage } from '@/lib/i18n';
@@ -10,7 +10,6 @@ import { useLanguage } from '@/lib/i18n';
 export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
     const { t } = useLanguage();
     const [editedTask, setEditedTask] = useState<Task | null>(task);
-    const [isEnhancing, setIsEnhancing] = useState(false);
 
     useEffect(() => {
         setEditedTask(task);
@@ -162,13 +161,17 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                             </div>
                         </div>
 
-                        {/* Due Date */}
+                        {/* Scheduled Date */}
                         <div className="flex items-center h-8">
                             <div className="w-36 flex items-center gap-2 text-[#787774] text-sm">
                                 <Calendar size={16} /> {t('tasks.scheduled_date')}
                             </div>
                             <div className="flex-1 text-sm text-[#37352F]">
-                                <span className="text-gray-300">{t('common.empty')}</span>
+                                {editedTask.scheduledDate ? (
+                                    format(new Date(editedTask.scheduledDate + 'T00:00:00'), 'yyyy年M月d日')
+                                ) : (
+                                    <span className="text-gray-300">{t('common.empty')}</span>
+                                )}
                             </div>
                         </div>
 
@@ -179,7 +182,7 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                             </div>
                             <div className="flex-1 flex items-center gap-4 text-sm">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[#787774]">{editedTask.expectedTime}m {t('tasks.estimated')}</span>
+                                    <span className="text-[#787774]">{editedTask.expectedTime}m</span>
                                 </div>
                             </div>
                         </div>
@@ -192,21 +195,6 @@ export default function TaskModal({ task, onClose, onUpdate }: TaskModalProps) {
                     <div className="relative group min-h-[200px]">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xl font-semibold text-[#37352F]">{t('tasks.description')}</h3>
-                            <button
-                                onClick={() => { }}
-                                disabled={isEnhancing}
-                                className="flex items-center gap-1 text-xs text-purple-600 hover:bg-purple-50 px-2 py-1 rounded transition-colors disabled:opacity-50"
-                            >
-                                <div className="relative h-3.5 w-3.5 mr-1">
-                                    <Image
-                                        src="/logo.png"
-                                        alt="AI"
-                                        fill
-                                        className="object-contain"
-                                    />
-                                </div>
-                                {isEnhancing ? t('common.enhancing') : t('common.ai_enhance')}
-                            </button>
                         </div>
                         <textarea
                             value={editedTask.description || ''}

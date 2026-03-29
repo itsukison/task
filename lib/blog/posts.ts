@@ -11,7 +11,7 @@ export const posts: BlogPost[] = [
     slug: 'timeboxing-team-guide',
     title: 'チームでタイムボクシングを導入する方法：タスク管理の新しい常識',
     description: '個人の生産性ハックとして有名な「タイムボクシング」を、チーム全体に導入するための具体的なステップと効果的なツールを紹介します。',
-    date: '2024-03-12',
+    date: '2026-03-12',
     content: `
 # チームでタイムボクシングを導入する方法
 
@@ -61,7 +61,7 @@ export const posts: BlogPost[] = [
     slug: 'jira-alternative-non-engineers',
     title: 'Jiraが社内に定着しない理由と、非エンジニアチームに合うタスク管理ツール',
     description: 'JiraやAsanaなどの高機能ツールが営業やバックオフィスで定着しない理由と、本当に必要な「わかりやすさ」を備えた代替ツールの選び方。',
-    date: '2024-03-11',
+    date: '2026-03-11',
     content: `
 # Jiraが社内に定着しない理由と、非エンジニアチームに合うツール
 
@@ -103,7 +103,7 @@ ITリテラシーが高くなくても、誰もが毎日のように自然と使
     slug: 'excel-task-management-limits',
     title: 'エクセルのタスク管理に限界を感じたら読む記事',
     description: '多くの中小企業が直面する「エクセルでの進捗管理の限界」と、そこからスムーズに脱却してチームの可視化を実現する方法。',
-    date: '2024-03-10',
+    date: '2026-03-10',
     content: `
 # エクセルのタスク管理に限界を感じたら
 

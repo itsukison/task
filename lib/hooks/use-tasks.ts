@@ -311,7 +311,14 @@ export function useTasks(): UseTasksReturn {
                         .from('calendar_blocks')
                         .delete()
                         .eq('task_id', data.id);
-                    await supabase.rpc('soft_delete_task', { task_id: data.id });
+                    await supabase
+                        .from('task_owners')
+                        .delete()
+                        .eq('task_id', data.id);
+                    await supabase
+                        .from('tasks')
+                        .delete()
+                        .eq('id', data.id);
                 } catch (cleanupError) {
                     console.error('Failed to clean up cancelled task:', cleanupError);
                 }
@@ -331,6 +338,35 @@ export function useTasks(): UseTasksReturn {
 
             if (ownerError) {
                 console.error('Failed to add initial owner:', ownerError);
+            }
+
+            // Re-check cancellation — deleteTask may have set the flag during the
+            // task_owners insert above (race window between the first check and the
+            // optimisticToRealRef mapping below).
+            if (cancelledOptimisticIdsRef.current.has(optimisticId)) {
+                cancelledOptimisticIdsRef.current.delete(optimisticId);
+                const cancelResolvers = persistResolversRef.current.get(optimisticId);
+                if (cancelResolvers) {
+                    cancelResolvers.forEach(fn => fn(''));
+                    persistResolversRef.current.delete(optimisticId);
+                }
+                try {
+                    await supabase
+                        .from('calendar_blocks')
+                        .delete()
+                        .eq('task_id', data.id);
+                    await supabase
+                        .from('task_owners')
+                        .delete()
+                        .eq('task_id', data.id);
+                    await supabase
+                        .from('tasks')
+                        .delete()
+                        .eq('id', data.id);
+                } catch (cleanupError) {
+                    console.error('Failed to clean up cancelled task:', cleanupError);
+                }
+                return;
             }
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -558,6 +594,47 @@ export function useTasks(): UseTasksReturn {
         }
     }, [currentOrg, user, fetchTasks, resolveApiId, resolveId]);
 
+    // Await the real server ID for an optimistic task.
+    // Resolves the server ID when persist completes, or null on timeout/failure.
+    const waitForPersist = useCallback(
+        (optimisticId: string, timeoutMs = 5000): Promise<string | null> => {
+            // Already resolved — return immediately
+            const existing = optimisticToRealRef.current.get(optimisticId);
+            if (existing) return Promise.resolve(existing);
+            // Non-optimistic ID — pass through as-is
+            if (!optimisticId.startsWith('optimistic-')) return Promise.resolve(optimisticId);
+
+            return new Promise<string | null>((resolve) => {
+                let resolver: (realId: string) => void;
+
+                const timer = setTimeout(() => {
+                    // Timed out — clean up and resolve null
+                    const pending = persistResolversRef.current.get(optimisticId);
+                    if (pending) {
+                        const idx = pending.indexOf(resolver);
+                        if (idx >= 0) pending.splice(idx, 1);
+                        if (pending.length === 0) persistResolversRef.current.delete(optimisticId);
+                    }
+                    resolve(null);
+                }, timeoutMs);
+
+                resolver = (realId: string) => {
+                    clearTimeout(timer);
+                    resolve(realId || null); // empty string signals failure → null
+                };
+
+                // Double-check in case it resolved between the top check and now
+                const check = optimisticToRealRef.current.get(optimisticId);
+                if (check) { clearTimeout(timer); resolve(check); return; }
+
+                const list = persistResolversRef.current.get(optimisticId) ?? [];
+                list.push(resolver);
+                persistResolversRef.current.set(optimisticId, list);
+            });
+        },
+        [] // reads refs only — stable reference forever
+    );
+
     // Soft delete a task using RPC function — optimistic removal first
     const deleteTask = useCallback(async (id: string): Promise<void> => {
         if (!currentOrg) {
@@ -573,6 +650,21 @@ export function useTasks(): UseTasksReturn {
             cancelledOptimisticIdsRef.current.add(canonicalId);
             pendingUpdatesRef.current.delete(canonicalId);
             setTasks(prev => prev.filter(task => task.id !== canonicalId));
+
+            // Fallback: if persistTaskInBackground already passed its cancellation
+            // check, it won't see the flag. Wait for the real ID and hard delete directly.
+            waitForPersist(canonicalId).then(realId => {
+                if (realId) {
+                    supabase
+                        .from('calendar_blocks')
+                        .delete()
+                        .eq('task_id', realId)
+                        .then(() => supabase.from('task_owners').delete().eq('task_id', realId))
+                        .then(() => supabase.from('tasks').delete().eq('id', realId))
+                        .catch(err => console.error('Fallback cleanup failed:', err));
+                }
+            });
+
             return;
         }
 
@@ -622,7 +714,7 @@ export function useTasks(): UseTasksReturn {
                 isMutatingRef.current = false;
             }, 500);
         }
-    }, [currentOrg, tasks, resolveId]);
+    }, [currentOrg, tasks, resolveId, waitForPersist]);
 
     // Accept a pending assignment
     const acceptAssignment = useCallback(async (taskId: string): Promise<void> => {
@@ -683,47 +775,6 @@ export function useTasks(): UseTasksReturn {
         // Refetch to update state
         await fetchTasks();
     }, [user, currentOrg, fetchTasks]);
-
-    // Await the real server ID for an optimistic task.
-    // Resolves the server ID when persist completes, or null on timeout/failure.
-    const waitForPersist = useCallback(
-        (optimisticId: string, timeoutMs = 5000): Promise<string | null> => {
-            // Already resolved — return immediately
-            const existing = optimisticToRealRef.current.get(optimisticId);
-            if (existing) return Promise.resolve(existing);
-            // Non-optimistic ID — pass through as-is
-            if (!optimisticId.startsWith('optimistic-')) return Promise.resolve(optimisticId);
-
-            return new Promise<string | null>((resolve) => {
-                let resolver: (realId: string) => void;
-
-                const timer = setTimeout(() => {
-                    // Timed out — clean up and resolve null
-                    const pending = persistResolversRef.current.get(optimisticId);
-                    if (pending) {
-                        const idx = pending.indexOf(resolver);
-                        if (idx >= 0) pending.splice(idx, 1);
-                        if (pending.length === 0) persistResolversRef.current.delete(optimisticId);
-                    }
-                    resolve(null);
-                }, timeoutMs);
-
-                resolver = (realId: string) => {
-                    clearTimeout(timer);
-                    resolve(realId || null); // empty string signals failure → null
-                };
-
-                // Double-check in case it resolved between the top check and now
-                const check = optimisticToRealRef.current.get(optimisticId);
-                if (check) { clearTimeout(timer); resolve(check); return; }
-
-                const list = persistResolversRef.current.get(optimisticId) ?? [];
-                list.push(resolver);
-                persistResolversRef.current.set(optimisticId, list);
-            });
-        },
-        [] // reads refs only — stable reference forever
-    );
 
     return {
         tasks,

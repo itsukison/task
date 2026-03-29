@@ -15,6 +15,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: staticLastModified,
     },
     {
+      url: `${SITE_URL}/company`,
+      lastModified: staticLastModified,
+    },
+    {
       url: `${SITE_URL}/vision`,
       lastModified: staticLastModified,
     },

@@ -23,9 +23,9 @@ export const CalendarHeader = React.memo(function CalendarHeader({
     // sticky top-0 — sticks vertically as the user scrolls down.
     // The header scrolls horizontally in sync with the body because both are
     // inside the same scroll container (no JS sync needed).
-    <div className="sticky top-0 z-20 flex border-b border-[#E9E9E7] bg-white">
+    <div className="sticky top-0 z-40 flex border-b border-[#E9E9E7] bg-white">
       {/* Corner spacer — sticky left-0 so it stays anchored while day columns scroll */}
-      <div className="sticky left-0 z-30 w-12 flex-shrink-0 bg-white border-r border-[#E9E9E7]" />
+      <div className="sticky left-0 z-50 w-12 flex-shrink-0 bg-white border-r border-[#E9E9E7]" />
 
       <div
         className="flex"
