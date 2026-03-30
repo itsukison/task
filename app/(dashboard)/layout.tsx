@@ -7,6 +7,7 @@ import { AIContextProvider, useAI } from '@/lib/ai/AIContextProvider';
 import { AIFloatingButton } from '@/components/ai/AIFloatingButton';
 import { AIChatPanel } from '@/components/ai/AIChatPanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useLanguage } from '@/lib/i18n';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
     const sidebarStorageKey = 'taskos_sidebar_open';
@@ -22,8 +23,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         }
         return true;
     });
-    const { loading } = useRequireOrg();
+    const { blocking } = useRequireOrg();
     const { agentViewMode } = useAI();
+    const { t } = useLanguage();
 
     useEffect(() => {
         try {
@@ -34,10 +36,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }, [sidebarOpen, sidebarStorageKey]);
 
     // Show loading state while checking auth/org
-    if (loading) {
+    if (blocking) {
         return (
             <div className="flex h-screen w-screen items-center justify-center bg-white">
-                <div className="text-[#787774]">Loading...</div>
+                <div className="text-[#787774]">{t('common.loading')}</div>
             </div>
         );
     }

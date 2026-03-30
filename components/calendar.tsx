@@ -280,8 +280,20 @@ const Calendar = React.memo(function Calendar({
       blocks = [...blocks, quickAddBlock];
     }
 
+    // Filter out orphaned blocks whose task was soft-deleted.
+    // These blocks remain in calendar_blocks but their task is excluded from
+    // the tasks array (which filters deleted_at IS NULL). Without this filter,
+    // orphaned blocks poison the overlap layout and cause visible blocks to
+    // render at half-width.
+    const validTaskIds = new Set(tasks.map(t => t.id));
+    blocks = blocks.filter(b =>
+      b.task ||                              // Embedded task (multi-member) — always valid
+      b.taskId.startsWith('optimistic-') ||  // Optimistic — not yet in tasks array
+      validTaskIds.has(b.taskId)             // Task exists and is not soft-deleted
+    );
+
     return blocks;
-  }, [calendarBlocks, currentOrg, multiMemberBlocks, optimisticBlock, previewBlock, quickAdd, selectedMemberIds, t, user]);
+  }, [calendarBlocks, currentOrg, multiMemberBlocks, optimisticBlock, previewBlock, quickAdd, selectedMemberIds, t, tasks, user]);
 
   // Stable string key: changes only when a block is created, deleted, or time-shifted.
   // Does NOT change on task title/status edits — prevents redundant O(n²) layout runs.

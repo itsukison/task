@@ -609,6 +609,23 @@ export interface TranslationDictionary {
         request_pending_desc: string;
         status_pending: string;
     };
+    org_errors: {
+        auth_required: string;
+        create_failed: string;
+        invite_expired: string;
+        invite_max_uses: string;
+        already_member: string;
+        invalid_invite: string;
+        generic: string;
+    };
+    org_switcher: {
+        title: string;
+        join_tab: string;
+        create_tab: string;
+        success_created: string;
+        success_joined: string;
+        success_request_sent: string;
+    };
     blog_index: {
         title: string;
         subtitle: string;

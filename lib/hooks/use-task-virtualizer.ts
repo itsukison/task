@@ -117,7 +117,8 @@ export function useTaskVirtualizer({
             // Use scrollTop directly so behaviour matches the old virtualizer's 'auto' behaviour.
             const containerTop = scrollEl.getBoundingClientRect().top;
             const targetTop = target.getBoundingClientRect().top;
-            scrollEl.scrollTop += targetTop - containerTop;
+            // Subtract 24 to account for the pt-6 padding on the container
+            scrollEl.scrollTop += (targetTop - containerTop) - 12;
         }
         setScrollToDateKey(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps

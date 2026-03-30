@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth/hooks';
 import { useOrganization } from '@/lib/hooks/use-organization';
 import { CreateOrgForm } from '@/components/onboarding/CreateOrgForm';
 import { JoinOrgForm } from '@/components/onboarding/JoinOrgForm';
+import { useLanguage } from '@/lib/i18n';
 
 interface OrgSwitcherModalProps {
     isOpen: boolean;
@@ -23,6 +24,20 @@ export function OrgSwitcherModal({ isOpen, onClose }: OrgSwitcherModalProps) {
 
     const { refreshOrganizations } = useAuth();
     const { createOrganization, joinOrganization } = useOrganization();
+    const { t } = useLanguage();
+
+    const getOrgErrorMessage = (error: unknown) => {
+        const message = error instanceof Error ? error.message : '';
+        const map: Record<string, string> = {
+            'org_error:auth_required': t('org_errors.auth_required'),
+            'org_error:create_failed': t('org_errors.create_failed'),
+            'org_error:invite_expired': t('org_errors.invite_expired'),
+            'org_error:invite_max_uses': t('org_errors.invite_max_uses'),
+            'org_error:already_member': t('org_errors.already_member'),
+            'org_error:invalid_invite': t('org_errors.invalid_invite'),
+        };
+        return map[message] ?? t('org_errors.generic');
+    };
 
     if (!isOpen) return null;
 
@@ -33,13 +48,13 @@ export function OrgSwitcherModal({ isOpen, onClose }: OrgSwitcherModalProps) {
 
         try {
             await createOrganization(orgName);
-            setSuccess(`Created "${orgName}"! You can switch to it from the sidebar.`);
+            setSuccess(t('org_switcher.success_created', { name: orgName }));
             await refreshOrganizations();
             // Auto-close after short delay
             setTimeout(() => onClose(), 1500);
         } catch (err: any) {
             console.error('Create org error:', err);
-            setError(err.message || 'Failed to create organization');
+            setError(getOrgErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -55,17 +70,17 @@ export function OrgSwitcherModal({ isOpen, onClose }: OrgSwitcherModalProps) {
 
             if (result.status === 'pending') {
                 // Request sent, not joined yet
-                setSuccess(`Request sent to "${result.organizationName}"! You will be notified when approved.`);
+                setSuccess(t('org_switcher.success_request_sent', { name: result.organizationName }));
                 // Don't auto-close - let user see the message
             } else {
                 // Immediately joined (for future use if we add direct join)
-                setSuccess(`Joined "${result.organizationName}"! You can switch to it from the sidebar.`);
+                setSuccess(t('org_switcher.success_joined', { name: result.organizationName }));
                 await refreshOrganizations();
                 setTimeout(() => onClose(), 1500);
             }
         } catch (err: any) {
             console.error('Join org error:', err);
-            setError(err.message || 'Failed to join organization');
+            setError(getOrgErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -95,7 +110,7 @@ export function OrgSwitcherModal({ isOpen, onClose }: OrgSwitcherModalProps) {
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4 border-b border-[#E9E9E7]">
                         <h2 className="text-lg font-semibold text-[#37352F]">
-                            Join or Create Organization
+                            {t('org_switcher.title')}
                         </h2>
                         <button
                             onClick={handleClose}
@@ -119,7 +134,7 @@ export function OrgSwitcherModal({ isOpen, onClose }: OrgSwitcherModalProps) {
                                         : "text-[#787774] hover:text-[#37352F]"
                                 )}
                             >
-                                Join with Code
+                                {t('org_switcher.join_tab')}
                             </button>
                             <button
                                 type="button"
@@ -131,7 +146,7 @@ export function OrgSwitcherModal({ isOpen, onClose }: OrgSwitcherModalProps) {
                                         : "text-[#787774] hover:text-[#37352F]"
                                 )}
                             >
-                                Create New
+                                {t('org_switcher.create_tab')}
                             </button>
                         </div>
 

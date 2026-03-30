@@ -82,5 +82,7 @@ export function useRequireOrg() {
     }
   }, [user, currentOrg, loading, initialized, router]);
 
-  return { currentOrg, loading };
+  const blocking = !initialized || loading || (user && !currentOrg);
+
+  return { currentOrg, loading, blocking };
 }

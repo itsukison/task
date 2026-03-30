@@ -123,8 +123,9 @@ export const FastSection = React.memo(function FastSection({
                     <div className="relative">
                         <div
                             className={cn(
-                                "flex items-center justify-between px-2 py-2 bg-[#f4f5f7] rounded-t-[6px] border border-[#dfe1e6] border-b-0 cursor-pointer",
-                                isDropActive && "border-orange-400"
+                                "flex items-center justify-between px-2 py-2 bg-[#f4f5f7] border border-[#dfe1e6] cursor-pointer transition-all duration-200",
+                                isExpanded ? "rounded-t-[6px] border-b-0" : "rounded-[6px] border-b shadow-sm",
+                                isDropActive && "border-zinc-400 bg-zinc-50"
                             )}
                             onClick={() => setIsExpanded(!isExpanded)}
                         >
@@ -137,7 +138,7 @@ export const FastSection = React.memo(function FastSection({
                                         {section.title}
                                     </span>
                                     {isDropActive && (
-                                        <span className="text-[10px] text-orange-400 font-normal">{t('common.drop_to_reschedule_here')}</span>
+                                        <span className="text-[10px] text-zinc-500 font-normal">{t('common.drop_to_reschedule_here')}</span>
                                     )}
                                 </div>
                             </div>
@@ -149,7 +150,7 @@ export const FastSection = React.memo(function FastSection({
                         {isExpanded && (
                             <div className={cn(
                                 "border border-[#dfe1e6] rounded-b-[6px] bg-white border-t-0",
-                                isDropActive && "border-orange-400"
+                                isDropActive && "border-zinc-400"
                             )}>
                                 {section.tasks.map((task) => {
                                     const isSubtask = !!task.parentTaskId;
@@ -212,7 +213,7 @@ export const FastSection = React.memo(function FastSection({
                                 {section.title}
                             </span>
                             {isDropActive && (
-                                <span className="text-[10px] text-orange-400 font-normal">{t('common.drop_to_reschedule_here')}</span>
+                                <span className="text-[10px] text-zinc-500 font-normal">{t('common.drop_to_reschedule_here')}</span>
                             )}
                         </div>
 
@@ -221,7 +222,7 @@ export const FastSection = React.memo(function FastSection({
                             <div className="relative">
                                 <div className={cn(
                                     "border border-[#dfe1e6] rounded-b-[6px] bg-white",
-                                    isDropActive && 'border-orange-400'
+                                    isDropActive && 'border-zinc-400'
                                 )}>
                                     {section.tasks.map((task) => {
                                         const isSubtask = !!task.parentTaskId;

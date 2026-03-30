@@ -681,7 +681,7 @@ export function useTasks(): UseTasksReturn {
         isMutatingRef.current = true;
 
         try {
-            // CRITICAL: Delete associated calendar blocks BEFORE soft-deleting the task
+            // CRITICAL: Delete associated calendar blocks BEFORE deleting the task
             const { error: blocksDeleteError } = await supabase
                 .from('calendar_blocks')
                 .delete()
@@ -693,9 +693,14 @@ export function useTasks(): UseTasksReturn {
                 throw new Error(`Failed to delete calendar blocks: ${blocksDeleteError.message}`);
             }
 
-            // Use RPC function to perform soft delete (bypasses RLS with internal auth check)
+            // Hard-delete empty tasks (never typed into) — no recovery value.
+            // Soft-delete everything else so users can potentially restore.
+            // Both go through the RPC (SECURITY DEFINER) to bypass RLS.
+            const isEmptyTask = !taskToDelete?.title?.trim();
+
             const { data: deleteResult, error: deleteError } = await supabase.rpc('soft_delete_task', {
-                task_id: apiId
+                task_id: apiId,
+                hard: isEmptyTask,
             });
 
             if (deleteError) {

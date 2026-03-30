@@ -316,7 +316,7 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
             <div
               key={`${block.id}-${task.expectedTime}`}
               style={style}
-              className={`${style.className} ${isPreviewBlock ? 'pointer-events-none' : 'pointer-events-auto'} ${isBeingDragged ? (blockOverTaskList ? 'opacity-0' : '!bg-orange-500/20 !border-orange-500/30 !text-orange-700 !backdrop-blur-sm') : ''} ${!canDrag ? 'cursor-default' : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''} ${isPreviewBlock ? 'opacity-50 cursor-not-allowed' : ''} group/block`}
+              className={`${style.className} ${isPreviewBlock ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'} ${isBeingDragged ? (blockOverTaskList ? 'opacity-0' : '!bg-orange-500/20 !border-orange-500/30 !text-orange-700 !backdrop-blur-sm') : ''} ${isPendingBlock ? 'opacity-50 border-dashed' : ''} ${isPreviewBlock ? 'opacity-50 cursor-not-allowed' : ''} group/block`}
               onClick={(e) => {
                 e.stopPropagation();
                 // Disable clicking on preview blocks
@@ -371,12 +371,12 @@ export const CalendarDayColumn = React.memo(function CalendarDayColumn({
               {/* Resize Handle */}
               {canDrag && (
                 <div
-                  className={`absolute bottom-0 left-0 right-0 cursor-ns-resize opacity-0 group-hover/block:opacity-100 hover:bg-black/5 transition-opacity z-20 flex justify-center items-end pb-0.5 ${
-                    isMicroBlock ? 'h-1' : isSmallBlock ? 'h-2' : 'h-3'
+                  className={`absolute bottom-0 left-0 right-0 cursor-ns-resize z-20 flex justify-center items-end pb-0.5 ${
+                    isMicroBlock ? 'h-2' : isSmallBlock ? 'h-3' : 'h-4'
                   }`}
                   onMouseDown={(e) => handleResizeStart(e, block, task)}
                 >
-                  <div className={`bg-gray-400/50 rounded-full mb-0.5 ${isMicroBlock ? 'w-3 h-0.5' : 'w-5 h-0.5'}`}></div>
+                  <div className={`bg-gray-400/50 rounded-full mb-0.5 opacity-0 group-hover/block:opacity-100 transition-opacity ${isMicroBlock ? 'w-3 h-0.5' : 'w-5 h-0.5'}`}></div>
                 </div>
               )}
             </div>

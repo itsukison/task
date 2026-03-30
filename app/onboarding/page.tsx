@@ -33,6 +33,19 @@ export default function OnboardingPage() {
         }
     }, [isRedirecting, currentOrg, router]);
 
+    const getOrgErrorMessage = (error: unknown) => {
+        const message = error instanceof Error ? error.message : '';
+        const map: Record<string, string> = {
+            'org_error:auth_required': t('org_errors.auth_required'),
+            'org_error:create_failed': t('org_errors.create_failed'),
+            'org_error:invite_expired': t('org_errors.invite_expired'),
+            'org_error:invite_max_uses': t('org_errors.invite_max_uses'),
+            'org_error:already_member': t('org_errors.already_member'),
+            'org_error:invalid_invite': t('org_errors.invalid_invite'),
+        };
+        return map[message] ?? t('org_errors.generic');
+    };
+
     // Check for pending requests on mount
     React.useEffect(() => {
         if (!user) return;
@@ -85,7 +98,7 @@ export default function OnboardingPage() {
             setIsRedirecting(true);
         } catch (err: any) {
             console.error('Create org error:', err);
-            setError(err.message || 'Failed to create organization');
+            setError(getOrgErrorMessage(err));
             setLoading(false); // Only stop loading on error
         }
     };
@@ -103,7 +116,7 @@ export default function OnboardingPage() {
             }
         } catch (err: any) {
             console.error('Join org error:', err);
-            setError(err.message || 'Failed to join organization');
+            setError(getOrgErrorMessage(err));
         } finally {
             setLoading(false);
         }

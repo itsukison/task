@@ -251,7 +251,7 @@ export default function TaskList({
                     <div className="relative w-full h-full">
                         <div
                             ref={daySectionsScrollRef}
-                            className="h-full overflow-y-auto [overflow-anchor:none]"
+                            className="h-full overflow-y-auto [overflow-anchor:none] pt-3"
                         >
                             <div className="flex flex-col pr-4">
                                 {daySections.map((section) => {
