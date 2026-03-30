@@ -653,15 +653,15 @@ export function useTasks(): UseTasksReturn {
 
             // Fallback: if persistTaskInBackground already passed its cancellation
             // check, it won't see the flag. Wait for the real ID and hard delete directly.
-            waitForPersist(canonicalId).then(realId => {
+            waitForPersist(canonicalId).then(async (realId) => {
                 if (realId) {
-                    supabase
-                        .from('calendar_blocks')
-                        .delete()
-                        .eq('task_id', realId)
-                        .then(() => supabase.from('task_owners').delete().eq('task_id', realId))
-                        .then(() => supabase.from('tasks').delete().eq('id', realId))
-                        .catch(err => console.error('Fallback cleanup failed:', err));
+                    try {
+                        await supabase.from('calendar_blocks').delete().eq('task_id', realId);
+                        await supabase.from('task_owners').delete().eq('task_id', realId);
+                        await supabase.from('tasks').delete().eq('id', realId);
+                    } catch (err) {
+                        console.error('Fallback cleanup failed:', err);
+                    }
                 }
             });
 

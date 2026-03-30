@@ -435,6 +435,9 @@ export interface TranslationDictionary {
                 testimonials: string;
                 faq: string;
                 changelog: string;
+                blog: string;
+                vision: string;
+                company: string;
             };
             company_title: string;
             company_items: {
@@ -443,6 +446,10 @@ export interface TranslationDictionary {
                 contact: string;
                 terms: string;
                 privacy: string;
+                vision_endpoint: string;
+                vision_employee: string;
+                login: string;
+                signup: string;
             };
             subscribe_title_prefix: string;
             subscribe_title_suffix: string;
@@ -606,5 +613,23 @@ export interface TranslationDictionary {
         title: string;
         subtitle: string;
         read_more: string;
+    };
+    company: {
+        title: string;
+        intro: string;
+        section_title: string;
+        fields: {
+            name: string;
+            address: string;
+            ceo: string;
+            established: string;
+        };
+        about_title: string;
+        about_body: string;
+        history_title: string;
+        history_item: string;
+        cta_title: string;
+        cta_subtitle: string;
+        cta_button: string;
     };
 }
